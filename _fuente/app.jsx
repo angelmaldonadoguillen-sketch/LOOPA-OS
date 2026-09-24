@@ -179,14 +179,12 @@ function Icon({ name, size = 16 }) {
   }
 }
 
-function LoopaMark({ height = 30, studio = true }) {
-  // Trazos originales de "Logo Loopa Hr.svg": [0] = loopa, [1..] = "studio"
-  const P = window.LOOPA_PATHS || [];
+function LoopaMark({ height = 30 }) {
+  // Logo oficial (logo-loopa.svg), en el color del texto que lo rodea
+  const L0 = window.LOOPA_SVG || { viewBox: '0 0 217.07 202.24', inner: '' };
   return (
-    <svg viewBox={studio ? "0 0 188 106" : "0 0 127 106"} height={height} style={{ display: "block", fill: "currentColor" }} aria-label="LOOPA">
-      <path d={P[0]} />
-      {studio && P.slice(1).map((d, i) => <path key={i} d={d} />)}
-    </svg>
+    <svg viewBox={L0.viewBox} height={height} style={{ display: 'block', fill: 'currentColor' }} aria-label="LOOPA"
+      dangerouslySetInnerHTML={{ __html: L0.inner }} />
   );
 }
 
@@ -1733,7 +1731,7 @@ function Metricas({ ventas, gastos, config }) {
         <div className="kpi"><div className="label"><span className="idx">01</span>Venta</div><div className="value">{L(k.venta)}</div></div>
         <div className="kpi"><div className="label"><span className="idx">02</span>Cobrado</div><div className="value">{L(k.cobrado)}</div><div className="delta" style={{ color: 'var(--muted)' }}>Caja del período {L(cajaPeriodo)}</div></div>
         <div className="kpi"><div className="label"><span className="idx">03</span>Por cobrar</div><div className="value" style={{ color: k.porCobrar > 0 ? 'var(--warn)' : undefined }}>{L(k.porCobrar)}</div></div>
-        <div className="kpi accent"><div className="label"><span className="idx" style={{ color: 'rgba(10,10,10,0.5)' }}>04</span>Ganancia neta</div><div className="value">{L(k.ganancia)}</div></div>
+        <div className="kpi accent"><div className="label"><span className="idx" style={{ color: 'rgba(20,40,31,0.55)' }}>04</span>Ganancia neta</div><div className="value">{L(k.ganancia)}</div></div>
         <div className="kpi"><div className="label"><span className="idx">05</span>Margen</div><div className="value">{k.margen.toFixed(1)}<span className="unit">%</span></div></div>
       </div>
 
@@ -2043,7 +2041,7 @@ function LoginScreen() {
   return (
     <div className="login">
       <div style={{ width: 340, textAlign: 'center' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6, color: 'var(--text)' }}><LoopaMark height={64} /></div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6, color: 'var(--accent)' }}><LoopaMark height={120} /></div>
         <div className="mono" style={{ fontSize: 10, color: 'var(--dim)', letterSpacing: '0.22em', marginBottom: 44, textTransform: 'uppercase' }}>LOOPA OS · Acceso privado</div>
         <div className={shake ? 'shake' : ''} style={{ background: 'var(--card)', border: `1px solid ${errorMsg ? 'var(--danger)' : 'var(--line)'}`, borderRadius: 18, padding: '32px 28px' }}>
           <input className="input mono" type="email" autoFocus autoComplete="username" placeholder="email" value={email} onChange={e => { setEmail(e.target.value); setErrorMsg(''); }} onKeyDown={onKey} style={{ marginBottom: 10 }} />
@@ -2079,14 +2077,14 @@ function DialogHost() {
       <div className="modal" style={{ maxWidth: 420 }} onMouseDown={e => e.stopPropagation()}>
         <div style={{ padding: '22px 22px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <span style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 8, background: state.danger ? 'rgba(230,57,70,.12)' : 'rgba(123,97,255,.14)', color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{state.danger ? '⚠' : 'ℹ'}</span>
+            <span style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 8, background: state.danger ? 'rgba(230,57,70,.12)' : 'rgba(var(--accent-rgb),.14)', color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{state.danger ? '⚠' : 'ℹ'}</span>
             <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 17 }}>{state.title}</div>
           </div>
           {state.message && <div style={{ color: 'var(--muted)', fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-wrap', paddingLeft: 40 }}>{state.message}</div>}
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', padding: 22 }}>
           {state.kind === 'confirm' && <button className="btn sm" onClick={() => close(false)}>{state.cancelLabel}</button>}
-          <button className="btn sm" autoFocus onClick={() => close(true)} style={{ background: accent, borderColor: accent, color: '#fff', fontWeight: 700 }}>{state.confirmLabel}</button>
+          <button className="btn sm" autoFocus onClick={() => close(true)} style={{ background: accent, borderColor: accent, color: state.danger ? '#fff' : 'var(--on-accent)', fontWeight: 700 }}>{state.confirmLabel}</button>
         </div>
       </div>
     </div>
@@ -2146,7 +2144,7 @@ function AlertBell({ ventas, onOpen }) {
   );
 }
 
-const TWEAK_DEFAULTS = { accent: '#7B61FF', density: 'comfortable', sidebarCollapsed: false };
+const TWEAK_DEFAULTS = { accent: '#e2e58d', density: 'comfortable', sidebarCollapsed: false };
 const hexToRgb = (h) => { const n = parseInt(h.slice(1), 16); return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`; };
 
 function App({ onLogout }) {
@@ -2165,7 +2163,7 @@ function App({ onLogout }) {
   const [gSearch, setGSearch] = useState('');
   const [gOpen, setGOpen] = useState(false);
   const [tweaksOpen, setTweaksOpen] = useState(false);
-  const [tweaks, setTweaks] = useState(() => { try { return { ...TWEAK_DEFAULTS, ...JSON.parse(localStorage.getItem('loopa-tweaks') || '{}') }; } catch (e) { return TWEAK_DEFAULTS; } });
+  const [tweaks, setTweaks] = useState(() => { try { return { ...TWEAK_DEFAULTS, ...JSON.parse(localStorage.getItem('loopa-tweaks-v2') || '{}') }; } catch (e) { return TWEAK_DEFAULTS; } });
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
   const [pwaPrompt, setPwaPrompt] = useState(null);
@@ -2235,7 +2233,7 @@ function App({ onLogout }) {
 
   useEffect(() => { try { localStorage.setItem('loopa-route', route); } catch (e) {} }, [route]);
   useEffect(() => {
-    try { localStorage.setItem('loopa-tweaks', JSON.stringify(tweaks)); } catch (e) {}
+    try { localStorage.setItem('loopa-tweaks-v2', JSON.stringify(tweaks)); } catch (e) {}
     document.documentElement.style.setProperty('--accent', tweaks.accent);
     document.documentElement.style.setProperty('--accent-ink', tweaks.accent);
     document.documentElement.style.setProperty('--accent-rgb', hexToRgb(tweaks.accent));
@@ -2358,7 +2356,7 @@ function App({ onLogout }) {
 
   if (!ready) return (
     <div className="boot">
-      <div style={{ color: 'var(--text)' }}><LoopaMark height={56} /></div>
+      <div style={{ color: 'var(--accent)' }}><LoopaMark height={110} /></div>
       {loadError ? (
         <>
           <div className="boot-err"><span style={{ color: 'var(--danger)', fontSize: 18 }}>✕</span><div><div className="mono" style={{ fontSize: 11, color: 'var(--danger)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>No se pudieron cargar los datos</div><div className="mono muted" style={{ fontSize: 12 }}>{loadError}</div></div></div>
@@ -2383,8 +2381,8 @@ function App({ onLogout }) {
   return (
     <div className={`app ${tweaks.sidebarCollapsed ? 'collapsed' : ''}`}>
       <aside className="sidebar">
-        <div className="sidebar-brand" onClick={() => goNueva(null)} title="Nueva venta" style={{ cursor: 'pointer', color: 'var(--text)', justifyContent: tweaks.sidebarCollapsed ? 'center' : 'flex-start' }}>
-          <LoopaMark height={tweaks.sidebarCollapsed ? 22 : 34} studio={!tweaks.sidebarCollapsed} />
+        <div className="sidebar-brand" onClick={() => goNueva(null)} title="Nueva venta" style={{ cursor: 'pointer', color: 'var(--accent)', justifyContent: tweaks.sidebarCollapsed ? 'center' : 'flex-start' }}>
+          <LoopaMark height={tweaks.sidebarCollapsed ? 36 : 64} />
         </div>
 
         {!tweaks.sidebarCollapsed && (
@@ -2506,7 +2504,7 @@ function App({ onLogout }) {
             <div className="tweak-row">
               <span className="lbl">Acento</span>
               <div className="tweak-colors">
-                {['#7B61FF', '#E63946', '#00C2A8', '#F5B700', '#F1F1F1'].map(c => (
+                {['#e2e58d', '#F3F4E4', '#7BC96F', '#6BA3E0', '#F5B700'].map(c => (
                   <div key={c} className={`tweak-col ${tweaks.accent === c ? 'on' : ''}`} style={{ background: c }} onClick={() => setTweaks(t => ({ ...t, accent: c }))} />
                 ))}
               </div>

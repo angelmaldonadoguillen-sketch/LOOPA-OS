@@ -80,7 +80,10 @@ El código fuente está en `_fuente/`:
 
 - `app.jsx` — toda la lógica y pantallas (React)
 - `extra.css` — estilos propios de LOOPA
-- `build.js` — arma `index.html` (toma el CSS base de TOONED OS)
+- `build.js` — arma `index.html` (toma el CSS base de TOONED OS y lo pasa a la paleta LOOPA)
+- `logo-loopa.svg` — logo oficial; si cambia el logo, reemplazá este archivo y volvé a armar
+
+Identidad: fondo `#14281f`, acento `#e2e58d`, tipografía Montserrat.
 
 Después de editar: `node _fuente/build.js`. La config de Firebase que ya
 hayas pegado en `index.html` se conserva.

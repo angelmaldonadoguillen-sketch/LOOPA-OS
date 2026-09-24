@@ -1,11 +1,11 @@
-<!doctype html><!-- LOOPA OS v1.0 · base TOONED OS v2.8 -->
+<!doctype html><!-- LOOPA OS v1.1 · base TOONED OS v2.8 -->
 <html lang="es">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>LOOPA OS</title>
 <link rel="manifest" href="manifest.json" />
-<meta name="theme-color" content="#0A0A0A" />
+<meta name="theme-color" content="#14281f" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -19,7 +19,7 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -46,17 +46,17 @@
 </script>
 <style>
 :root {
-  --bg: #0A0A0A;
-  --surface: #0F0F0F;
-  --card: #141414;
-  --card-2: #1A1A1A;
-  --line: #242424;
-  --line-2: #2E2E2E;
-  --text: #F1F1F1;
-  --muted: #8A8A8A;
-  --dim: #5A5A5A;
-  --accent: #7B61FF;
-  --accent-ink: #9A85FF;
+  --bg: #14281f;
+  --surface: #172e24;
+  --card: #1a3329;
+  --card-2: #1f3a2f;
+  --line: #29473a;
+  --line-2: #325243;
+  --text: #f3f4e4;
+  --muted: #93a89b;
+  --dim: #62796b;
+  --accent: #e2e58d;
+  --accent-ink: #eef0b3;
   --ok: #7BC96F;
   --warn: #E8B547;
   --danger: #E63946;
@@ -96,7 +96,7 @@ input, select, textarea { font-family: inherit; color: inherit; cursor: text; us
 
 /* ============ SIDEBAR ============ */
 .sidebar {
-  background: #060606;
+  background: #0f2019;
   border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
@@ -163,8 +163,8 @@ input, select, textarea { font-family: inherit; color: inherit; cursor: text; us
   letter-spacing: 0.01em;
   position: relative;
 }
-.nav-item:hover { background: #111; color: var(--text); }
-.nav-item.active { background: #141414; color: var(--text); }
+.nav-item:hover { background: #182f25; color: var(--text); }
+.nav-item.active { background: #1a3329; color: var(--text); }
 .nav-item.active::before {
   content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; background: var(--accent); border-radius: 0 var(--r-pill) var(--r-pill) 0;
 }
@@ -236,7 +236,7 @@ input, select, textarea { font-family: inherit; color: inherit; cursor: text; us
 .bell-dropdown {
   position: absolute; top: calc(100% + 10px); right: 0;
   width: 300px; max-height: 380px; overflow-y: auto;
-  background: #141414; border: 1px solid rgba(245,176,65,.35);
+  background: #1a3329; border: 1px solid rgba(245,176,65,.35);
   border-radius: var(--r-md); z-index: 9999;
   box-shadow: 0 8px 32px rgba(0,0,0,.75);
 }
@@ -289,11 +289,11 @@ input, select, textarea { font-family: inherit; color: inherit; cursor: text; us
 }
 
 /* Scrollbar temática — aplica a TODO el sistema (paneles, modales, textareas, etc.) */
-* { scrollbar-width: thin; scrollbar-color: #2E2E2E transparent; }
+* { scrollbar-width: thin; scrollbar-color: #325243 transparent; }
 *::-webkit-scrollbar { width: 8px; height: 8px; }
 *::-webkit-scrollbar-track { background: transparent; }
-*::-webkit-scrollbar-thumb { background: #2E2E2E; border-radius: var(--r-pill); }
-*::-webkit-scrollbar-thumb:hover { background: #3A3A3A; }
+*::-webkit-scrollbar-thumb { background: #325243; border-radius: var(--r-pill); }
+*::-webkit-scrollbar-thumb:hover { background: #3d5e4e; }
 *::-webkit-scrollbar-corner { background: transparent; }
 
 /* ============ PAGE HEADER ============ */
@@ -377,11 +377,11 @@ input, select, textarea { font-family: inherit; color: inherit; cursor: text; us
   font-weight: 500;
   transition: all 0.12s ease;
 }
-.btn:hover { border-color: var(--text); background: #191919; }
+.btn:hover { border-color: var(--text); background: #1f3a2f; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; border-radius: var(--r-md); }
 .btn.primary:hover { background: var(--accent-ink); border-color: var(--accent-ink); }
 .btn.ghost { border-color: transparent; color: var(--muted); }
-.btn.ghost:hover { color: var(--text); background: #151515; border-color: var(--line); }
+.btn.ghost:hover { color: var(--text); background: #1d372c; border-color: var(--line); }
 .btn.sm { padding: 6px 12px; font-size: 10px; letter-spacing: 0.1em; border-radius: var(--r-sm); }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
@@ -396,7 +396,7 @@ input, select, textarea { font-family: inherit; color: inherit; cursor: text; us
 }
 .field .req { color: var(--accent); }
 .input, .select, .textarea {
-  background: #0D0D0D;
+  background: #11231b;
   border: 1px solid var(--line-2);
   padding: 12px 14px;
   color: var(--text);
@@ -411,7 +411,7 @@ input, select, textarea { font-family: inherit; color: inherit; cursor: text; us
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb),.12);
 }
 .input::placeholder { color: var(--dim); }
-.select option, select option { background: #1A1A1A; color: #E0E0E0; }
+.select option, select option { background: #1f3a2f; color: #e3e6d3; }
 
 .segmented {
   display: inline-flex;
@@ -429,7 +429,7 @@ input, select, textarea { font-family: inherit; color: inherit; cursor: text; us
   border-right: 1px solid var(--line-2);
 }
 .segmented button:last-child { border-right: 0; }
-.segmented button:hover { color: var(--text); background: #181818; }
+.segmented button:hover { color: var(--text); background: #1f3a2f; }
 .segmented button.on { background: var(--text); color: var(--bg); font-weight: 600; }
 
 /* ============ TABLE ============ */
@@ -444,7 +444,7 @@ input, select, textarea { font-family: inherit; color: inherit; cursor: text; us
   color: var(--muted);
   font-weight: 500;
   border-bottom: 1px solid var(--line);
-  background: #0C0C0C;
+  background: #11231b;
   white-space: nowrap;
 }
 .tbl tbody td {
@@ -453,8 +453,8 @@ input, select, textarea { font-family: inherit; color: inherit; cursor: text; us
   vertical-align: middle;
 }
 .tbl tbody tr { transition: background 0.08s; cursor: pointer; }
-.tbl tbody tr:hover { background: #121212; }
-.tbl tbody tr.selected { background: #161616; }
+.tbl tbody tr:hover { background: #1a3228; }
+.tbl tbody tr.selected { background: #1d372c; }
 .tbl tbody tr.selected td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
 .tbl .num { font-family: var(--font-mono); text-align: right; font-variant-numeric: tabular-nums; }
 .tbl .order-n { font-family: var(--font-mono); font-weight: 600; color: var(--text); }
@@ -476,8 +476,8 @@ input, select, textarea { font-family: inherit; color: inherit; cursor: text; us
   white-space: nowrap;
 }
 .badge .pip { width: 6px; height: 6px; background: var(--muted); border-radius: 50%; }
-.badge.sin-empezar { color: #888; border-color: #333; }
-.badge.sin-empezar .pip { background: #888; }
+.badge.sin-empezar { color: #93a89b; border-color: #365646; }
+.badge.sin-empezar .pip { background: #93a89b; }
 .badge.impresas { color: #E8B547; border-color: #5c4516; }
 .badge.impresas .pip { background: #E8B547; }
 .badge.preparado { color: #6BA3E0; border-color: #2a4660; }
@@ -488,8 +488,8 @@ input, select, textarea { font-family: inherit; color: inherit; cursor: text; us
 .badge.recibido .pip { background: #7BC96F; }
 .badge.rebotado { color: #E63946; border-color: #5a1f25; }
 .badge.rebotado .pip { background: #E63946; }
-.badge.perdido { color: #555; border-color: #2a2a2a; }
-.badge.perdido .pip { background: #555; }
+.badge.perdido { color: #58705f; border-color: #2c4a3d; }
+.badge.perdido .pip { background: #58705f; }
 
 .pay {
   display: inline-flex;
@@ -558,7 +558,7 @@ input, select, textarea { font-family: inherit; color: inherit; cursor: text; us
   gap: 6px;
 }
 .kpi .delta.neg { color: var(--danger); }
-.kpi.accent { background: var(--accent); color: #0A0A0A; }
+.kpi.accent { background: var(--accent); color: #14281f; }
 .kpi.accent .label, .kpi.accent .unit, .kpi.accent .delta { color: rgba(10,10,10,0.7); }
 
 /* ============ STEPPER ============ */
@@ -617,7 +617,7 @@ input, select, textarea { font-family: inherit; color: inherit; cursor: text; us
   transition: background 0.1s;
   border-radius: var(--r-xs) var(--r-xs) 0 0;
 }
-.bar-col .bar.ghost { background: #242424; }
+.bar-col .bar.ghost { background: #29473a; }
 .bar-col .bar.ghost + .v { color: var(--dim); }
 .bar-col:hover .bar { background: var(--accent-ink); }
 .bar-col .v {
@@ -678,8 +678,8 @@ input, select, textarea { font-family: inherit; color: inherit; cursor: text; us
   padding: 4px 0;
 }
 .size-btn:hover { border-color: var(--text); }
-.size-btn.on { background: var(--accent); border-color: var(--accent); color: #0A0A0A; }
-.size-btn.on .mono { color: #0A0A0A !important; }
+.size-btn.on { background: var(--accent); border-color: var(--accent); color: #14281f; }
+.size-btn.on .mono { color: #14281f !important; }
 
 .catalog-grid {
   display: grid;
@@ -701,7 +701,7 @@ input, select, textarea { font-family: inherit; color: inherit; cursor: text; us
 }
 .thumb {
   aspect-ratio: 1;
-  background: #0B0B0B;
+  background: #11231b;
   display: flex; align-items: center; justify-content: center;
   margin-bottom: 10px;
   overflow: hidden;
@@ -851,7 +851,7 @@ input, select, textarea { font-family: inherit; color: inherit; cursor: text; us
   font-size: 11px; padding: 2px 4px; outline: none;
 }
 .filter-group select option {
-  background: #1A1A1A; color: #E0E0E0;
+  background: #1f3a2f; color: #e3e6d3;
 }
 
 /* metric sections */
@@ -871,7 +871,7 @@ input, select, textarea { font-family: inherit; color: inherit; cursor: text; us
   font-family: var(--font-display); font-weight: 700; font-size: 22px;
   color: var(--accent); letter-spacing: -0.03em;
 }
-.top-row .th { width: 36px; height: 36px; background: #0B0B0B; border: 1px solid var(--line); overflow: hidden; flex-shrink: 0; }
+.top-row .th { width: 36px; height: 36px; background: #11231b; border: 1px solid var(--line); overflow: hidden; flex-shrink: 0; }
 .top-row .nm { font-family: var(--font-display); font-weight: 600; font-size: 13px; }
 .top-row .snm { font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
 .top-row .v { font-family: var(--font-mono); font-size: 13px; font-weight: 600; }
@@ -886,7 +886,7 @@ input, select, textarea { font-family: inherit; color: inherit; cursor: text; us
   text-transform: uppercase;
 }
 .channel-row .trk {
-  height: 8px; background: #0B0B0B; position: relative;
+  height: 8px; background: #11231b; position: relative;
 }
 .channel-row .trk span {
   position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent);
@@ -976,7 +976,7 @@ hr.divider { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
   letter-spacing: 0.01em;
   color: var(--muted);
   gap: 26px;
-  background: #060606;
+  background: #0f2019;
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 0;
@@ -986,7 +986,7 @@ hr.divider { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
 .ticker .sep { color: var(--dim); }
 
 /* flashes */
-@keyframes accentFlash { 0%{background:var(--accent); color:#0A0A0A;} 100%{background:var(--card); color:var(--text);} }
+@keyframes accentFlash { 0%{background:var(--accent); color:#14281f;} 100%{background:var(--card); color:var(--text);} }
 .flash { animation: accentFlash 0.6s ease-out; }
 
 /* scanlines on big number */
@@ -1143,24 +1143,41 @@ hr.divider { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
 
 
 /* ═════════════ LOOPA OS — agregados sobre la base TOONED ═════════════ */
-:root { --accent-rgb: 123,97,255; }
+/* Paleta LOOPA: #14281f verde profundo · #e2e58d lima. Tipografía: solo Montserrat. */
+:root {
+  --bg: #14281f; --surface: #172e24; --card: #1a3329; --card-2: #1f3a2f;
+  --line: #29473a; --line-2: #325243;
+  --text: #f3f4e4; --muted: #93a89b; --dim: #62796b;
+  --accent-rgb: 226,229,141;
+  --on-accent: #14281f;               /* texto sobre el lima */
+  --font-display: 'Montserrat', system-ui, sans-serif;
+  --font-body: 'Montserrat', system-ui, sans-serif;
+  --font-mono: 'Montserrat', system-ui, sans-serif;
+}
+html, body { font-size: 13.5px; }
+.mono, .tbl .num { font-variant-numeric: tabular-nums; }
+::selection { background: var(--accent); color: var(--on-accent); }
 .step { text-align: left; cursor: pointer; }
 .btn { white-space: nowrap; }
-.step:hover:not(.active) { background: #121212; }
-.order-hero { background: #0E0B1A; border-color: var(--accent); }
-.order-hero::before { content: "LOOPA"; color: rgba(var(--accent-rgb), .07); }
-.kpi.accent { color: #fff; }
-.kpi.accent .label, .kpi.accent .unit, .kpi.accent .delta { color: rgba(255,255,255,.75); }
+.btn.primary, .btn.primary:hover { color: var(--on-accent); }
+.bell-badge { color: var(--on-accent); }
+.segmented button.on, .chipbtn.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.step:hover:not(.active) { background: #1a3228; }
+.order-hero { background: #0f2019; border-color: var(--accent); }
+.order-hero::before { content: "LOOPA"; color: rgba(var(--accent-rgb), .06); }
+.kpi.accent { color: var(--on-accent); }
+.kpi.accent .label, .kpi.accent .unit, .kpi.accent .delta { color: rgba(20,40,31,.7); }
+.sidebar-brand { padding: 14px 18px 10px; }
 .kpi .value { font-size: clamp(22px, 2.4vw, 36px); flex-wrap: wrap; }
 .kpi-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 @media (max-width: 1200px) { .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
 /* estados del trabajo */
-.badge.e-pendiente  { color: #8A8A8A; border-color: #333; }       .badge.e-pendiente .pip  { background: #8A8A8A; }
+.badge.e-pendiente  { color: #93a89b; border-color: #365646; }       .badge.e-pendiente .pip  { background: #93a89b; }
 .badge.e-en-proceso { color: #E8B547; border-color: #5c4516; }    .badge.e-en-proceso .pip { background: #E8B547; }
 .badge.e-revision   { color: #6BA3E0; border-color: #2a4660; }    .badge.e-revision .pip   { background: #6BA3E0; }
 .badge.e-entregado  { color: #7BC96F; border-color: #2e5228; }    .badge.e-entregado .pip  { background: #7BC96F; }
-.badge.e-cancelado  { color: #555; border-color: #2a2a2a; text-decoration: line-through; } .badge.e-cancelado .pip { background: #555; }
+.badge.e-cancelado  { color: #58705f; border-color: #2c4a3d; text-decoration: line-through; } .badge.e-cancelado .pip { background: #58705f; }
 .pay.partial { color: var(--info); }
 .tbl .num, .tbl .pay { white-space: nowrap; }
 
@@ -1172,7 +1189,7 @@ hr.divider { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
 .linkbtn { color: var(--accent); font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 5px; padding: 2px 0; }
 .linkbtn:hover { text-decoration: underline; }
 .icon-btn { width: 26px; height: 26px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; color: var(--dim); border: 1px solid transparent; flex-shrink: 0; }
-.icon-btn:hover { background: #1c1c1c; color: var(--text); border-color: var(--line-2); }
+.icon-btn:hover { background: #224034; color: var(--text); border-color: var(--line-2); }
 .icon-btn.danger:hover { color: var(--danger); border-color: #4a1a1f; background: rgba(230,57,70,.08); }
 .icon-btn:disabled { opacity: .3; pointer-events: none; }
 
@@ -1180,24 +1197,24 @@ hr.divider { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .chipbtn { padding: 6px 12px; border: 1px solid var(--line-2); border-radius: 999px; font-family: var(--font-mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; transition: all .12s; white-space: nowrap; }
 .chipbtn:hover { color: var(--text); border-color: var(--muted); }
-.chipbtn.on { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 600; }
+.chipbtn.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
 .srv-chip { display: inline-block; font-family: var(--font-mono); font-size: 10px; letter-spacing: .04em; color: var(--muted); border: 1px solid var(--line-2); border-radius: 6px; padding: 2px 7px; white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
 .tag-edit { display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px 4px 12px; border: 1px solid var(--line-2); border-radius: 999px; font-size: 12px; }
 .tag-edit button { width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--dim); }
 .tag-edit button:hover { background: rgba(230,57,70,.15); color: var(--danger); }
 
 /* buscador grande + dropdown */
-.search-big { display: flex; align-items: center; gap: 10px; background: #0D0D0D; border: 1px solid var(--line-2); border-radius: var(--r-md); padding: 0 8px 0 14px; color: var(--muted); transition: border-color .15s, box-shadow .15s; }
+.search-big { display: flex; align-items: center; gap: 10px; background: #11231b; border: 1px solid var(--line-2); border-radius: var(--r-md); padding: 0 8px 0 14px; color: var(--muted); transition: border-color .15s, box-shadow .15s; }
 .search-big:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .15); color: var(--text); }
 .search-big input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; padding: 13px 0; font-size: 14px; color: var(--text); }
 .search-big input::placeholder { color: var(--dim); }
-.dropdown { position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; background: #111; border: 1px solid var(--accent); border-radius: var(--r-md); z-index: 200; overflow: hidden; max-height: 340px; overflow-y: auto; box-shadow: 0 12px 40px rgba(0,0,0,.7); }
+.dropdown { position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; background: #182f25; border: 1px solid var(--accent); border-radius: var(--r-md); z-index: 200; overflow: hidden; max-height: 340px; overflow-y: auto; box-shadow: 0 12px 40px rgba(0,0,0,.7); }
 .dropdown-row { padding: 10px 12px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 10px; cursor: pointer; }
 .dropdown-row:last-child { border-bottom: 0; }
-.dropdown-row:hover { background: #1a1a1a; }
-.dropdown-lbl { font-family: var(--font-mono); font-size: 9px; letter-spacing: .14em; color: var(--dim); padding: 6px 12px; border-bottom: 1px solid var(--line); text-transform: uppercase; background: #0c0c0c; }
+.dropdown-row:hover { background: #1f3a2f; }
+.dropdown-lbl { font-family: var(--font-mono); font-size: 9px; letter-spacing: .14em; color: var(--dim); padding: 6px 12px; border-bottom: 1px solid var(--line); text-transform: uppercase; background: #11231b; }
 .gsearch-wrap { padding: 8px 12px; border-bottom: 1px solid var(--line); position: relative; }
-.gsearch { display: flex; align-items: center; gap: 7px; background: #0F0F0F; border: 1px solid var(--line); border-radius: var(--r-sm); padding: 7px 10px; color: var(--dim); }
+.gsearch { display: flex; align-items: center; gap: 7px; background: #172e24; border: 1px solid var(--line); border-radius: var(--r-sm); padding: 7px 10px; color: var(--dim); }
 .gsearch.on { border-color: var(--accent); }
 .gsearch input { background: transparent; border: 0; color: var(--text); font-family: var(--font-mono); font-size: 11px; outline: none; width: 100%; }
 
@@ -1213,15 +1230,15 @@ hr.divider { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
 .srv-cat { font-family: var(--font-mono); font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); padding-right: 26px; }
 .srv-name { font-family: var(--font-display); font-weight: 700; font-size: 14px; line-height: 1.25; letter-spacing: -.01em; overflow-wrap: anywhere; }
 .srv-meta { margin-top: auto; display: flex; justify-content: space-between; gap: 8px; font-family: var(--font-mono); font-size: 11px; }
-.srv-in { position: absolute; top: 10px; right: 10px; background: var(--accent); color: #fff; font-family: var(--font-mono); font-size: 10px; font-weight: 700; border-radius: 999px; min-width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; padding: 0 6px; }
+.srv-in { position: absolute; top: 10px; right: 10px; background: var(--accent); color: var(--on-accent); font-family: var(--font-mono); font-size: 10px; font-weight: 700; border-radius: 999px; min-width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; padding: 0 6px; }
 .create-box { border: 1px dashed var(--accent); border-radius: var(--r-md); padding: 18px; background: rgba(var(--accent-rgb), .04); }
 .ln { border: 1px solid var(--line); background: var(--surface); border-radius: var(--r-md); padding: 14px; margin-bottom: 10px; }
 .ln-top { display: flex; align-items: flex-start; gap: 10px; }
 .ln-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; margin-top: 10px; align-items: end; }
 .ln-foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
-.qty { display: inline-flex; align-items: center; border: 1px solid var(--line-2); border-radius: var(--r-sm); overflow: hidden; background: #0D0D0D; }
+.qty { display: inline-flex; align-items: center; border: 1px solid var(--line-2); border-radius: var(--r-sm); overflow: hidden; background: #11231b; }
 .qty button { width: 28px; height: 33px; color: var(--muted); display: flex; align-items: center; justify-content: center; }
-.qty button:hover { background: #1c1c1c; color: var(--text); }
+.qty button:hover { background: #224034; color: var(--text); }
 .qty input { width: 34px; text-align: center; background: transparent; border: 0; outline: none; font-family: var(--font-mono); font-size: 12px; color: var(--text); }
 .pay-opt { border-radius: var(--r-sm); }
 .pay-opt .radio { border-radius: 50%; }
@@ -1233,7 +1250,7 @@ hr.divider { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
 .modal-head { display: flex; align-items: flex-start; gap: 12px; padding: 20px 22px; border-bottom: 1px solid var(--line); }
 .modal-title { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: -.02em; line-height: 1.15; }
 .modal-x { margin-left: auto; color: var(--muted); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.modal-x:hover { background: #1c1c1c; color: var(--text); }
+.modal-x:hover { background: #224034; color: var(--text); }
 .modal-body { padding: 20px 22px; }
 .modal-foot { display: flex; gap: 8px; justify-content: flex-end; align-items: center; padding: 16px 22px; border-top: 1px solid var(--line); flex-wrap: wrap; }
 @keyframes dlgFade { from { opacity: 0 } to { opacity: 1 } }
@@ -1249,10 +1266,10 @@ hr.divider { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
 .abono-add { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); }
 
 /* popover */
-.pick-menu { position: fixed; z-index: 900; background: #141414; border: 1px solid var(--line-2); border-radius: 12px; padding: 6px; min-width: 210px; box-shadow: 0 12px 40px rgba(0,0,0,.75); animation: dlgIn .12s ease-out; }
+.pick-menu { position: fixed; z-index: 900; background: #1a3329; border: 1px solid var(--line-2); border-radius: 12px; padding: 6px; min-width: 210px; box-shadow: 0 12px 40px rgba(0,0,0,.75); animation: dlgIn .12s ease-out; }
 .pick-opt { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border-radius: 8px; text-align: left; font-size: 12px; }
-.pick-opt:hover { background: #1f1f1f; }
-.pick-opt.on { background: #1a1a1a; }
+.pick-opt:hover { background: #224034; }
+.pick-opt.on { background: #1f3a2f; }
 
 /* métricas */
 .metrics-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
@@ -1276,9 +1293,9 @@ hr.divider { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
 
 /* toast */
 .toast { position: fixed; top: 104px; right: 24px; z-index: 9999; padding: 14px 18px; border-radius: 12px; display: flex; align-items: center; gap: 14px; min-width: 240px; max-width: 400px; font-family: var(--font-mono); font-size: 12px; letter-spacing: .03em; color: var(--text); box-shadow: 0 8px 24px rgba(0,0,0,.45); animation: toastIn .25s ease-out; background: #0A1A0E; border: 1px solid var(--ok); }
-.toast.t-info { background: #0D0B18; border-color: var(--accent); }
+.toast.t-info { background: #10221a; border-color: var(--accent); }
 .toast.t-warn { background: #1A0A0A; border-color: var(--danger); }
-.toast-act { flex-shrink: 0; background: var(--accent); color: #fff; border-radius: 8px; padding: 6px 12px; font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.toast-act { flex-shrink: 0; background: var(--accent); color: var(--on-accent); border-radius: 8px; padding: 6px 12px; font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 @keyframes toastIn { from { transform: translateY(12px); opacity: 0 } to { transform: none; opacity: 1 } }
 
 /* arranque / login */
@@ -1295,7 +1312,7 @@ hr.divider { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
   .nav-item { justify-content: center; }
   .nav-item > span:not(.nav-mobile-label), .gsearch-wrap, .sidebar-footer { display: none !important; }
   .sidebar-brand { justify-content: center !important; padding: 18px 6px 14px; }
-  .sidebar-brand svg { height: 20px; width: 50px; }
+  .sidebar-brand svg { height: 40px; width: 44px; }
 }
 @media (max-width: 1100px) {
   .nv-grid, .metrics-grid-3, .metrics-grid { grid-template-columns: 1fr; }
@@ -1327,7 +1344,7 @@ hr.divider { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
 <script>
-window.LOOPA_PATHS = ["M123.71,75.6c-2.67-.69-4.53-7.38-3.05-16.22h0c.49-2.95.59-3.26.85-4.75,0,0,0,0,0,0l3.08-16.44.84-4.37h-5.41l-.84,4.15c-1.25-1.97-2.91-3.27-4.89-3.78-4.63-1.2-9.67,2.29-13.53,8.72-1.12-4.77-3.53-7.85-6.87-8.72-2.36-.61-4.82,0-7.19,1.58l.36-1.92h-5.42l-1.52,8.13c-1.2-4.25-3.51-6.99-6.63-7.8-3.61-.94-7.54.91-11.06,5.2-.87,1.06-1.69,2.25-2.46,3.54-1.12-4.79-3.53-7.87-6.87-8.74-6.91-1.8-14.73,6.86-18.19,20.15-.27,1.03-.5,2.05-.69,3.06-.56,2.87-1.34,5.69-2.53,8.36-3.08,6.91-7.23,10.47-9.46,9.89-2.51-.65-4.59-7.1-3.04-16.24,5.88-5.8,11.73-12.52,17-19.61,5.02-6.76,16.54-23.51,15.21-33.13-.44-3.17-2.27-5.42-5.15-6.32-2.11-.66-4.37-.38-6.53.82-5.68,3.16-11.42,12.89-17.56,29.75-4.38,12.04-7.31,23.42-7.34,23.53h0c-.2.79-.39,1.57-.55,2.34-4.89,4.72-9.77,8.73-14.29,11.69l2.92,4.45c3.33-2.19,6.85-4.91,10.42-8.05-.14,8.36,2.6,14.62,7.57,15.91.61.16,1.22.24,1.84.24,4,0,8.14-3.22,11.46-8.59,1.14,4.42,3.46,7.49,6.77,8.35.61.16,1.22.24,1.84.24,4.09,0,8.33-3.37,11.68-8.96,1.1,4.62,3.46,7.84,6.87,8.72.61.16,1.22.24,1.84.24,3.86,0,7.86-3.01,11.12-8.05l-5.95,31.77,5.23.98,4.99-26.67c.92.83,1.97,1.42,3.15,1.73.61.16,1.22.24,1.84.24,4.09,0,8.33-3.37,11.68-8.96,1.12,4.77,3.53,7.85,6.87,8.72.61.16,1.22.24,1.84.24,4.03,0,8.21-3.28,11.54-8.73,1.13,4.51,3.48,7.57,6.82,8.44.6.16,1.33.26,2.16.23h0s0-5.34,0-5.34c-.28.04-.56.03-.83-.04ZM27.19,32.71c7.34-20.15,12.63-25.49,15.13-26.88.7-.39,1.25-.51,1.67-.51.28,0,.5.05.68.11.76.24,1.3.67,1.48,1.98.72,5.16-4.86,16.63-14.21,29.22-3.17,4.27-6.56,8.4-10.03,12.26,1.26-4.3,3.09-10.16,5.28-16.18ZM54.02,59.31c-2.88,11.08-8.85,17.08-11.69,16.34-2.39-.62-4.39-6.51-3.24-14.98,0,0,0-.02,0-.02h0c.22-1.57.54-3.23.99-4.97,2.72-10.47,8.2-16.4,11.19-16.4.17,0,.34.02.5.06,1.42.37,2.65,2.56,3.22,5.72.72,4.01.37,9.07-.98,14.25ZM74.42,59.31c-2.88,11.08-8.85,17.08-11.69,16.34-2.84-.74-5.13-8.89-2.24-19.97,1.35-5.17,3.51-9.76,6.09-12.91,1.81-2.2,3.7-3.49,5.1-3.49.18,0,.34.02.5.06,1.42.37,2.65,2.56,3.22,5.72.72,4.01.37,9.07-.98,14.25ZM94.81,59.31c-2.88,11.08-8.86,17.08-11.69,16.34-2.84-.74-5.13-8.89-2.24-19.97,2.72-10.47,8.2-16.4,11.19-16.4.18,0,.34.02.5.06,1.42.37,2.65,2.56,3.22,5.72.72,4.01.37,9.07-.98,14.25ZM115.2,59.31c-2.88,11.08-8.85,17.08-11.69,16.34-1.42-.37-2.65-2.56-3.22-5.72-.72-4.01-.37-9.07.98-14.25,2.72-10.47,8.2-16.4,11.19-16.4.17,0,.34.02.5.06,1.42.37,2.65,2.56,3.22,5.72.72,4.01.37,9.07-.98,14.25Z","M131.13,64.57c-.72-.32-1.29-.76-1.7-1.35-.41-.58-.62-1.26-.62-2.03h2.36c.05.58.28,1.06.69,1.43.41.37.98.56,1.71.56s1.36-.18,1.78-.55c.43-.37.64-.84.64-1.42,0-.45-.13-.82-.4-1.1-.26-.28-.59-.5-.99-.66-.39-.15-.94-.32-1.64-.5-.88-.23-1.59-.47-2.14-.71-.55-.24-1.02-.61-1.4-1.11-.39-.5-.58-1.17-.58-2.01,0-.77.19-1.45.58-2.03.39-.58.93-1.03,1.63-1.34.7-.31,1.5-.46,2.42-.46,1.3,0,2.37.33,3.2.98.83.65,1.29,1.55,1.38,2.68h-2.44c-.04-.49-.27-.91-.7-1.26s-.99-.52-1.68-.52c-.63,0-1.15.16-1.55.48s-.6.79-.6,1.39c0,.41.13.75.38,1.02.25.26.57.47.96.63.39.15.92.32,1.59.5.89.25,1.62.49,2.18.74.56.25,1.04.62,1.43,1.13.39.51.59,1.19.59,2.04,0,.68-.18,1.33-.55,1.94-.37.61-.9,1.09-1.61,1.46-.7.37-1.53.55-2.49.55-.9,0-1.72-.16-2.44-.47Z","M143.02,56.04v5.91c0,.4.09.69.28.86.19.17.51.26.96.26h1.35v1.84h-1.74c-.99,0-1.76-.23-2.28-.7-.53-.46-.79-1.22-.79-2.27v-5.91h-1.26v-1.8h1.26v-2.65h2.23v2.65h2.59v1.8h-2.59Z","M157.31,54.24v10.67h-2.21v-1.26c-.35.44-.8.78-1.37,1.04-.56.25-1.16.38-1.79.38-.84,0-1.59-.17-2.25-.52-.67-.35-1.19-.86-1.57-1.55-.38-.68-.57-1.51-.57-2.48v-6.27h2.19v5.94c0,.96.24,1.69.72,2.2.48.51,1.13.77,1.96.77s1.48-.25,1.96-.77c.48-.51.73-1.24.73-2.2v-5.94h2.21Z","M159.76,56.68c.45-.83,1.05-1.47,1.82-1.93.77-.46,1.62-.69,2.57-.69.7,0,1.38.15,2.06.46s1.22.71,1.62,1.21v-5.15h2.23v14.33h-2.23v-1.61c-.36.52-.86.94-1.5,1.28-.64.33-1.37.5-2.2.5-.93,0-1.78-.24-2.55-.71-.77-.47-1.37-1.13-1.82-1.98-.45-.85-.67-1.8-.67-2.88s.22-2.02.67-2.85ZM167.37,57.65c-.3-.54-.7-.95-1.19-1.24-.49-.28-1.02-.43-1.59-.43s-1.1.14-1.59.42c-.49.28-.89.68-1.19,1.22s-.46,1.17-.46,1.91.15,1.38.46,1.94c.3.56.7.98,1.2,1.27s1.02.44,1.58.44,1.1-.14,1.59-.43c.49-.28.89-.7,1.19-1.25.3-.55.46-1.19.46-1.93s-.15-1.37-.46-1.92Z","M172.68,52.42c-.27-.27-.41-.61-.41-1.01s.13-.74.41-1.01c.27-.27.61-.41,1.01-.41s.72.14.99.41.41.61.41,1.01-.13.74-.41,1.01c-.27.27-.6.41-.99.41s-.74-.14-1.01-.41ZM174.77,54.24v10.67h-2.21v-10.67h2.21Z","M179.58,64.4c-.81-.46-1.45-1.1-1.92-1.94s-.7-1.8-.7-2.89.24-2.05.72-2.88c.48-.84,1.13-1.48,1.96-1.94s1.75-.68,2.77-.68,1.94.23,2.77.68c.83.45,1.48,1.1,1.96,1.94.48.84.72,1.8.72,2.88s-.25,2.05-.74,2.88c-.49.84-1.16,1.49-2,1.95-.85.46-1.78.69-2.8.69s-1.92-.23-2.73-.69ZM183.9,62.76c.5-.27.9-.68,1.21-1.22.31-.54.46-1.2.46-1.98s-.15-1.43-.45-1.97c-.3-.54-.69-.94-1.18-1.21-.49-.27-1.02-.41-1.59-.41s-1.09.14-1.58.41-.87.67-1.15,1.21c-.28.54-.43,1.19-.43,1.97,0,1.15.29,2.04.88,2.66.59.63,1.33.94,2.22.94.57,0,1.1-.14,1.6-.41Z"];
+window.LOOPA_SVG = {"viewBox":"0 0 217.07 202.24","inner":"<circle cx=\"213.02\" cy=\"140.89\" r=\"4.05\"/><path d=\"M129.35,155.25c-.65.03-1.3.07-1.93.11.63-2.37,1.25-4.84,1.86-7.4.83-3.47,1.59-7.01,2.32-10.55.51.87,1.06,1.69,1.68,2.42,2.45,2.92,5.61,4.47,9.13,4.47,8.29,0,16.65-8.95,20.84-21.42.04,7.01,1.79,13.05,5.07,16.96,2.45,2.92,5.61,4.47,9.13,4.47,5.9,0,11.84-4.54,16.29-11.66.89,4.39,2.79,8.36,6.48,10.4l3.03-5.49c-4.75-2.62-4.27-14.83-3.18-21.46.05-.28.11-.56.16-.85,1.87-10.63.26-20.23-4.31-25.68-2.45-2.92-5.61-4.47-9.13-4.47-8.29,0-16.65,8.95-20.84,21.42-.05-7.01-1.79-13.05-5.07-16.96-2.45-2.92-5.61-4.47-9.13-4.47-4.51,0-9.03,2.65-12.9,7.07.3-2.46.57-4.81.82-7.02h-6.31c-.77,6.85-1.59,13.43-2.48,19.74-.29-6.31-2.01-11.72-5.03-15.32-2.45-2.92-5.61-4.47-9.13-4.47-8.29,0-16.65,8.95-20.84,21.43-.04-7.01-1.79-13.05-5.07-16.96-2.45-2.92-5.61-4.47-9.13-4.47-9.9,0-19.9,12.76-22.78,29.06-2.48,14.07-10.74,23.88-16.6,23.88-1.48,0-2.73-.6-3.82-1.82-2.85-3.2-4.2-9.99-3.69-18.15,12.03-13.04,23.31-27.89,32.88-43.45,16.07-26.13,24.88-50.38,22.99-63.28-1-6.83-4.7-9.51-7.62-10.56-3.98-1.43-8.05-.87-12.09,1.64-11.97,7.44-21.91,32.08-28.14,51.44-7.53,23.41-12.53,47.76-13.99,60.48-.04.35-.08.71-.11,1.05-9.31,9.93-19.04,18.73-28.72,25.87l3.72,5.05c8.33-6.14,16.69-13.47,24.79-21.66.43,6.81,2.24,12.31,5.3,15.74,2.29,2.56,5.22,3.92,8.5,3.92,6.19,0,12.41-4.98,16.92-12.7.85,3.26,2.19,6.08,4,8.23,2.45,2.92,5.61,4.47,9.13,4.47,8.29,0,16.65-8.95,20.84-21.43.04,7.01,1.79,13.05,5.07,16.96,2.45,2.92,5.61,4.47,9.13,4.47,8.06,0,16.2-8.47,20.49-20.43-2.14,12.11-4.52,22.89-7.11,32.19-15.49,2.21-24.54,7.88-29.58,12.61-8.78,8.26-10.08,17.63-8.37,23.65,1.43,5.03,5.15,8.62,9.94,9.59,1.07.22,2.12.32,3.17.32,3.41,0,6.7-1.15,9.83-3.43,7.61-5.55,14.16-17.72,19.87-37.02,16.56-1.58,40.77.89,75.65,13.17l2.08-5.92c-28.85-10.16-53.75-14.8-74-13.8ZM170.19,115.24c2.48-14.07,10.74-23.88,16.6-23.88,1.65,0,3.07.73,4.33,2.23,3.24,3.86,4.4,11.73,3.01,20.13-.04.21-.1.52-.17.93-2.59,13.8-10.71,23.38-16.5,23.38-1.65,0-3.07-.73-4.33-2.23-3.3-3.93-4.45-12-2.94-20.56ZM135.15,115.24c2.48-14.07,10.74-23.88,16.6-23.88,1.65,0,3.07.73,4.33,2.23,3.3,3.93,4.45,12,2.94,20.56-2.48,14.07-10.74,23.88-16.6,23.88-1.65,0-3.07-.73-4.33-2.23-3.3-3.93-4.45-12-2.94-20.56ZM74.27,7.74c1.57-.98,3.02-1.46,4.44-1.46.75,0,1.49.13,2.23.4.71.25,2.86,1.02,3.53,5.57,1.66,11.34-7.02,34.53-22.13,59.08-7.75,12.6-16.64,24.71-26.12,35.73,4.98-30.01,20.94-88.67,38.06-99.32ZM88.95,114.15h0c-2.48,14.07-10.74,23.88-16.6,23.88-1.65,0-3.07-.73-4.33-2.23-3.3-3.93-4.45-12-2.94-20.56,0,0,0,0,0,0h0s0,0,0,0c2.48-14.07,10.74-23.88,16.6-23.88,1.65,0,3.07.73,4.33,2.23,3.3,3.93,4.45,12,2.94,20.56ZM123.99,114.15c-2.48,14.07-10.74,23.88-16.6,23.88-1.65,0-3.07-.73-4.33-2.23-3.3-3.93-4.45-12-2.94-20.56,2.48-14.07,10.74-23.88,16.6-23.88,1.65,0,3.07.73,4.33,2.23,3.3,3.93,4.45,12,2.94,20.56ZM102.06,193.75c-2.64,1.93-5.27,2.59-8.05,2.02-3.4-.69-4.69-3.53-5.15-5.16-1.15-4.05-.1-11.03,6.64-17.36,3.59-3.37,10.67-8.18,23.31-10.51-5.01,15.93-10.68,26.59-16.74,31.01Z\"/>"};
 </script>
 <script type="text/babel" data-presets="react">
 // ═══════════════════════════════════════════════════════════════
@@ -1511,14 +1528,12 @@ function Icon({ name, size = 16 }) {
   }
 }
 
-function LoopaMark({ height = 30, studio = true }) {
-  // Trazos originales de "Logo Loopa Hr.svg": [0] = loopa, [1..] = "studio"
-  const P = window.LOOPA_PATHS || [];
+function LoopaMark({ height = 30 }) {
+  // Logo oficial (logo-loopa.svg), en el color del texto que lo rodea
+  const L0 = window.LOOPA_SVG || { viewBox: '0 0 217.07 202.24', inner: '' };
   return (
-    <svg viewBox={studio ? "0 0 188 106" : "0 0 127 106"} height={height} style={{ display: "block", fill: "currentColor" }} aria-label="LOOPA">
-      <path d={P[0]} />
-      {studio && P.slice(1).map((d, i) => <path key={i} d={d} />)}
-    </svg>
+    <svg viewBox={L0.viewBox} height={height} style={{ display: 'block', fill: 'currentColor' }} aria-label="LOOPA"
+      dangerouslySetInnerHTML={{ __html: L0.inner }} />
   );
 }
 
@@ -3065,7 +3080,7 @@ function Metricas({ ventas, gastos, config }) {
         <div className="kpi"><div className="label"><span className="idx">01</span>Venta</div><div className="value">{L(k.venta)}</div></div>
         <div className="kpi"><div className="label"><span className="idx">02</span>Cobrado</div><div className="value">{L(k.cobrado)}</div><div className="delta" style={{ color: 'var(--muted)' }}>Caja del período {L(cajaPeriodo)}</div></div>
         <div className="kpi"><div className="label"><span className="idx">03</span>Por cobrar</div><div className="value" style={{ color: k.porCobrar > 0 ? 'var(--warn)' : undefined }}>{L(k.porCobrar)}</div></div>
-        <div className="kpi accent"><div className="label"><span className="idx" style={{ color: 'rgba(10,10,10,0.5)' }}>04</span>Ganancia neta</div><div className="value">{L(k.ganancia)}</div></div>
+        <div className="kpi accent"><div className="label"><span className="idx" style={{ color: 'rgba(20,40,31,0.55)' }}>04</span>Ganancia neta</div><div className="value">{L(k.ganancia)}</div></div>
         <div className="kpi"><div className="label"><span className="idx">05</span>Margen</div><div className="value">{k.margen.toFixed(1)}<span className="unit">%</span></div></div>
       </div>
 
@@ -3375,7 +3390,7 @@ function LoginScreen() {
   return (
     <div className="login">
       <div style={{ width: 340, textAlign: 'center' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6, color: 'var(--text)' }}><LoopaMark height={64} /></div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6, color: 'var(--accent)' }}><LoopaMark height={120} /></div>
         <div className="mono" style={{ fontSize: 10, color: 'var(--dim)', letterSpacing: '0.22em', marginBottom: 44, textTransform: 'uppercase' }}>LOOPA OS · Acceso privado</div>
         <div className={shake ? 'shake' : ''} style={{ background: 'var(--card)', border: `1px solid ${errorMsg ? 'var(--danger)' : 'var(--line)'}`, borderRadius: 18, padding: '32px 28px' }}>
           <input className="input mono" type="email" autoFocus autoComplete="username" placeholder="email" value={email} onChange={e => { setEmail(e.target.value); setErrorMsg(''); }} onKeyDown={onKey} style={{ marginBottom: 10 }} />
@@ -3411,14 +3426,14 @@ function DialogHost() {
       <div className="modal" style={{ maxWidth: 420 }} onMouseDown={e => e.stopPropagation()}>
         <div style={{ padding: '22px 22px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <span style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 8, background: state.danger ? 'rgba(230,57,70,.12)' : 'rgba(123,97,255,.14)', color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{state.danger ? '⚠' : 'ℹ'}</span>
+            <span style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 8, background: state.danger ? 'rgba(230,57,70,.12)' : 'rgba(var(--accent-rgb),.14)', color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{state.danger ? '⚠' : 'ℹ'}</span>
             <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 17 }}>{state.title}</div>
           </div>
           {state.message && <div style={{ color: 'var(--muted)', fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-wrap', paddingLeft: 40 }}>{state.message}</div>}
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', padding: 22 }}>
           {state.kind === 'confirm' && <button className="btn sm" onClick={() => close(false)}>{state.cancelLabel}</button>}
-          <button className="btn sm" autoFocus onClick={() => close(true)} style={{ background: accent, borderColor: accent, color: '#fff', fontWeight: 700 }}>{state.confirmLabel}</button>
+          <button className="btn sm" autoFocus onClick={() => close(true)} style={{ background: accent, borderColor: accent, color: state.danger ? '#fff' : 'var(--on-accent)', fontWeight: 700 }}>{state.confirmLabel}</button>
         </div>
       </div>
     </div>
@@ -3478,7 +3493,7 @@ function AlertBell({ ventas, onOpen }) {
   );
 }
 
-const TWEAK_DEFAULTS = { accent: '#7B61FF', density: 'comfortable', sidebarCollapsed: false };
+const TWEAK_DEFAULTS = { accent: '#e2e58d', density: 'comfortable', sidebarCollapsed: false };
 const hexToRgb = (h) => { const n = parseInt(h.slice(1), 16); return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`; };
 
 function App({ onLogout }) {
@@ -3497,7 +3512,7 @@ function App({ onLogout }) {
   const [gSearch, setGSearch] = useState('');
   const [gOpen, setGOpen] = useState(false);
   const [tweaksOpen, setTweaksOpen] = useState(false);
-  const [tweaks, setTweaks] = useState(() => { try { return { ...TWEAK_DEFAULTS, ...JSON.parse(localStorage.getItem('loopa-tweaks') || '{}') }; } catch (e) { return TWEAK_DEFAULTS; } });
+  const [tweaks, setTweaks] = useState(() => { try { return { ...TWEAK_DEFAULTS, ...JSON.parse(localStorage.getItem('loopa-tweaks-v2') || '{}') }; } catch (e) { return TWEAK_DEFAULTS; } });
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
   const [pwaPrompt, setPwaPrompt] = useState(null);
@@ -3567,7 +3582,7 @@ function App({ onLogout }) {
 
   useEffect(() => { try { localStorage.setItem('loopa-route', route); } catch (e) {} }, [route]);
   useEffect(() => {
-    try { localStorage.setItem('loopa-tweaks', JSON.stringify(tweaks)); } catch (e) {}
+    try { localStorage.setItem('loopa-tweaks-v2', JSON.stringify(tweaks)); } catch (e) {}
     document.documentElement.style.setProperty('--accent', tweaks.accent);
     document.documentElement.style.setProperty('--accent-ink', tweaks.accent);
     document.documentElement.style.setProperty('--accent-rgb', hexToRgb(tweaks.accent));
@@ -3690,7 +3705,7 @@ function App({ onLogout }) {
 
   if (!ready) return (
     <div className="boot">
-      <div style={{ color: 'var(--text)' }}><LoopaMark height={56} /></div>
+      <div style={{ color: 'var(--accent)' }}><LoopaMark height={110} /></div>
       {loadError ? (
         <>
           <div className="boot-err"><span style={{ color: 'var(--danger)', fontSize: 18 }}>✕</span><div><div className="mono" style={{ fontSize: 11, color: 'var(--danger)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>No se pudieron cargar los datos</div><div className="mono muted" style={{ fontSize: 12 }}>{loadError}</div></div></div>
@@ -3702,7 +3717,7 @@ function App({ onLogout }) {
       ) : (
         <>
           <div className="mono muted" style={{ fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{window.USE_FB ? 'Conectando con Firebase…' : 'Cargando…'}</div>
-          <div style={{ width: 180, height: 2, background: '#1A1A1A', overflow: 'hidden' }}><div className="loadbar" /></div>
+          <div style={{ width: 180, height: 2, background: '#1f3a2f', overflow: 'hidden' }}><div className="loadbar" /></div>
         </>
       )}
     </div>
@@ -3715,8 +3730,8 @@ function App({ onLogout }) {
   return (
     <div className={`app ${tweaks.sidebarCollapsed ? 'collapsed' : ''}`}>
       <aside className="sidebar">
-        <div className="sidebar-brand" onClick={() => goNueva(null)} title="Nueva venta" style={{ cursor: 'pointer', color: 'var(--text)', justifyContent: tweaks.sidebarCollapsed ? 'center' : 'flex-start' }}>
-          <LoopaMark height={tweaks.sidebarCollapsed ? 22 : 34} studio={!tweaks.sidebarCollapsed} />
+        <div className="sidebar-brand" onClick={() => goNueva(null)} title="Nueva venta" style={{ cursor: 'pointer', color: 'var(--accent)', justifyContent: tweaks.sidebarCollapsed ? 'center' : 'flex-start' }}>
+          <LoopaMark height={tweaks.sidebarCollapsed ? 36 : 64} />
         </div>
 
         {!tweaks.sidebarCollapsed && (
@@ -3838,7 +3853,7 @@ function App({ onLogout }) {
             <div className="tweak-row">
               <span className="lbl">Acento</span>
               <div className="tweak-colors">
-                {['#7B61FF', '#E63946', '#00C2A8', '#F5B700', '#F1F1F1'].map(c => (
+                {['#e2e58d', '#F3F4E4', '#7BC96F', '#6BA3E0', '#F5B700'].map(c => (
                   <div key={c} className={`tweak-col ${tweaks.accent === c ? 'on' : ''}`} style={{ background: c }} onClick={() => setTweaks(t => ({ ...t, accent: c }))} />
                 ))}
               </div>
