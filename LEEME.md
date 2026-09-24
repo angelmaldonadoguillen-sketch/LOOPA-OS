@@ -31,38 +31,23 @@ reutilizables.
 
 ## Dónde se guardan los datos
 
-**Ahora mismo: modo local.** Los datos quedan en el navegador donde abrís la app.
-Si borrás los datos del navegador o cambiás de equipo, no están.
-Mientras sigas en modo local: **Configuración → Descargar respaldo** seguido.
+En la nube (Firebase), en el proyecto heredado de TOONED (id interno `tooned-os`),
+colección `loopa`. Se entra con **la misma cuenta que FRAME** y solo pueden entrar
+los miembros **activos** del equipo (colección `frame_users`, status `active`).
 
-### Pasar a la nube (Firebase), igual que TOONED OS
+La regla de Firestore que protege LOOPA (línea del comodín, al final):
 
-1. Entrá a <https://console.firebase.google.com> → **Agregar proyecto** → `loopa-os`.
-2. **Authentication** → Comenzar → habilitar **Correo electrónico/contraseña** →
-   pestaña Usuarios → **Agregar usuario** (tu email y una contraseña).
-3. **Firestore Database** → Crear base de datos → modo producción.
-   En la pestaña **Reglas** pegá esto y publicá:
+```
+allow read, write: if !col.matches('frame_.*') && (col != 'loopa' || activeMember());
+```
 
-   ```
-   rules_version = '2';
-   service cloud.firestore {
-     match /databases/{database}/documents {
-       match /loopa/{doc} {
-         allow read, write: if request.auth != null;
-       }
-     }
-   }
-   ```
+**Pendiente de seguridad:** ese mismo comodín deja públicos los datos viejos de
+TOONED (`data`, `thumbs`). TOONED ya no se usa; conviene cerrarlos.
 
-4. **Configuración del proyecto** (engranaje) → Tus apps → ícono web `</>` →
-   registrar app → copiá el objeto `firebaseConfig`.
-5. Abrí `index.html`, buscá `CONECTAR LA NUBE` / `window.LOOPA_FIREBASE` y pegá
-   los valores (apiKey, authDomain, projectId, storageBucket, messagingSenderId, appId).
-6. Si ya tenías datos en modo local: antes del paso 5 descargá un respaldo, y
-   después de conectar usá **Restaurar respaldo** para subirlos a la nube.
-
-Con Firebase conectado aparece la pantalla de login y los datos se sincronizan
-entre compu y celular.
+### Datos de cuando era modo local
+Si un navegador tiene datos de antes, al entrar LOOPA ofrece **«Subir a la nube»**:
+une tipos por nombre y clientes por teléfono/email, renumera ventas repetidas y
+no duplica. Los datos locales quedan archivados en ese navegador (`loopa-local-*`).
 
 ## Dónde está publicada
 
