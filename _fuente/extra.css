@@ -232,3 +232,7 @@ html, body { font-size: 13.5px; }
   .nav-item { border-radius: 0; }
   .nav-item.active { background: transparent; }
 }
+
+/* Selector de período en la barra superior */
+.ticker-period { color: var(--accent); font: inherit; font-weight: 600; letter-spacing: .06em; padding: 3px 10px; border: 1px solid rgba(var(--accent-rgb), .35); border-radius: 999px; cursor: pointer; }
+.ticker-period:hover { background: rgba(var(--accent-rgb), .1); }
