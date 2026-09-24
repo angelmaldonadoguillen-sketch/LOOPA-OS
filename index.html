@@ -1,4 +1,4 @@
-<!doctype html><!-- LOOPA OS v2.0 · base TOONED OS v2.8 -->
+<!doctype html><!-- LOOPA OS v2.1 · base TOONED OS v2.8 -->
 <html lang="es">
 <head>
 <meta charset="utf-8" />
@@ -1113,6 +1113,67 @@ const Store = {
     catch (e) { return Promise.reject(e); }
   },
 };
+
+// ─── Datos del modo local (localStorage) pendientes de subir a la nube ───
+function readLocalData() {
+  try {
+    const get = (k) => JSON.parse(localStorage.getItem('loopa-' + k) || 'null');
+    const d = { ventas: get('ventas')?.items || [], clientes: get('clientes')?.items || [], servicios: get('servicios')?.items || [], config: get('config'), gastos: get('gastos') };
+    return d.ventas.length || d.clientes.length || d.servicios.length ? d : null;
+  } catch (e) { return null; }
+}
+function archiveLocalData() {
+  // No se borran: quedan como loopa-local-* por si hiciera falta recuperarlos
+  DOC_KEYS.forEach(k => {
+    try {
+      const v = localStorage.getItem('loopa-' + k);
+      if (v != null) { localStorage.setItem('loopa-local-' + k, v); localStorage.removeItem('loopa-' + k); }
+    } catch (e) {}
+  });
+}
+// Suma los datos locales a los de la nube sin duplicar:
+// tipos por nombre, clientes por id/teléfono (últimos 8 dígitos)/email/nombre+empresa, ventas por fecha de creación.
+function mergeLocalInto(cloud, local) {
+  const servicios = [...(cloud.servicios?.items || [])];
+  const clientes = [...(cloud.clientes?.items || [])];
+  const ventas = [...(cloud.ventas?.items || [])];
+  const added = { ventas: 0, servicios: 0, clientes: 0 };
+
+  const tipoMap = {};
+  local.servicios.forEach(s => {
+    const same = servicios.find(x => x.id === s.id || norm(x.nombre) === norm(s.nombre));
+    if (same) tipoMap[s.id] = same.id;
+    else { servicios.push(s); tipoMap[s.id] = s.id; added.servicios++; }
+  });
+
+  const cliMap = {};
+  local.clientes.forEach(c => {
+    const same = clientes.find(x => x.id === c.id ||
+      (digits(c.telefono).length >= 8 && digits(x.telefono).slice(-8) === digits(c.telefono).slice(-8)) ||
+      (c.email && norm(x.email) === norm(c.email)) ||
+      (norm(x.nombre) === norm(c.nombre) && norm(x.empresa) === norm(c.empresa)));
+    if (same) cliMap[c.id] = same.id;
+    else { clientes.push(c); cliMap[c.id] = c.id; added.clientes++; }
+  });
+
+  let maxN = Math.max(1000, ...ventas.map(v => v.n));
+  [...local.ventas].sort((a, b) => a.n - b.n).forEach(v => {
+    // ya estaba subida: el momento de creación es único aunque la venta se haya renumerado
+    if (ventas.some(x => v.creado ? x.creado === v.creado : (x.n === v.n && x.fecha === v.fecha && x.total === v.total))) return;
+    const n = ventas.some(x => x.n === v.n) ? ++maxN : v.n;
+    maxN = Math.max(maxN, n);
+    ventas.push({ ...v, n, clienteId: cliMap[v.clienteId] || v.clienteId, items: (v.items || []).map(i => ({ ...i, tipoId: tipoMap[i.tipoId] || i.tipoId })) });
+    added.ventas++;
+  });
+  ventas.sort((a, b) => b.n - a.n);
+
+  const cloudEmpty = !((cloud.ventas?.items || []).length || (cloud.servicios?.items || []).length || (cloud.clientes?.items || []).length);
+  const config = { ...CONFIG_DEFAULT, ...(cloud.config || {}), ...(cloudEmpty && local.config ? local.config : {}) };
+  const cg = { ...GASTOS_DEFAULT, ...(cloud.gastos || {}) }, lg = local.gastos || {};
+  const byId = (a, b) => [...a, ...b.filter(x => !a.some(y => y.id === x.id))];
+  const gastos = { variables: byId(cg.variables || [], lg.variables || []), fijos: byId(cg.fijos || [], lg.fijos || []) };
+  return { ventas, clientes, servicios, config, gastos, added };
+}
 
 // ─── Diálogos internos (reemplazan confirm/alert) ──────────────
 const _dialogListeners = new Set();
@@ -3149,6 +3210,28 @@ function App({ onLogout }) {
   const showActionToast = (msg, label, fn) => { setToast({ msg, tone: 'info', action: { label, fn } }); clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(null), 6500); };
 
 
+  // Datos que quedaron en este navegador de cuando LOOPA funcionaba en modo local:
+  // se ofrecen para subir a la nube (una vez; después se archivan como loopa-local-*).
+  const offerLocalUpload = (cloud) => {
+    if (!window.USE_FB) return;
+    const local = readLocalData();
+    if (!local) return;
+    const nv = local.ventas.length, ns = local.servicios.length, nc = local.clientes.length;
+    const cloudEmpty = !((cloud.ventas?.items || []).length || (cloud.servicios?.items || []).length || (cloud.clientes?.items || []).length);
+    uiConfirm({
+      title: 'Datos guardados en este equipo',
+      message: `Este navegador tiene datos de cuando LOOPA funcionaba sin nube:\n${nv} ventas · ${ns} tipos de servicio · ${nc} clientes\n\n` +
+        (cloudEmpty ? '¿Subirlos a la nube para verlos en todos los equipos?' : 'La nube ya tiene datos: se van a sumar sin duplicar (tipos y clientes iguales se unen; si un número de venta ya existe, se le asigna uno nuevo).'),
+      confirmLabel: 'Subir a la nube', cancelLabel: 'Ahora no', danger: false,
+    }).then(ok => {
+      if (!ok) return;
+      const m = mergeLocalInto(cloud, local);
+      setVentas(m.ventas); setClientes(m.clientes); setServicios(m.servicios); setConfig(m.config); setGastos(m.gastos);
+      archiveLocalData();
+      showToast(`✓ Subido a la nube: ${m.added.ventas} ventas · ${m.added.servicios} tipos · ${m.added.clientes} clientes`);
+    });
+  };
+
   // ── Carga ──
   const load = useCallback(() => {
     setLoadError(null);
@@ -3160,6 +3243,7 @@ function App({ onLogout }) {
       if (d.config) setConfig({ ...CONFIG_DEFAULT, ...d.config });
       if (d.gastos) setGastos({ ...GASTOS_DEFAULT, ...d.gastos });
       setReady(true);
+      setTimeout(() => offerLocalUpload(d), 400);
     }).catch(e => {
       console.error('Carga:', e);
       let msg = e.message || 'Error desconocido';
