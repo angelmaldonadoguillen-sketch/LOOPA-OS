@@ -1,15 +1,11 @@
 // Ensambla LOOPA OS en un solo index.html, igual que TOONED OS.
-// CSS base = el de TOONED OS (líneas 46-1141), recoloreado a la paleta LOOPA:
+// CSS base = base.css (heredado de TOONED OS), recoloreado a la paleta LOOPA:
 // fondo #14281f (verde profundo) + acento #e2e58d (lima), tipografía Montserrat.
 const fs = require('fs');
 const path = require('path');
 const here = __dirname;
 const OUT = path.join(__dirname, '..');
-const TOONED = 'D:/Escritorio 20 de Julio 26/Cloude programas/index.html';
-
-const toonedLines = fs.readFileSync(TOONED, 'utf8').replace(/^\ufeff/, '').split(/\r?\n/);
-let baseCss = toonedLines.slice(45, 1141).join('\n');
-if (!baseCss.trimStart().startsWith(':root')) throw new Error('El CSS de TOONED cambió de lugar: revisar rango de líneas');
+let baseCss = fs.readFileSync(path.join(here, "base.css"), "utf8");
 baseCss = baseCss
   .replace('--accent: #E63946;', '--accent: #e2e58d;')
   .replace('--accent-ink: #FF5461;', '--accent-ink: #eef0b3;')

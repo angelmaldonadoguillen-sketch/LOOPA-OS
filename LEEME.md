@@ -85,8 +85,9 @@ conviene pasar las ventas a un documento por venta.
 El código fuente está en `_fuente/`:
 
 - `app.jsx` — toda la lógica y pantallas (React)
+- `base.css` — estilos base heredados de TOONED OS (copia propia: LOOPA ya no depende de la carpeta de TOONED)
 - `extra.css` — estilos propios de LOOPA
-- `build.js` — arma `index.html` (toma el CSS base de TOONED OS y lo pasa a la paleta LOOPA)
+- `build.js` — arma `index.html` (toma `base.css`, lo pasa a la paleta LOOPA y descarta lo que no se usa)
 - `logo-loopa.svg` — logo oficial; si cambia el logo, reemplazá este archivo y volvé a armar
 
 Identidad: fondo `#14281f`, acento `#e2e58d`, tipografía Montserrat.
