@@ -2240,10 +2240,12 @@ function App({ onLogout }) {
     const venta = mes.reduce((a, v) => a + num(v.total), 0);
     const g = gastosEnPeriodo(gastos, r);
     const ganancia = mes.reduce((a, v) => a + ventaGanancia(v, config.payConfig), 0) - g.total;
+    // Cobrado del mes = plata que entró este mes (por fecha del cobro), esté el trabajo en proceso o entregado
+    const cobrado = ventas.filter(esActiva).reduce((a, v) => a + (v.abonos || []).filter(x => inRange(x.fecha, r)).reduce((s, x) => s + num(x.monto), 0), 0);
     const porCobrar = ventas.reduce((a, v) => a + ventaSaldo(v), 0);
     const enCurso = ventas.filter(v => ['pendiente', 'en-proceso', 'revision'].includes(v.estado)).length;
     const mesLbl = new Date().toLocaleDateString('es-HN', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', '');
-    return { venta, ganancia, porCobrar, enCurso, mesLbl };
+    return { venta, cobrado, ganancia, porCobrar, enCurso, mesLbl };
   }, [ventas, gastos, config]);
 
   // ── Acciones ──
@@ -2406,6 +2408,7 @@ function App({ onLogout }) {
           <span className="item">● LOOPA OS</span>
           <span className="item">Próx. venta <span className="v">#{nextN}</span></span>
           <span className="item">{ticker.mesLbl} · Venta <span className="v">{L(ticker.venta)}</span></span>
+          <span className="item">Cobrado <span className="v" style={{ color: ticker.cobrado > 0 ? 'var(--ok)' : 'var(--muted)' }}>{L(ticker.cobrado)}</span></span>
           <span className="item">Ganancia <span className="v" style={{ color: ticker.ganancia >= 0 ? 'var(--ok)' : 'var(--danger)' }}>{L(ticker.ganancia)}</span></span>
           <span className="item">Por cobrar <span className="v" style={{ color: ticker.porCobrar > 0 ? 'var(--warn)' : 'var(--muted)' }}>{L(ticker.porCobrar)}</span></span>
           <span className="item">En curso <span className="v">{ticker.enCurso}</span></span>
