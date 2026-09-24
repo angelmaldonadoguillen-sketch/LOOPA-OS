@@ -169,7 +169,7 @@ html, body { font-size: 13.5px; }
   .nav-item { justify-content: center; }
   .nav-item > span:not(.nav-mobile-label), .gsearch-wrap, .sidebar-footer { display: none !important; }
   .sidebar-brand { justify-content: center !important; padding: 18px 6px 14px; }
-  .sidebar-brand svg { height: 40px; width: 44px; }
+  .sidebar-brand svg { height: 34px; width: auto; }
 }
 @media (max-width: 1100px) {
   .nv-grid, .metrics-grid-3, .metrics-grid { grid-template-columns: 1fr; }
@@ -191,4 +191,45 @@ html, body { font-size: 13.5px; }
   .order-hero { flex-direction: column; align-items: flex-start; gap: 16px; }
   .order-hero .ord-meta { text-align: left; }
   .order-hero .ord-num { font-size: 56px; }
+}
+
+/* ═════════════ Estética de marca ═════════════
+   El logo es un trazo monolínea, fino y continuo que termina en un punto:
+   títulos livianos que cierran con el punto lima, formas redondeadas
+   y pesos bajos en las cifras grandes. */
+.page-title { font-weight: 300; letter-spacing: -0.025em; line-height: 1.02; }
+.page-title::after { content: "."; color: var(--accent); font-weight: 600; }
+.page-kicker { letter-spacing: .16em; font-weight: 500; }
+.modal-title { font-weight: 400; letter-spacing: -0.015em; }
+.kpi .value { font-weight: 300; letter-spacing: -0.02em; }
+.kpi .label { font-weight: 500; }
+.order-hero .ord-num { font-weight: 300; }
+.order-hero::before { content: none; }
+.summary-row.big { font-weight: 400; }
+.summary-row.big .l { font-weight: 500; }
+.top-row .rank { font-weight: 300; }
+.empty-t { font-weight: 500; }
+.step .t { font-weight: 600; }
+.srv-name, .line-item .pname { font-weight: 600; }
+.pay-opt .l { font-weight: 600; }
+.btn.primary { font-weight: 600; }
+.btn { border-radius: 999px; }
+.btn.sm { border-radius: 999px; }
+.panel, .kpi, .modal { border-radius: 18px; }
+.stepper { border-radius: 16px; }
+.srv-card, .ln, .create-box, .abono-add, .fin-strip { border-radius: 14px; }
+.input, .select, .textarea, .search-big, .qty { border-radius: 12px; }
+.filter-group { border-radius: 999px; padding: 6px 14px; }
+.pay-opt { border-radius: 12px; }
+.sidebar-brand { justify-content: center !important; padding: 8px 12px 4px; }
+.nav-item { border-radius: 999px; }
+.nav-item.active::before { display: none; }
+.nav-item.active { background: rgba(var(--accent-rgb), .1); color: var(--accent); }
+.nav-item.active .num { color: var(--accent); }
+@media (max-width: 900px) and (min-width: 641px) {
+  .sidebar-brand svg { width: auto; height: 34px; }
+}
+@media (max-width: 640px) {
+  .nav-item { border-radius: 0; }
+  .nav-item.active { background: transparent; }
 }

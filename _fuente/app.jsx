@@ -181,7 +181,7 @@ function Icon({ name, size = 16 }) {
 
 function LoopaMark({ height = 30 }) {
   // Logo oficial (logo-loopa.svg), en el color del texto que lo rodea
-  const L0 = window.LOOPA_SVG || { viewBox: '0 0 217.07 202.24', inner: '' };
+  const L0 = window.LOOPA_SVG || { viewBox: '0 0 260.2 202.24', inner: '' };
   return (
     <svg viewBox={L0.viewBox} height={height} style={{ display: 'block', fill: 'currentColor' }} aria-label="LOOPA"
       dangerouslySetInnerHTML={{ __html: L0.inner }} />
@@ -2382,7 +2382,7 @@ function App({ onLogout }) {
     <div className={`app ${tweaks.sidebarCollapsed ? 'collapsed' : ''}`}>
       <aside className="sidebar">
         <div className="sidebar-brand" onClick={() => goNueva(null)} title="Nueva venta" style={{ cursor: 'pointer', color: 'var(--accent)', justifyContent: tweaks.sidebarCollapsed ? 'center' : 'flex-start' }}>
-          <LoopaMark height={tweaks.sidebarCollapsed ? 36 : 64} />
+          <LoopaMark height={tweaks.sidebarCollapsed ? 34 : 118} />
         </div>
 
         {!tweaks.sidebarCollapsed && (
