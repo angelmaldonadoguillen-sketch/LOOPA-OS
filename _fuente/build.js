@@ -113,16 +113,16 @@ const html = `<!doctype html><!-- LOOPA OS v1.4 · base TOONED OS v2.8 -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
   // ══ CONECTAR LA NUBE ══════════════════════════════════════════
-  // Pegá acá la config de tu proyecto Firebase (paso a paso en LEEME.md).
-  // Mientras apiKey esté vacío, LOOPA OS funciona en MODO LOCAL:
-  // los datos quedan solo en este navegador.
+  // Proyecto Firebase de LOOPA (heredado de TOONED: id interno "tooned-os").
+  // Los datos de LOOPA viven en la colección "loopa" de Firestore.
+  // Si apiKey queda vacío, LOOPA OS funciona en MODO LOCAL (solo este navegador).
   window.LOOPA_FIREBASE = {
-    apiKey: "",
-    authDomain: "",
-    projectId: "",
-    storageBucket: "",
-    messagingSenderId: "",
-    appId: ""
+    apiKey: "AIzaSyDjuOtF5CUQmZ9nsLDPUeTPFG6sLJZTTkE",
+    authDomain: "tooned-os.firebaseapp.com",
+    projectId: "tooned-os",
+    storageBucket: "tooned-os.firebasestorage.app",
+    messagingSenderId: "193761852127",
+    appId: "1:193761852127:web:ba8d049866d581920e076a"
   };
   // ═══════════════════════════════════════════════════════════════
   window.USE_FB = !!(window.LOOPA_FIREBASE.apiKey && window.firebase);
