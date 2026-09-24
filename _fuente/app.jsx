@@ -2007,73 +2007,46 @@ function Configuracion({ config, setConfig, allData, onImport, showToast }) {
 }
 
 // ═══════════════════════ SHELL ═══════════════════════
-// ── Acceso con PIN ────────────────────────────────────────────
-// El PIN NO se compara en el navegador (eso no protege nada: el código es
-// público). Es la contraseña de una cuenta real de Firebase Auth, y las
-// reglas de Firestore solo dejan leer/escribir la colección "loopa" a esa
-// cuenta. Firebase además frena los intentos repetidos.
-// Más adelante se puede pasar a usuarios individuales sin tocar los datos.
-const LOOPA_ACCESS_EMAIL = 'equipo@loopa.studio';
-const PIN_LEN = 6;                                  // Firebase exige mínimo 6 caracteres
 const LOOPA_AUTH_ERRORS = {
-  'auth/wrong-password': 'PIN incorrecto.',
-  'auth/invalid-credential': 'PIN incorrecto.',
-  'auth/invalid-login-credentials': 'PIN incorrecto.',
-  'auth/user-not-found': 'La cuenta de acceso de LOOPA aún no existe en Firebase.',
+  'auth/user-not-found': 'No existe una cuenta con ese email.',
+  'auth/wrong-password': 'Contraseña incorrecta.',
+  'auth/invalid-credential': 'Email o contraseña incorrectos.',
+  'auth/invalid-login-credentials': 'Email o contraseña incorrectos.',
+  'auth/invalid-email': 'El email no tiene un formato válido.',
   'auth/too-many-requests': 'Demasiados intentos. Esperá unos minutos.',
   'auth/network-request-failed': 'Sin conexión. Verificá tu internet.',
-  'auth/user-disabled': 'El acceso está deshabilitado.',
+  'auth/user-disabled': 'Esta cuenta está deshabilitada.',
   'auth/operation-not-allowed': 'Email/contraseña no está habilitado en Firebase.',
 };
 
 function LoginScreen() {
-  const [pin, setPin] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [shake, setShake] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  const tryLogin = async (code) => {
+  const tryLogin = async () => {
+    if (!email.trim() || !password || submitting) return;
     setSubmitting(true); setErrorMsg('');
-    try { await firebase.auth().signInWithEmailAndPassword(LOOPA_ACCESS_EMAIL, code); }
+    try { await firebase.auth().signInWithEmailAndPassword(email.trim(), password); }
     catch (e) {
       setErrorMsg(LOOPA_AUTH_ERRORS[e.code] || `Error inesperado (${e.code || e.message})`);
-      setPin(''); setShake(true); setTimeout(() => setShake(false), 500); setSubmitting(false);
+      setPassword(''); setShake(true); setTimeout(() => setShake(false), 500); setSubmitting(false);
     }
   };
-  const press = (d) => {
-    if (submitting) return;
-    setErrorMsg('');
-    setPin(p => {
-      if (p.length >= PIN_LEN) return p;
-      const next = p + d;
-      if (next.length === PIN_LEN) tryLogin(next);
-      return next;
-    });
-  };
-  const back = () => { if (!submitting) setPin(p => p.slice(0, -1)); };
-
-  useEffect(() => {
-    const h = (e) => {
-      if (/^[0-9]$/.test(e.key)) press(e.key);
-      else if (e.key === 'Backspace') back();
-    };
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, [submitting]);
-
+  const onKey = (e) => { if (e.key === 'Enter') tryLogin(); };
   return (
     <div className="login">
-      <div style={{ width: 300, textAlign: 'center' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28, color: 'var(--accent)' }}><LoopaMark height={120} /></div>
-        <div className={`pin-dots ${shake ? 'shake' : ''} ${errorMsg ? 'err' : ''}`}>
-          {Array.from({ length: PIN_LEN }).map((_, i) => <span key={i} className={i < pin.length ? 'on' : ''} />)}
-        </div>
-        <div className="pin-msg">{submitting ? 'Verificando…' : errorMsg || 'Ingresá el PIN'}</div>
-        <div className="pin-pad">
-          {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(d => <button key={d} onClick={() => press(d)} disabled={submitting}>{d}</button>)}
-          <span />
-          <button onClick={() => press('0')} disabled={submitting}>0</button>
-          <button onClick={back} disabled={submitting || !pin} aria-label="Borrar"><Icon name="arrow-l" size={16} /></button>
+      <div style={{ width: 340, textAlign: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6, color: 'var(--accent)' }}><LoopaMark height={120} /></div>
+        <div className="mono" style={{ fontSize: 10, color: 'var(--dim)', letterSpacing: '0.22em', marginBottom: 44, textTransform: 'uppercase' }}>Acceso privado · misma cuenta que FRAME</div>
+        <div className={shake ? 'shake' : ''} style={{ background: 'var(--card)', border: `1px solid ${errorMsg ? 'var(--danger)' : 'var(--line)'}`, borderRadius: 18, padding: '32px 28px' }}>
+          <input className="input mono" type="email" autoFocus autoComplete="username" placeholder="email" value={email} onChange={e => { setEmail(e.target.value); setErrorMsg(''); }} onKeyDown={onKey} style={{ marginBottom: 10 }} />
+          <input className="input mono" type="password" autoComplete="current-password" placeholder="contraseña" value={password} onChange={e => { setPassword(e.target.value); setErrorMsg(''); }} onKeyDown={onKey} />
+          {errorMsg && <div className="mono" style={{ fontSize: 10, color: 'var(--danger)', marginTop: 10, lineHeight: 1.6 }}>{errorMsg}</div>}
+          <button className="btn primary" onClick={tryLogin} disabled={submitting || !email.trim() || !password} style={{ width: '100%', justifyContent: 'center', padding: 14, marginTop: 20 }}>
+            {submitting ? 'VERIFICANDO…' : 'ENTRAR AL SISTEMA'}
+          </button>
         </div>
       </div>
     </div>
@@ -2206,7 +2179,7 @@ function App({ onLogout }) {
     }).catch(e => {
       console.error('Carga:', e);
       let msg = e.message || 'Error desconocido';
-      if (e.code === 'permission-denied') msg = 'Acceso denegado — revisá las reglas de Firestore (colección loopa)';
+      if (e.code === 'permission-denied') msg = 'Acceso denegado — tu cuenta no está activa en el equipo (la misma aprobación que en FRAME)';
       if (e.code === 'unavailable') msg = 'Firebase no disponible — sin conexión a internet';
       setLoadError(msg);
     });

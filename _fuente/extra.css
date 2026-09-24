@@ -232,16 +232,3 @@ html, body { font-size: 13.5px; }
   .nav-item { border-radius: 0; }
   .nav-item.active { background: transparent; }
 }
-
-/* Pantalla de PIN */
-.pin-dots { display: flex; justify-content: center; gap: 14px; margin-bottom: 14px; }
-.pin-dots span { width: 13px; height: 13px; border-radius: 50%; border: 1.5px solid var(--accent); transition: background .12s, transform .12s; }
-.pin-dots span.on { background: var(--accent); transform: scale(1.08); }
-.pin-dots.err span { border-color: var(--danger); }
-.pin-msg { font-size: 12px; color: var(--muted); min-height: 18px; margin-bottom: 26px; }
-.pin-dots.err + .pin-msg { color: var(--danger); }
-.pin-pad { display: grid; grid-template-columns: repeat(3, 72px); gap: 14px; justify-content: center; }
-.pin-pad button { width: 72px; height: 72px; border-radius: 50%; border: 1px solid var(--line-2); font-size: 24px; font-weight: 300; color: var(--text); display: flex; align-items: center; justify-content: center; transition: background .1s, border-color .1s; }
-.pin-pad button:hover:not(:disabled) { border-color: var(--accent); }
-.pin-pad button:active:not(:disabled) { background: rgba(var(--accent-rgb), .15); }
-.pin-pad button:disabled { opacity: .35; }
