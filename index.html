@@ -3556,18 +3556,11 @@ function App({ onLogout }) {
   const [tweaks, setTweaks] = useState(() => { try { return { ...TWEAK_DEFAULTS, ...JSON.parse(localStorage.getItem('loopa-tweaks-v2') || '{}') }; } catch (e) { return TWEAK_DEFAULTS; } });
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
-  const [pwaPrompt, setPwaPrompt] = useState(null);
-
   window.__CUR = config.moneda || 'L';
 
   const showToast = (msg, tone = 'ok') => { setToast({ msg, tone }); clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(null), 3000); };
   const showActionToast = (msg, label, fn) => { setToast({ msg, tone: 'info', action: { label, fn } }); clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(null), 6500); };
 
-  useEffect(() => {
-    const h = (e) => { e.preventDefault(); setPwaPrompt(e); };
-    window.addEventListener('beforeinstallprompt', h);
-    return () => window.removeEventListener('beforeinstallprompt', h);
-  }, []);
 
   // ── Carga ──
   const load = useCallback(() => {
@@ -3809,22 +3802,10 @@ function App({ onLogout }) {
             <button key={m.id} className={`nav-item ${route === m.id ? 'active' : ''}`} onClick={() => m.id === 'nueva' && route === 'nueva' ? goNueva(null) : setRoute(m.id)} title={m.label}>
               <Icon name={m.icon} size={15} />
               {!tweaks.sidebarCollapsed && <span>{m.label}</span>}
-              {!tweaks.sidebarCollapsed && <span className="num">{pad2(i + 1)}</span>}
               <span className="nav-mobile-label">{m.label.split(' ')[0]}</span>
             </button>
           ))}
         </nav>
-
-        <div className="sidebar-footer">
-          {pwaPrompt && !tweaks.sidebarCollapsed && (
-            <button className="btn primary" style={{ width: '100%', justifyContent: 'center', marginBottom: 12, borderRadius: 999 }} onClick={() => pwaPrompt.prompt().then(() => setPwaPrompt(null))}>⬇ Instalar app</button>
-          )}
-          {saveError
-            ? <><span className="status-dot" style={{ background: 'var(--danger)', boxShadow: '0 0 6px var(--danger)' }} />{!tweaks.sidebarCollapsed && 'Error al guardar'}</>
-            : window.USE_FB
-              ? <><span className="status-dot" />{!tweaks.sidebarCollapsed && 'Online · sincronizado'}</>
-              : <><span className="status-dot" style={{ background: 'var(--warn)', boxShadow: '0 0 6px var(--warn)' }} />{!tweaks.sidebarCollapsed && 'Modo local · este equipo'}</>}
-        </div>
       </aside>
 
       <div className="main">
@@ -3842,6 +3823,7 @@ function App({ onLogout }) {
           <div className="breadcrumb"><span className="cur">{current.label}</span></div>
           <div className="topbar-mobile-title">{current.label.toUpperCase()}</div>
           <div className="topbar-right">
+            {saveError && <span className="chip" style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }} title="Los últimos cambios no se guardaron. Revisá la conexión.">● Error al guardar</span>}
             <span className="chip mob-hide">{new Date().toLocaleDateString('es-HN', { weekday: 'short', day: '2-digit', month: 'short' }).toUpperCase()}</span>
             <AlertBell ventas={ventas} onOpen={openVenta} />
             <button className="btn sm ghost mob-hide" onClick={() => setTweaksOpen(o => !o)}><Icon name="sliders" size={12} /> Tweaks</button>
