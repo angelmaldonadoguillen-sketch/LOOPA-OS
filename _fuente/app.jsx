@@ -161,7 +161,6 @@ function Icon({ name, size = 16 }) {
     case 'chart':    return <svg {...c}><path d="M3 3v18h18M7 14v4M12 9v9M17 5v13"/></svg>;
     case 'search':   return <svg {...c}><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5"/></svg>;
     case 'edit':     return <svg {...c}><path d="M11 4H4v16h16v-7M18 3l3 3-11 11H7v-3L18 3z"/></svg>;
-    case 'sliders':  return <svg {...c}><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>;
     case 'dl':       return <svg {...c}><path d="M12 3v14M6 11l6 6 6-6M4 21h16"/></svg>;
     case 'ul':       return <svg {...c}><path d="M12 21V7M6 13l6-6 6 6M4 3h16"/></svg>;
     case 'settings': return <svg {...c}><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2-1.2L14 3h-4l-.6 2.6a7 7 0 0 0-2 1.2L5.1 6 3 9.3l2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 2 1.2L10 21h4l.6-2.6a7 7 0 0 0 2-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"/></svg>;
@@ -171,8 +170,6 @@ function Icon({ name, size = 16 }) {
     case 'money':    return <svg {...c}><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9v6M18 9v6"/></svg>;
     case 'tag':      return <svg {...c}><path d="M3 3h8l10 10-8 8L3 11V3z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg>;
     case 'copy':     return <svg {...c}><rect x="8" y="8" width="13" height="13"/><path d="M16 8V3H3v13h5"/></svg>;
-    case 'clock':    return <svg {...c}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>;
-    case 'layers':   return <svg {...c}><path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5"/></svg>;
     case 'bell':     return <svg {...c}><path d="M6 17V11a6 6 0 0 1 12 0v6l2 2H4l2-2zM10 21h4"/></svg>;
     case 'archive':  return <svg {...c}><path d="M3 4h18v4H3zM5 8v12h14V8M10 12h4"/></svg>;
     default: return null;
@@ -257,7 +254,7 @@ function PickMenu({ menu, options, onPick, onClose }) {
   );
 }
 
-function Empty({ icon = 'layers', title, children }) {
+function Empty({ icon, title, children }) {
   return (
     <div className="empty">
       <div className="empty-ico"><Icon name={icon} size={22} /></div>
@@ -2144,9 +2141,6 @@ function AlertBell({ ventas, onOpen }) {
   );
 }
 
-const TWEAK_DEFAULTS = { accent: '#e2e58d', density: 'comfortable', sidebarCollapsed: false };
-const hexToRgb = (h) => { const n = parseInt(h.slice(1), 16); return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`; };
-
 function App({ onLogout }) {
   const [route, setRoute] = useState(() => { try { return localStorage.getItem('loopa-route') || 'nueva'; } catch (e) { return 'nueva'; } });
   const [ventas, setVentas] = useState([]);
@@ -2162,8 +2156,7 @@ function App({ onLogout }) {
   const [focusN, setFocusN] = useState(null);
   const [gSearch, setGSearch] = useState('');
   const [gOpen, setGOpen] = useState(false);
-  const [tweaksOpen, setTweaksOpen] = useState(false);
-  const [tweaks, setTweaks] = useState(() => { try { return { ...TWEAK_DEFAULTS, ...JSON.parse(localStorage.getItem('loopa-tweaks-v2') || '{}') }; } catch (e) { return TWEAK_DEFAULTS; } });
+
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
   window.__CUR = config.moneda || 'L';
@@ -2225,14 +2218,6 @@ function App({ onLogout }) {
   useEffect(() => { if (ready) queueSave('gastos', gastos); }, [gastos, ready]);
 
   useEffect(() => { try { localStorage.setItem('loopa-route', route); } catch (e) {} }, [route]);
-  useEffect(() => {
-    try { localStorage.setItem('loopa-tweaks-v2', JSON.stringify(tweaks)); } catch (e) {}
-    document.documentElement.style.setProperty('--accent', tweaks.accent);
-    document.documentElement.style.setProperty('--accent-ink', tweaks.accent);
-    document.documentElement.style.setProperty('--accent-rgb', hexToRgb(tweaks.accent));
-    document.body.classList.toggle('density-compact', tweaks.density === 'compact');
-  }, [tweaks]);
-
   // ── Derivados ──
   const nextN = Math.max(1000, ...ventas.map(v => v.n)) + 1;
   const stats = useMemo(() => {
@@ -2372,46 +2357,44 @@ function App({ onLogout }) {
   const gClientes = gq.length >= 2 ? clientes.filter(c => norm(`${c.nombre} ${c.empresa} ${c.telefono}`).includes(gq)).slice(0, 4) : [];
 
   return (
-    <div className={`app ${tweaks.sidebarCollapsed ? 'collapsed' : ''}`}>
+    <div className="app">
       <aside className="sidebar">
-        <div className="sidebar-brand" onClick={() => goNueva(null)} title="Nueva venta" style={{ cursor: 'pointer', color: 'var(--accent)', justifyContent: tweaks.sidebarCollapsed ? 'center' : 'flex-start' }}>
-          <LoopaMark height={tweaks.sidebarCollapsed ? 34 : 109} />
+        <div className="sidebar-brand" onClick={() => goNueva(null)} title="Nueva venta" style={{ cursor: 'pointer', color: 'var(--accent)' }}>
+          <LoopaMark height={109} />
         </div>
 
-        {!tweaks.sidebarCollapsed && (
-          <div className="gsearch-wrap">
-            <div className={`gsearch ${gOpen ? 'on' : ''}`}>
-              <Icon name="search" size={12} />
-              <input placeholder="Buscar venta, cliente…" value={gSearch}
-                onFocus={() => setGOpen(true)} onBlur={() => setTimeout(() => setGOpen(false), 180)}
-                onChange={e => { setGSearch(e.target.value); setGOpen(true); }} />
-              {gSearch && <button onClick={() => setGSearch('')} className="dim">×</button>}
-            </div>
-            {gOpen && gq.length >= 2 && (
-              <div className="dropdown" style={{ left: 12, right: 12 }}>
-                {gVentas.length + gClientes.length === 0 && <div className="mono muted" style={{ padding: '12px', fontSize: 11 }}>Sin resultados</div>}
-                {gVentas.length > 0 && <div className="dropdown-lbl">Ventas</div>}
-                {gVentas.map(v => (
-                  <div key={v.n} className="dropdown-row" onMouseDown={() => { openVenta(v.n); setGSearch(''); }}>
-                    <div><div className="mono" style={{ fontSize: 11, fontWeight: 700 }}>#{v.n} <span className="muted" style={{ fontWeight: 400 }}>· {v.cliente}</span></div><div className="mono dim" style={{ fontSize: 10 }}>{fmtFecha(v.fecha)} · {L(v.total)}</div></div>
-                  </div>
-                ))}
-                {gClientes.length > 0 && <div className="dropdown-lbl">Clientes</div>}
-                {gClientes.map(c => (
-                  <div key={c.id} className="dropdown-row" onMouseDown={() => { setRoute('clientes'); setGSearch(''); }}>
-                    <div><div style={{ fontSize: 12, fontWeight: 500 }}>{c.nombre}</div><div className="mono dim" style={{ fontSize: 10 }}>{c.empresa || c.telefono}</div></div>
-                  </div>
-                ))}
-              </div>
-            )}
+        <div className="gsearch-wrap">
+          <div className={`gsearch ${gOpen ? 'on' : ''}`}>
+            <Icon name="search" size={12} />
+            <input placeholder="Buscar venta, cliente…" value={gSearch}
+              onFocus={() => setGOpen(true)} onBlur={() => setTimeout(() => setGOpen(false), 180)}
+              onChange={e => { setGSearch(e.target.value); setGOpen(true); }} />
+            {gSearch && <button onClick={() => setGSearch('')} className="dim">×</button>}
           </div>
-        )}
+          {gOpen && gq.length >= 2 && (
+            <div className="dropdown" style={{ left: 12, right: 12 }}>
+              {gVentas.length + gClientes.length === 0 && <div className="mono muted" style={{ padding: '12px', fontSize: 11 }}>Sin resultados</div>}
+              {gVentas.length > 0 && <div className="dropdown-lbl">Ventas</div>}
+              {gVentas.map(v => (
+                <div key={v.n} className="dropdown-row" onMouseDown={() => { openVenta(v.n); setGSearch(''); }}>
+                  <div><div className="mono" style={{ fontSize: 11, fontWeight: 700 }}>#{v.n} <span className="muted" style={{ fontWeight: 400 }}>· {v.cliente}</span></div><div className="mono dim" style={{ fontSize: 10 }}>{fmtFecha(v.fecha)} · {L(v.total)}</div></div>
+                </div>
+              ))}
+              {gClientes.length > 0 && <div className="dropdown-lbl">Clientes</div>}
+              {gClientes.map(c => (
+                <div key={c.id} className="dropdown-row" onMouseDown={() => { setRoute('clientes'); setGSearch(''); }}>
+                  <div><div style={{ fontSize: 12, fontWeight: 500 }}>{c.nombre}</div><div className="mono dim" style={{ fontSize: 10 }}>{c.empresa || c.telefono}</div></div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         <nav className="nav" style={{ marginTop: 8 }}>
-          {modules.map((m, i) => (
+          {modules.map(m => (
             <button key={m.id} className={`nav-item ${route === m.id ? 'active' : ''}`} onClick={() => m.id === 'nueva' && route === 'nueva' ? goNueva(null) : setRoute(m.id)} title={m.label}>
               <Icon name={m.icon} size={15} />
-              {!tweaks.sidebarCollapsed && <span>{m.label}</span>}
+              <span>{m.label}</span>
               <span className="nav-mobile-label">{m.label.split(' ')[0]}</span>
             </button>
           ))}
@@ -2436,7 +2419,6 @@ function App({ onLogout }) {
             {saveError && <span className="chip" style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }} title="Los últimos cambios no se guardaron. Revisá la conexión.">● Error al guardar</span>}
             <span className="chip mob-hide">{new Date().toLocaleDateString('es-HN', { weekday: 'short', day: '2-digit', month: 'short' }).toUpperCase()}</span>
             <AlertBell ventas={ventas} onOpen={openVenta} />
-            <button className="btn sm ghost mob-hide" onClick={() => setTweaksOpen(o => !o)}><Icon name="sliders" size={12} /> Tweaks</button>
             {onLogout && <button className="btn sm ghost" onClick={onLogout} title="Cerrar sesión" style={{ color: 'var(--muted)' }}>⏻</button>}
           </div>
         </div>
@@ -2479,35 +2461,6 @@ function App({ onLogout }) {
         </div>
       )}
 
-      {tweaksOpen && (
-        <div className="tweaks-panel">
-          <div className="tweaks-head"><div className="t">Tweaks</div><button className="x" onClick={() => setTweaksOpen(false)}>✕</button></div>
-          <div className="tweaks-body">
-            <div className="tweak-row">
-              <span className="lbl">Acento</span>
-              <div className="tweak-colors">
-                {['#e2e58d', '#F3F4E4', '#7BC96F', '#6BA3E0', '#F5B700'].map(c => (
-                  <div key={c} className={`tweak-col ${tweaks.accent === c ? 'on' : ''}`} style={{ background: c }} onClick={() => setTweaks(t => ({ ...t, accent: c }))} />
-                ))}
-              </div>
-            </div>
-            <div className="tweak-row">
-              <span className="lbl">Densidad</span>
-              <div className="segmented">
-                <button className={tweaks.density === 'comfortable' ? 'on' : ''} onClick={() => setTweaks(t => ({ ...t, density: 'comfortable' }))}>Cómoda</button>
-                <button className={tweaks.density === 'compact' ? 'on' : ''} onClick={() => setTweaks(t => ({ ...t, density: 'compact' }))}>Compacta</button>
-              </div>
-            </div>
-            <div className="tweak-row">
-              <span className="lbl">Sidebar</span>
-              <div className="segmented">
-                <button className={!tweaks.sidebarCollapsed ? 'on' : ''} onClick={() => setTweaks(t => ({ ...t, sidebarCollapsed: false }))}>Expandida</button>
-                <button className={tweaks.sidebarCollapsed ? 'on' : ''} onClick={() => setTweaks(t => ({ ...t, sidebarCollapsed: true }))}>Colapsada</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

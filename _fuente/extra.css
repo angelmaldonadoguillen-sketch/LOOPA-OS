@@ -167,7 +167,7 @@ html, body { font-size: 13.5px; }
 /* Tablet: sidebar solo íconos (TOONED ya fija la columna en 64px) */
 @media (max-width: 900px) and (min-width: 641px) {
   .nav-item { justify-content: center; }
-  .nav-item > span:not(.nav-mobile-label), .gsearch-wrap, .sidebar-footer { display: none !important; }
+  .nav-item > span:not(.nav-mobile-label), .gsearch-wrap { display: none !important; }
   .sidebar-brand { justify-content: center !important; padding: 18px 6px 14px; }
   .sidebar-brand svg { height: 34px; width: auto; }
 }
@@ -210,7 +210,7 @@ html, body { font-size: 13.5px; }
 .top-row .rank { font-weight: 300; }
 .empty-t { font-weight: 500; }
 .step .t { font-weight: 600; }
-.srv-name, .line-item .pname { font-weight: 600; }
+.srv-name { font-weight: 600; }
 .pay-opt .l { font-weight: 600; }
 .btn.primary { font-weight: 600; }
 .btn { border-radius: 999px; }
@@ -225,7 +225,6 @@ html, body { font-size: 13.5px; }
 .nav-item { border-radius: 999px; }
 .nav-item.active::before { display: none; }
 .nav-item.active { background: rgba(var(--accent-rgb), .1); color: var(--accent); }
-.nav-item.active .num { color: var(--accent); }
 @media (max-width: 900px) and (min-width: 641px) {
   .sidebar-brand svg { width: auto; height: 34px; }
 }

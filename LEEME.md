@@ -64,9 +64,15 @@ Mientras sigas en modo local: **Configuración → Descargar respaldo** seguido.
 Con Firebase conectado aparece la pantalla de login y los datos se sincronizan
 entre compu y celular.
 
-Para instalarla como app en el celular hay que publicarla en un hosting
-(Firebase Hosting, Netlify o GitHub Pages sirven gratis): abrís el link y
-el navegador ofrece «Instalar app».
+## Dónde está publicada
+
+Igual que TOONED OS, vive en GitHub Pages:
+**https://angelmaldonadoguillen-sketch.github.io/LOOPA-OS/**
+(repo `angelmaldonadoguillen-sketch/LOOPA-OS`). Para instalarla como app,
+abrí el link y usá la opción «Instalar» del navegador o «Agregar a pantalla
+de inicio» en el celular.
+
+Para publicar cambios: `node _fuente/build.js`, luego commit y `git push`.
 
 ## Límite conocido
 

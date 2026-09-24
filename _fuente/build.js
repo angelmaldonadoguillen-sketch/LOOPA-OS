@@ -27,8 +27,57 @@ const TINT = {
 const tint = (s) => s.replace(/#([0-9a-f]{6}|[0-9a-f]{3})(?![0-9a-f])/gi, (m, h) => TINT[h.toLowerCase()] ? '#' + TINT[h.toLowerCase()] : m);
 baseCss = tint(baseCss);
 
-const extraCss = tint(fs.readFileSync(path.join(here, 'extra.css'), 'utf8'));
+let extraCss = tint(fs.readFileSync(path.join(here, 'extra.css'), 'utf8'));
 const app = tint(fs.readFileSync(path.join(here, 'app.jsx'), 'utf8'));
+
+// ── Poda: TOONED trae estilos de inventario, tallas, DTF, envíos, etc. que
+// LOOPA no usa. Se descarta toda regla cuyos selectores usen una clase que
+// no aparece en app.jsx. TOONED no se toca: la poda ocurre solo al armar.
+const DYNAMIC_PREFIXES = ['e-', 't-'];            // badge e-${estado}, toast t-${tono}
+const classUsed = (c) => DYNAMIC_PREFIXES.some(p => c.startsWith(p)) ||
+  new RegExp('(?<![\\w-])' + c.replace(/-/g, '\\-') + '(?![\\w-])').test(app);
+const selectorUsed = (sel) => [...sel.matchAll(/\.([a-zA-Z][\w-]*)/g)].every(m => classUsed(m[1]));
+function prune(css, opts = {}) {
+  let out = '', i = 0;
+  css = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  while (i < css.length) {
+    const open = css.indexOf('{', i);
+    if (open < 0) break;
+    const prelude = css.slice(i, open).trim();
+    let depth = 1, j = open + 1;
+    while (depth && j < css.length) { if (css[j] === '{') depth++; else if (css[j] === '}') depth--; j++; }
+    const body = css.slice(open + 1, j - 1);
+    i = j;
+    if (prelude.startsWith('@media')) {
+      const inner = prune(body, opts);
+      if (inner.trim()) out += `${prelude} {\n${inner}}\n`;
+    } else if (prelude.startsWith('@keyframes')) {
+      out += `${prelude} {${body}}\n`;            // se filtran al final según uso
+    } else if (prelude === ':root' && opts.dropVars) {
+      const decls = body.split(';').map(d => d.trim()).filter(d => d && !opts.dropVars.some(v => d.startsWith(v + ':')));
+      if (decls.length) out += `:root { ${decls.join('; ')}; }\n`;
+    } else {
+      const sels = prelude.split(',').map(x => x.trim()).filter(selectorUsed);
+      if (sels.length) out += `${sels.join(', ')} {${body}}\n`;
+    }
+  }
+  return out;
+}
+// En el :root de TOONED sobran las variables que LOOPA redefine y las que nadie usa
+const loopaVars = [...extraCss.matchAll(/(--[\w-]+)\s*:/g)].map(m => m[1]);
+const cssBefore = baseCss.length + extraCss.length;
+baseCss = prune(baseCss, { dropVars: [...loopaVars, '--row-h', '--r-lg', '--r-xl'] });
+extraCss = prune(extraCss);
+// Animaciones que ya no usa nadie
+for (const [css, set] of [[baseCss, (v) => baseCss = v], [extraCss, (v) => extraCss = v]]) {
+  let c = css;
+  for (const m of [...c.matchAll(/@keyframes\s+([\w-]+)\s*\{/g)]) {
+    const name = m[1], rest = (baseCss + extraCss + app).replace(new RegExp('@keyframes\\s+' + name + '\\b', 'g'), '');
+    if (!new RegExp('\\b' + name + '\\b').test(rest)) c = c.replace(new RegExp('@keyframes\\s+' + name + '\\s*\\{[^{}]*(\\{[^{}]*\\}[^{}]*)*\\}\\n?'), '');
+  }
+  set(c);
+}
+console.log(`CSS: ${(cssBefore / 1024).toFixed(0)} KB → ${((baseCss.length + extraCss.length) / 1024).toFixed(0)} KB`);
 
 // Logo (logo-loopa.svg): se inyecta sin colores para que tome currentColor
 const logoSvg = fs.readFileSync(path.join(here, 'logo-loopa.svg'), 'utf8');
@@ -40,7 +89,7 @@ fs.writeFileSync(path.join(OUT, 'icon.svg'),
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="104" fill="#14281f"/><g transform="translate(50 64) scale(1.9)" fill="#e2e58d">${shapes.slice(-2).join('')}</g></svg>`);
 if (/<\/script/i.test(app)) throw new Error('app.jsx contiene </script>');
 
-const html = `<!doctype html><!-- LOOPA OS v1.2 · base TOONED OS v2.8 -->
+const html = `<!doctype html><!-- LOOPA OS v1.3 · base TOONED OS v2.8 -->
 <html lang="es">
 <head>
 <meta charset="utf-8" />
