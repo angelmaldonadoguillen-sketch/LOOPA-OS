@@ -111,14 +111,16 @@ const markBox = (els) => {
   });
   const xs = P.map(p => p[0]), ys = P.map(p => p[1]);
   const x0 = Math.min(...xs), y0 = Math.min(...ys), w = Math.max(...xs) - x0, h = Math.max(...ys) - y0, pad = Math.max(w, h) * 0.01;
-  return [x0 - pad, y0 - pad, w + 2 * pad, h + 2 * pad].map(v => +v.toFixed(2)).join(' ');
+  // + corrimiento óptico a la izquierda (mismo % que LOOPA_OPTICAL_SHIFT en app.jsx)
+  const shift = w * 0.06;
+  return [x0 - pad + shift, y0 - pad, w + 2 * pad, h + 2 * pad].map(v => +v.toFixed(2)).join(' ');
 };
 const mark = shapes.filter(x => x.startsWith('<circle')).concat([shapes.filter(x => x.startsWith('<path')).sort((p, q) => q.length - p.length)[0]]);
 fs.writeFileSync(path.join(OUT, 'icon.svg'),
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="104" fill="#14281f"/><svg x="72" y="72" width="368" height="368" viewBox="${markBox(mark)}" fill="#e2e58d">${mark.join('')}</svg></svg>`);
 if (/<\/script/i.test(app)) throw new Error('app.jsx contiene </script>');
 
-const html = `<!doctype html><!-- LOOPA OS v2.7 · base TOONED OS v2.8 -->
+const html = `<!doctype html><!-- LOOPA OS v2.8 · base TOONED OS v2.8 -->
 <html lang="es">
 <head>
 <meta charset="utf-8" />

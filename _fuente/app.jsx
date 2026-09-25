@@ -237,11 +237,14 @@ function Icon({ name, size = 16 }) {
   }
 }
 
+// Centrado óptico: el cuerpo "oopa." carga el peso a la derecha, así que el logo
+// se corre un poco a la izquierda (en % de su propio ancho). También lo usa el ícono.
+const LOOPA_OPTICAL_SHIFT = 6;
 function LoopaMark({ height = 30 }) {
   // Logo oficial (logo-loopa.svg), en el color del texto que lo rodea
   const L0 = window.LOOPA_SVG || { viewBox: '0 0 60.5 54.65', inner: '' };
   return (
-    <svg viewBox={L0.viewBox} height={height} style={{ display: 'block', fill: 'currentColor' }} aria-label="LOOPA"
+    <svg viewBox={L0.viewBox} height={height} style={{ display: 'block', fill: 'currentColor', transform: `translateX(-${LOOPA_OPTICAL_SHIFT}%)` }} aria-label="LOOPA"
       dangerouslySetInnerHTML={{ __html: L0.inner }} />
   );
 }
