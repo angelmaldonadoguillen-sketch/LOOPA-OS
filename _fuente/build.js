@@ -82,15 +82,43 @@ const shapes = [...logoSvg.matchAll(/<(path|circle|rect|polygon)\b[^>]*\/>/g)].m
 if (!shapes.length) throw new Error('No se encontraron trazos en logo-loopa.svg');
 const paths = 'window.LOOPA_SVG = ' + JSON.stringify({ viewBox, inner: shapes.join('') }) + ';\n';
 // Ícono de app: solo la marca "loopa." (punto + trazo principal = el path más largo),
-// sin "estudio creativo", que a 48 px no se lee. ICON_MARK_BOX = caja de la marca
-// dentro del viewBox del logo; si cambia el logo, recalcularla.
-const ICON_MARK_BOX = '22.4 -0.4 61.1 55.3';
+// sin "estudio creativo", que a 48 px no se lee. La caja de la marca se mide sola,
+// así que al cambiar el logo alcanza con reemplazar logo-loopa.svg.
+function pathBox(d) {
+  const t = d.match(/[a-zA-Z]|-?(?:\d+\.?\d*|\.\d+)(?:e-?\d+)?/g); let i = 0, x = 0, y = 0, sx = 0, sy = 0, cmd = '';
+  const P = [], n = () => parseFloat(t[i++]), isNum = (v) => v !== undefined && !/^[a-zA-Z]$/.test(v);
+  while (i < t.length) {
+    if (!isNum(t[i])) cmd = t[i++];
+    const rel = cmd === cmd.toLowerCase(), C = cmd.toUpperCase();
+    const pt = (a, b) => rel ? [x + a, y + b] : [a, b];
+    if (C === 'Z') { x = sx; y = sy; continue; }
+    if (C === 'M' || C === 'L' || C === 'T') { [x, y] = pt(n(), n()); if (C === 'M') { sx = x; sy = y; cmd = rel ? 'l' : 'L'; } P.push([x, y]); }
+    else if (C === 'H') { x = rel ? x + n() : n(); P.push([x, y]); }
+    else if (C === 'V') { y = rel ? y + n() : n(); P.push([x, y]); }
+    else if (C === 'C') { const p = [pt(n(), n()), pt(n(), n()), pt(n(), n())]; P.push(...p); [x, y] = p[2]; }
+    else if (C === 'S' || C === 'Q') { const p = [pt(n(), n()), pt(n(), n())]; P.push(...p); [x, y] = p[1]; }
+    else if (C === 'A') { n(); n(); n(); n(); n(); [x, y] = pt(n(), n()); P.push([x, y]); }
+    else throw new Error('Comando SVG no soportado en el logo: ' + cmd);
+  }
+  return P;
+}
+const markBox = (els) => {
+  const P = [];
+  els.forEach(e => {
+    const c = e.match(/cx="([\d.-]+)" cy="([\d.-]+)" r="([\d.-]+)"/);
+    if (c) { const [cx, cy, r] = c.slice(1).map(Number); P.push([cx - r, cy - r], [cx + r, cy + r]); }
+    else P.push(...pathBox(e.match(/ d="([^"]+)"/)[1]));
+  });
+  const xs = P.map(p => p[0]), ys = P.map(p => p[1]);
+  const x0 = Math.min(...xs), y0 = Math.min(...ys), w = Math.max(...xs) - x0, h = Math.max(...ys) - y0, pad = Math.max(w, h) * 0.01;
+  return [x0 - pad, y0 - pad, w + 2 * pad, h + 2 * pad].map(v => +v.toFixed(2)).join(' ');
+};
 const mark = shapes.filter(x => x.startsWith('<circle')).concat([shapes.filter(x => x.startsWith('<path')).sort((p, q) => q.length - p.length)[0]]);
 fs.writeFileSync(path.join(OUT, 'icon.svg'),
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="104" fill="#14281f"/><svg x="72" y="72" width="368" height="368" viewBox="${ICON_MARK_BOX}" fill="#e2e58d">${mark.join('')}</svg></svg>`);
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="104" fill="#14281f"/><svg x="72" y="72" width="368" height="368" viewBox="${markBox(mark)}" fill="#e2e58d">${mark.join('')}</svg></svg>`);
 if (/<\/script/i.test(app)) throw new Error('app.jsx contiene </script>');
 
-const html = `<!doctype html><!-- LOOPA OS v2.4 · base TOONED OS v2.8 -->
+const html = `<!doctype html><!-- LOOPA OS v2.5 · base TOONED OS v2.8 -->
 <html lang="es">
 <head>
 <meta charset="utf-8" />
