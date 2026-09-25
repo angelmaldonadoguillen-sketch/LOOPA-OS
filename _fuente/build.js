@@ -81,11 +81,16 @@ const viewBox = logoSvg.match(/viewBox="([^"]+)"/)[1];
 const shapes = [...logoSvg.matchAll(/<(path|circle|rect|polygon)\b[^>]*\/>/g)].map(m => m[0].replace(/\s*class="[^"]*"/, ''));
 if (!shapes.length) throw new Error('No se encontraron trazos en logo-loopa.svg');
 const paths = 'window.LOOPA_SVG = ' + JSON.stringify({ viewBox, inner: shapes.join('') }) + ';\n';
+// Ícono de app: solo la marca "loopa." (punto + trazo principal = el path más largo),
+// sin "estudio creativo", que a 48 px no se lee. ICON_MARK_BOX = caja de la marca
+// dentro del viewBox del logo; si cambia el logo, recalcularla.
+const ICON_MARK_BOX = '22.4 -0.4 61.1 55.3';
+const mark = shapes.filter(x => x.startsWith('<circle')).concat([shapes.filter(x => x.startsWith('<path')).sort((p, q) => q.length - p.length)[0]]);
 fs.writeFileSync(path.join(OUT, 'icon.svg'),
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="104" fill="#14281f"/><g transform="translate(50 64) scale(1.9)" fill="#e2e58d">${shapes.slice(-2).join('')}</g></svg>`);
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="104" fill="#14281f"/><svg x="72" y="72" width="368" height="368" viewBox="${ICON_MARK_BOX}" fill="#e2e58d">${mark.join('')}</svg></svg>`);
 if (/<\/script/i.test(app)) throw new Error('app.jsx contiene </script>');
 
-const html = `<!doctype html><!-- LOOPA OS v2.3 · base TOONED OS v2.8 -->
+const html = `<!doctype html><!-- LOOPA OS v2.4 · base TOONED OS v2.8 -->
 <html lang="es">
 <head>
 <meta charset="utf-8" />
