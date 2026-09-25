@@ -1,6 +1,6 @@
 // Ensambla LOOPA OS en un solo index.html, igual que TOONED OS.
 // CSS base = base.css (heredado de TOONED OS), recoloreado a la paleta LOOPA:
-// fondo #14281f (verde profundo) + acento #e2e58d (lima), tipografía Montserrat.
+// fondo #14281f (verde profundo) + acento #e2e58d (lima), tipografía Roboto (3 tamaños, 3 pesos).
 const fs = require('fs');
 const path = require('path');
 const here = __dirname;
@@ -120,7 +120,7 @@ fs.writeFileSync(path.join(OUT, 'icon.svg'),
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="104" fill="#14281f"/><svg x="72" y="72" width="368" height="368" viewBox="${markBox(mark)}" fill="#e2e58d">${mark.join('')}</svg></svg>`);
 if (/<\/script/i.test(app)) throw new Error('app.jsx contiene </script>');
 
-const html = `<!doctype html><!-- LOOPA OS v2.8 · base TOONED OS v2.8 -->
+const html = `<!doctype html><!-- LOOPA OS v2.9 · base TOONED OS v2.8 -->
 <html lang="es">
 <head>
 <meta charset="utf-8" />
@@ -141,7 +141,7 @@ const html = `<!doctype html><!-- LOOPA OS v2.8 · base TOONED OS v2.8 -->
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet" />
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>

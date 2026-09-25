@@ -469,7 +469,7 @@ function PasoCliente({ cliente, setCliente, clientes, ventas, canales, nota, set
       <div className="panel-head">
         <div className="panel-title">PASO 01 · <span className="dim">CLIENTE</span></div>
         {cliente.id && (
-          <span className="mono" style={{ marginLeft: 'auto', fontSize: 10, letterSpacing: '0.1em', color: 'var(--accent)' }}>
+          <span className="mono" style={{ marginLeft: 'auto', fontSize: 'var(--fs-s)', letterSpacing: '0.1em', color: 'var(--accent)' }}>
             ● CLIENTE EXISTENTE · {compras(cliente.id)} COMPRA{compras(cliente.id) === 1 ? '' : 'S'}
           </span>
         )}
@@ -493,17 +493,17 @@ function PasoCliente({ cliente, setCliente, clientes, ventas, canales, nota, set
               {matches.map(c => (
                 <div key={c.id} className="dropdown-row" onMouseDown={() => apply(c)}>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 600 }}>{c.nombre}{c.empresa && <span className="muted" style={{ fontWeight: 400 }}> · {c.empresa}</span>}</div>
-                    <div className="mono dim" style={{ fontSize: 10, marginTop: 2 }}>{[c.telefono, c.email].filter(Boolean).join(' · ') || 'Sin contacto'}</div>
+                    <div style={{ fontWeight: 500 }}>{c.nombre}{c.empresa && <span className="muted" style={{ fontWeight: 400 }}> · {c.empresa}</span>}</div>
+                    <div className="mono dim" style={{ fontSize: 'var(--fs-s)', marginTop: 2 }}>{[c.telefono, c.email].filter(Boolean).join(' · ') || 'Sin contacto'}</div>
                   </div>
-                  <span className="mono" style={{ fontSize: 10, color: 'var(--accent)' }}>{compras(c.id)} compras</span>
+                  <span className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--accent)' }}>{compras(c.id)} compras</span>
                 </div>
               ))}
             </div>
           )}
           {!cliente.id && !q && recientes.length > 0 && (
             <div className="chips" style={{ marginTop: 10 }}>
-              <span className="mono dim" style={{ fontSize: 10, letterSpacing: '0.1em', alignSelf: 'center', marginRight: 4 }}>RECIENTES</span>
+              <span className="mono dim" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.1em', alignSelf: 'center', marginRight: 4 }}>RECIENTES</span>
               {recientes.map(c => <button key={c.id} className="chipbtn" onClick={() => apply(c)}>{c.nombre}</button>)}
             </div>
           )}
@@ -582,7 +582,7 @@ function PasoServicios({ servicios, stats, categorias, items, addItem, updItem, 
       <div className="panel crop">
         <div className="panel-head">
           <div className="panel-title">PASO 02 · <span className="dim">TIPOS DE SERVICIO</span></div>
-          <span className="mono dim" style={{ marginLeft: 'auto', fontSize: 10, letterSpacing: '0.1em' }}>{activos.length} GUARDADOS</span>
+          <span className="mono dim" style={{ marginLeft: 'auto', fontSize: 'var(--fs-s)', letterSpacing: '0.1em' }}>{activos.length} GUARDADOS</span>
         </div>
         <div className="panel-body">
           <div className="search-big" style={{ marginBottom: 12 }}>
@@ -651,7 +651,7 @@ function PasoServicios({ servicios, stats, categorias, items, addItem, updItem, 
         </div>
         <div className="panel-body">
           {items.length === 0 ? (
-            <div className="mono dim" style={{ fontSize: 11, textAlign: 'center', padding: '28px 8px', lineHeight: 1.8 }}>
+            <div className="mono dim" style={{ fontSize: 'var(--fs-s)', textAlign: 'center', padding: '28px 8px', lineHeight: 1.8 }}>
               Tocá un tipo de servicio para agregarlo.<br />Precio, cantidad y detalle se ajustan acá.
             </div>
           ) : items.map((i, idx) => {
@@ -660,10 +660,10 @@ function PasoServicios({ servicios, stats, categorias, items, addItem, updItem, 
             return (
               <div className="ln" key={i.key}>
                 <div className="ln-top">
-                  <span className="mono dim" style={{ fontSize: 11, paddingTop: 2 }}>{pad2(idx + 1)}</span>
+                  <span className="mono dim" style={{ fontSize: 'var(--fs-s)', paddingTop: 2 }}>{pad2(idx + 1)}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="srv-name">{i.nombre}</div>
-                    <div className="mono dim" style={{ fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 2 }}>{i.categoria} · por {i.unidad}</div>
+                    <div className="mono dim" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 2 }}>{i.categoria} · por {i.unidad}</div>
                   </div>
                   <button className="icon-btn danger" onClick={() => delItem(i.key)} title="Quitar"><Icon name="x" size={12} /></button>
                 </div>
@@ -681,13 +681,13 @@ function PasoServicios({ servicios, stats, categorias, items, addItem, updItem, 
                       Guardar {L(i.precio)} como precio base
                     </button>
                   )}
-                  <span className="mono" style={{ marginLeft: 'auto', fontWeight: 600 }}>{L(num(i.precio) * num(i.q))}</span>
+                  <span className="mono" style={{ marginLeft: 'auto', fontWeight: 500 }}>{L(num(i.precio) * num(i.q))}</span>
                 </div>
               </div>
             );
           })}
           {items.length > 0 && (
-            <div className="summary-row big" style={{ fontSize: 22 }}>
+            <div className="summary-row big" style={{ fontSize: 'var(--fs-l)' }}>
               <span className="l">Subtotal</span><span className="r">{L(totals.subtotal)}</span>
             </div>
           )}
@@ -701,7 +701,7 @@ function NuevoTipoInline({ draft, setDraft, categorias, onSave, onCancel }) {
   const set = (k) => (e) => setDraft(d => ({ ...d, [k]: e.target.value }));
   return (
     <div className="create-box">
-      <div className="mono" style={{ fontSize: 10, letterSpacing: '0.14em', color: 'var(--accent)', marginBottom: 14 }}>
+      <div className="mono" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.14em', color: 'var(--accent)', marginBottom: 14 }}>
         ▸ NUEVO TIPO DE SERVICIO · SE GUARDA PARA LAS PRÓXIMAS VENTAS
       </div>
       <div className="grid-2">
@@ -819,12 +819,12 @@ function PasoCobro({ payConfig, pay, setPay, cobro, setCobro, anticipo, setAntic
         </div>
         <div className="panel-body">
           <div style={{ marginBottom: 14 }}>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18 }}>{cliente.nombre}</div>
-            {cliente.empresa && <div className="muted" style={{ fontSize: 12 }}>{cliente.empresa}</div>}
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 'var(--fs-m)' }}>{cliente.nombre}</div>
+            {cliente.empresa && <div className="muted" style={{ fontSize: 'var(--fs-s)' }}>{cliente.empresa}</div>}
           </div>
           {items.map(i => (
             <div key={i.key} className="summary-row" style={{ gap: 12 }}>
-              <span style={{ color: 'var(--text)', fontFamily: 'var(--font-body)', fontSize: 13 }}>{i.nombre}{num(i.q) > 1 && <span className="dim"> ×{i.q}</span>}</span>
+              <span style={{ color: 'var(--text)', fontFamily: 'var(--font-body)', fontSize: 'var(--fs-m)' }}>{i.nombre}{num(i.q) > 1 && <span className="dim"> ×{i.q}</span>}</span>
               <span className="r">{L(num(i.precio) * num(i.q))}</span>
             </div>
           ))}
@@ -864,9 +864,9 @@ function VentaCreada({ venta: v, onReset, onOpen }) {
         <div className="panel-body">
           {v.items.map((i, idx) => (
             <div key={idx} className="summary-row">
-              <span style={{ color: 'var(--text)', fontFamily: 'var(--font-body)', fontSize: 13 }}>
+              <span style={{ color: 'var(--text)', fontFamily: 'var(--font-body)', fontSize: 'var(--fs-m)' }}>
                 {i.nombre}{i.q > 1 && <span className="dim"> ×{i.q}</span>}
-                {i.descripcion && <span className="dim" style={{ display: 'block', fontSize: 11 }}>{i.descripcion}</span>}
+                {i.descripcion && <span className="dim" style={{ display: 'block', fontSize: 'var(--fs-s)' }}>{i.descripcion}</span>}
               </span>
               <span className="r">{L(i.precio * i.q)}</span>
             </div>
@@ -939,7 +939,7 @@ function Ventas({ ventas, config, onUpdate, onDelete, onDuplicate, onAbono, focu
   };
 
   const hasFilters = JSON.stringify(f) !== JSON.stringify(FILTROS0);
-  const SortIcon = ({ col }) => sort.col !== col ? null : <span style={{ marginLeft: 4, fontSize: 9, color: 'var(--accent)' }}>{sort.dir === 'asc' ? '▲' : '▼'}</span>;
+  const SortIcon = ({ col }) => sort.col !== col ? null : <span style={{ marginLeft: 4, fontSize: 'var(--fs-s)', color: 'var(--accent)' }}>{sort.dir === 'asc' ? '▲' : '▼'}</span>;
   const openMenu = (e, kind, v) => {
     e.stopPropagation();
     const r = e.currentTarget.getBoundingClientRect();
@@ -1050,7 +1050,7 @@ function Ventas({ ventas, config, onUpdate, onDelete, onDuplicate, onAbono, focu
                       <td className="order-n">#{v.n}</td>
                       <td>
                         <div style={{ fontWeight: 500 }}>{v.cliente}</div>
-                        {v.empresa && <div className="mono" style={{ fontSize: 10, color: 'var(--muted)', letterSpacing: '0.06em' }}>{v.empresa.toUpperCase()}</div>}
+                        {v.empresa && <div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--muted)', letterSpacing: '0.06em' }}>{v.empresa.toUpperCase()}</div>}
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', maxWidth: 340 }}>
@@ -1061,7 +1061,7 @@ function Ventas({ ventas, config, onUpdate, onDelete, onDuplicate, onAbono, focu
                       </td>
                       <td className="num" style={{ textDecoration: cancel ? 'line-through' : 'none' }}>{L(v.total)}</td>
                       <td className="num" style={{ color: ventaSaldo(v) > 0 ? 'var(--warn)' : 'var(--dim)' }}>{ventaSaldo(v) > 0 ? L(ventaSaldo(v)) : '—'}</td>
-                      <td className="num" style={{ color: cancel ? 'var(--dim)' : 'var(--ok)', fontWeight: 600 }}>{cancel ? '—' : L(ventaGanancia(v, payConfig))}</td>
+                      <td className="num" style={{ color: cancel ? 'var(--dim)' : 'var(--ok)', fontWeight: 500 }}>{cancel ? '—' : L(ventaGanancia(v, payConfig))}</td>
                       <td onClick={e => { if (!cancel && ventaSaldo(v) > 0) openMenu(e, 'pago', v); else e.stopPropagation(); }}>
                         <span style={{ cursor: !cancel && ventaSaldo(v) > 0 ? 'pointer' : 'default', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           <PagoBadge v={v} />{!cancel && ventaSaldo(v) > 0 && <Icon name="down" size={10} />}
@@ -1072,10 +1072,10 @@ function Ventas({ ventas, config, onUpdate, onDelete, onDuplicate, onAbono, focu
                           <EstadoBadge s={v.estado} /><Icon name="down" size={10} />
                         </span>
                       </td>
-                      <td className="mono" style={{ fontSize: 11, color: entregaVencida(v) ? 'var(--danger)' : 'var(--muted)' }}>
+                      <td className="mono" style={{ fontSize: 'var(--fs-s)', color: entregaVencida(v) ? 'var(--danger)' : 'var(--muted)' }}>
                         {v.entrega ? fmtFecha(v.entrega) : '—'}{entregaVencida(v) && ' ⚠'}
                       </td>
-                      <td className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>{fmtFecha(v.fecha)}</td>
+                      <td className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--muted)' }}>{fmtFecha(v.fecha)}</td>
                       <td onClick={e => e.stopPropagation()}>
                         <button className="icon-btn danger" title="Eliminar venta"
                           onClick={() => uiConfirm({ title: `Eliminar venta #${v.n}`, message: `Cliente: ${v.cliente}\nTotal: ${L(v.total)}\n\nSi solo se canceló, mejor cambiá el estado a «Cancelado» para conservar el registro.`, confirmLabel: 'Eliminar' }).then(ok => { if (ok) onDelete(v.n); })}>
@@ -1094,8 +1094,8 @@ function Ventas({ ventas, config, onUpdate, onDelete, onDuplicate, onAbono, focu
         )}
         {ventas.length > 0 && (
           <div className="panel-footer" style={{ flexWrap: 'wrap' }}>
-            <div className="mono" style={{ fontSize: 11, color: 'var(--muted)', letterSpacing: '0.08em' }}>{filtered.length} FILAS</div>
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: 20, flexWrap: 'wrap', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+            <div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--muted)', letterSpacing: '0.08em' }}>{filtered.length} FILAS</div>
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 20, flexWrap: 'wrap', fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-s)' }}>
               <span className="muted">TOTAL <span style={{ color: 'var(--text)' }}>{L(sum.total)}</span></span>
               <span className="muted">COBRADO <span style={{ color: 'var(--ok)' }}>{L(sum.cobrado)}</span></span>
               <span className="muted">POR COBRAR <span style={{ color: 'var(--warn)' }}>{L(sum.saldo)}</span></span>
@@ -1176,7 +1176,7 @@ function VentaModal({ venta: v, config, onClose, onUpdate, onAbono, onDuplicate,
         <div className="kv">
           <div className="k">Cliente</div>
           <div className="v">{v.cliente}{v.empresa && <span className="muted"> · {v.empresa}</span>}</div>
-          <div className="mono dim" style={{ fontSize: 11, marginTop: 2 }}>{[v.telefono, v.email, v.canal].filter(Boolean).join(' · ')}</div>
+          <div className="mono dim" style={{ fontSize: 'var(--fs-s)', marginTop: 2 }}>{[v.telefono, v.email, v.canal].filter(Boolean).join(' · ')}</div>
         </div>
         <div className="kv">
           <div className="k">Estado del trabajo</div>
@@ -1204,12 +1204,12 @@ function VentaModal({ venta: v, config, onClose, onUpdate, onAbono, onDuplicate,
         <div style={{ marginBottom: 20 }}>
           {v.items.map((i, idx) => (
             <div key={idx} className="summary-row" style={{ gap: 12, borderBottom: '1px solid var(--line)' }}>
-              <span style={{ color: 'var(--text)', fontFamily: 'var(--font-body)', fontSize: 13 }}>
-                <b style={{ fontWeight: 600 }}>{i.nombre}</b>{i.q > 1 && <span className="dim"> · {i.q} × {L(i.precio)}</span>}
-                <span className="mono dim" style={{ fontSize: 9, letterSpacing: '0.1em', marginLeft: 8, textTransform: 'uppercase' }}>{i.categoria}</span>
-                {i.descripcion && <span className="muted" style={{ display: 'block', fontSize: 12, marginTop: 2 }}>{i.descripcion}</span>}
+              <span style={{ color: 'var(--text)', fontFamily: 'var(--font-body)', fontSize: 'var(--fs-m)' }}>
+                <b style={{ fontWeight: 500 }}>{i.nombre}</b>{i.q > 1 && <span className="dim"> · {i.q} × {L(i.precio)}</span>}
+                <span className="mono dim" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.1em', marginLeft: 8, textTransform: 'uppercase' }}>{i.categoria}</span>
+                {i.descripcion && <span className="muted" style={{ display: 'block', fontSize: 'var(--fs-s)', marginTop: 2 }}>{i.descripcion}</span>}
               </span>
-              <span className="r" style={{ textAlign: 'right' }}>{L(i.precio * i.q)}{i.costo > 0 && <span className="dim" style={{ display: 'block', fontSize: 10 }}>costo {L(i.costo * i.q)}</span>}</span>
+              <span className="r" style={{ textAlign: 'right' }}>{L(i.precio * i.q)}{i.costo > 0 && <span className="dim" style={{ display: 'block', fontSize: 'var(--fs-s)' }}>costo {L(i.costo * i.q)}</span>}</span>
             </div>
           ))}
         </div>
@@ -1247,7 +1247,7 @@ function VentaModal({ venta: v, config, onClose, onUpdate, onAbono, onDuplicate,
           <div key={x.l}><div className="k">{x.l}</div><div className="v" style={{ color: x.c }}>{x.v}</div></div>
         ))}
       </div>
-      {v.descuento > 0 && <div className="mono dim" style={{ fontSize: 10, marginTop: 6 }}>Incluye descuento de {L(v.descuento)} sobre {L(v.subtotal)}</div>}
+      {v.descuento > 0 && <div className="mono dim" style={{ fontSize: 'var(--fs-s)', marginTop: 6 }}>Incluye descuento de {L(v.descuento)} sobre {L(v.subtotal)}</div>}
 
       <div className="sec-head" style={{ marginTop: 22 }}>
         <span>Cobros · <PagoBadge v={v} /></span>
@@ -1255,12 +1255,12 @@ function VentaModal({ venta: v, config, onClose, onUpdate, onAbono, onDuplicate,
           {payConfig.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
         </select>
       </div>
-      {(v.abonos || []).length === 0 && <div className="mono dim" style={{ fontSize: 11, padding: '6px 0 10px' }}>Sin cobros registrados.</div>}
+      {(v.abonos || []).length === 0 && <div className="mono dim" style={{ fontSize: 'var(--fs-s)', padding: '6px 0 10px' }}>Sin cobros registrados.</div>}
       {(v.abonos || []).map(a => (
         <div key={a.id} className="abono-row">
           <span className="mono">{fmtFechaLarga(a.fecha)}</span>
           <span className="muted">{payConfig.find(p => p.id === a.metodo)?.label || a.metodo}</span>
-          <span className="mono" style={{ marginLeft: 'auto', color: 'var(--ok)', fontWeight: 600 }}>{L(a.monto)}</span>
+          <span className="mono" style={{ marginLeft: 'auto', color: 'var(--ok)', fontWeight: 500 }}>{L(a.monto)}</span>
           <button className="icon-btn danger" onClick={() => delAbono(a.id)} title="Quitar cobro"><Icon name="x" size={11} /></button>
         </div>
       ))}
@@ -1285,7 +1285,7 @@ function VentaModal({ venta: v, config, onClose, onUpdate, onAbono, onDuplicate,
           <div className="mini-lbl">Historial</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {v.estadoLog.map((e, i) => (
-              <span key={i} className="mono" style={{ fontSize: 10, color: 'var(--muted)' }}>
+              <span key={i} className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--muted)' }}>
                 {i > 0 && <span className="dim">→ </span>}{ESTADO_LABELS[e.estado] || e.estado} <span className="dim">{formatTs(e.ts)}</span>
               </span>
             ))}
@@ -1320,7 +1320,7 @@ function Servicios({ servicios, stats, config, onSave, onDelete, onVender }) {
   };
   const sorted = [...list].sort((a, b) => { const va = val(a, sort.col), vb = val(b, sort.col); return (va < vb ? -1 : va > vb ? 1 : 0) * (sort.dir === 'asc' ? 1 : -1); });
   const toggleSort = (col) => setSort(s => s.col === col ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: col === 'nombre' || col === 'categoria' ? 'asc' : 'desc' });
-  const SortIcon = ({ col }) => sort.col !== col ? null : <span style={{ marginLeft: 4, fontSize: 9, color: 'var(--accent)' }}>{sort.dir === 'asc' ? '▲' : '▼'}</span>;
+  const SortIcon = ({ col }) => sort.col !== col ? null : <span style={{ marginLeft: 4, fontSize: 'var(--fs-s)', color: 'var(--accent)' }}>{sort.dir === 'asc' ? '▲' : '▼'}</span>;
 
   const activos = servicios.filter(s => s.activo !== false).length;
   const archivados = servicios.length - activos;
@@ -1396,17 +1396,17 @@ function Servicios({ servicios, stats, config, onSave, onDelete, onVender }) {
                   return (
                     <tr key={s.id} onClick={() => setEditing(s)} style={{ opacity: s.activo === false ? 0.45 : 1 }}>
                       <td>
-                        <div style={{ fontWeight: 600 }}>{s.nombre}{s.activo === false && <span className="mono dim" style={{ fontSize: 9, marginLeft: 8, letterSpacing: '0.1em' }}>ARCHIVADO</span>}</div>
-                        {s.descripcion && <div className="muted" style={{ fontSize: 11, maxWidth: 340, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.descripcion}</div>}
+                        <div style={{ fontWeight: 500 }}>{s.nombre}{s.activo === false && <span className="mono dim" style={{ fontSize: 'var(--fs-s)', marginLeft: 8, letterSpacing: '0.1em' }}>ARCHIVADO</span>}</div>
+                        {s.descripcion && <div className="muted" style={{ fontSize: 'var(--fs-s)', maxWidth: 340, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.descripcion}</div>}
                       </td>
                       <td><span className="srv-chip">{s.categoria}</span></td>
-                      <td className="mono muted" style={{ fontSize: 11 }}>{s.unidad}</td>
+                      <td className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>{s.unidad}</td>
                       <td className="num">{L(s.precio)}</td>
                       <td className="num dim">{num(s.costo) > 0 ? L(s.costo) : '—'}</td>
                       <td className="num" style={{ color: margen == null ? 'var(--dim)' : margen >= 50 ? 'var(--ok)' : margen >= 25 ? 'var(--warn)' : 'var(--danger)' }}>{margen == null ? '—' : `${margen.toFixed(0)}%`}</td>
                       <td className="num">{st.q || 0}</td>
-                      <td className="num" style={{ fontWeight: 600 }}>{st.ingresos ? L(st.ingresos) : '—'}</td>
-                      <td className="mono muted" style={{ fontSize: 11 }}>{st.ultima ? fmtFecha(st.ultima) : '—'}</td>
+                      <td className="num" style={{ fontWeight: 500 }}>{st.ingresos ? L(st.ingresos) : '—'}</td>
+                      <td className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>{st.ultima ? fmtFecha(st.ultima) : '—'}</td>
                       <td onClick={e => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
                         {s.activo !== false && <button className="btn sm ghost" onClick={() => onVender(s)} title="Nueva venta con este servicio"><Icon name="plus" size={11} /> Vender</button>}
                       </td>
@@ -1499,7 +1499,7 @@ function ServicioForm({ servicio, servicios, categorias, stats, onClose, onSave,
           </div>
         )}
       </div>
-      {!isNew && <div className="mono dim" style={{ fontSize: 10, marginTop: 14, lineHeight: 1.6 }}>Cambiar el precio base solo afecta ventas nuevas: las pasadas conservan lo que se cobró.</div>}
+      {!isNew && <div className="mono dim" style={{ fontSize: 'var(--fs-s)', marginTop: 14, lineHeight: 1.6 }}>Cambiar el precio base solo afecta ventas nuevas: las pasadas conservan lo que se cobró.</div>}
     </Modal>
   );
 }
@@ -1528,7 +1528,7 @@ function Clientes({ clientes, ventas, config, onSave, onDelete, onNuevaVenta, on
   const val = (c, col) => { const r = resumen[c.id] || {}; return col === 'nombre' ? norm(c.nombre) : col === 'ventas' ? r.ventas || 0 : col === 'total' ? r.total || 0 : col === 'saldo' ? r.saldo || 0 : r.ultima || c.creado || ''; };
   const sorted = [...list].sort((a, b) => { const va = val(a, sort.col), vb = val(b, sort.col); return (va < vb ? -1 : va > vb ? 1 : 0) * (sort.dir === 'asc' ? 1 : -1); });
   const toggleSort = (col) => setSort(s => s.col === col ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: col === 'nombre' ? 'asc' : 'desc' });
-  const SortIcon = ({ col }) => sort.col !== col ? null : <span style={{ marginLeft: 4, fontSize: 9, color: 'var(--accent)' }}>{sort.dir === 'asc' ? '▲' : '▼'}</span>;
+  const SortIcon = ({ col }) => sort.col !== col ? null : <span style={{ marginLeft: 4, fontSize: 'var(--fs-s)', color: 'var(--accent)' }}>{sort.dir === 'asc' ? '▲' : '▼'}</span>;
   const saldoTotal = Object.values(resumen).reduce((a, r) => a + r.saldo, 0);
 
   const exportCSV = () => downloadCSV(`loopa-clientes-${today()}.csv`,
@@ -1581,15 +1581,15 @@ function Clientes({ clientes, ventas, config, onSave, onDelete, onNuevaVenta, on
                   return (
                     <tr key={c.id} onClick={() => setEditing(c)}>
                       <td>
-                        <div style={{ fontWeight: 600 }}>{c.nombre}</div>
-                        {c.empresa && <div className="mono" style={{ fontSize: 10, color: 'var(--muted)', letterSpacing: '0.06em' }}>{c.empresa.toUpperCase()}</div>}
+                        <div style={{ fontWeight: 500 }}>{c.nombre}</div>
+                        {c.empresa && <div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--muted)', letterSpacing: '0.06em' }}>{c.empresa.toUpperCase()}</div>}
                       </td>
-                      <td className="mono muted" style={{ fontSize: 11 }}>{c.telefono || c.email || '—'}{c.telefono && c.email && <div className="dim">{c.email}</div>}</td>
-                      <td className="mono muted" style={{ fontSize: 11 }}>{c.canal || '—'}</td>
+                      <td className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>{c.telefono || c.email || '—'}{c.telefono && c.email && <div className="dim">{c.email}</div>}</td>
+                      <td className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>{c.canal || '—'}</td>
                       <td className="num">{r.ventas || 0}</td>
-                      <td className="num" style={{ fontWeight: 600 }}>{r.total ? L(r.total) : '—'}</td>
+                      <td className="num" style={{ fontWeight: 500 }}>{r.total ? L(r.total) : '—'}</td>
                       <td className="num" style={{ color: r.saldo > 0 ? 'var(--warn)' : 'var(--dim)' }}>{r.saldo > 0 ? L(r.saldo) : '—'}</td>
-                      <td className="mono muted" style={{ fontSize: 11 }}>{r.ultima ? fmtFecha(r.ultima) : '—'}</td>
+                      <td className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>{r.ultima ? fmtFecha(r.ultima) : '—'}</td>
                       <td onClick={e => e.stopPropagation()}>
                         <button className="btn sm ghost" onClick={() => onNuevaVenta(c)}><Icon name="plus" size={11} /> Venta</button>
                       </td>
@@ -1673,15 +1673,15 @@ function ClienteModal({ cliente, ventas, config, clientes, onClose, onSave, onDe
       {!isNew && (
         <div style={{ marginTop: 18 }}>
           <div className="mini-lbl">Historial · {hist.length} ventas</div>
-          {hist.length === 0 ? <div className="mono dim" style={{ fontSize: 11 }}>Sin ventas.</div> : (
+          {hist.length === 0 ? <div className="mono dim" style={{ fontSize: 'var(--fs-s)' }}>Sin ventas.</div> : (
             <div className="panel" style={{ borderRadius: 10 }}>
               <table className="tbl">
                 <tbody>
                   {hist.map(v => (
                     <tr key={v.n} onClick={() => onOpenVenta(v.n)} style={{ opacity: esActiva(v) ? 1 : 0.5 }}>
                       <td className="order-n">#{v.n}</td>
-                      <td className="mono muted" style={{ fontSize: 11 }}>{fmtFecha(v.fecha)}</td>
-                      <td style={{ fontSize: 12 }}>{v.items.map(i => i.nombre).join(', ')}</td>
+                      <td className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>{fmtFecha(v.fecha)}</td>
+                      <td style={{ fontSize: 'var(--fs-s)' }}>{v.items.map(i => i.nombre).join(', ')}</td>
                       <td className="num">{L(v.total)}</td>
                       <td><PagoBadge v={v} /></td>
                       <td><EstadoBadge s={v.estado} /></td>
@@ -1764,7 +1764,7 @@ function Metricas({ ventas, gastos, config }) {
   }, [ventas, period]);
 
   const Rows = ({ data, empty }) => data.length === 0
-    ? <div className="mono" style={{ padding: 24, color: 'var(--muted)', fontSize: 12, textAlign: 'center' }}>{empty}</div>
+    ? <div className="mono" style={{ padding: 24, color: 'var(--muted)', fontSize: 'var(--fs-s)', textAlign: 'center' }}>{empty}</div>
     : <div>{data.map((c, i) => (
         <div key={c.key} className="channel-row">
           <div className="ch" title={c.key}><span className="mono" style={{ color: 'var(--dim)', marginRight: 8 }}>{pad2(i + 1)}</span>{c.key}</div>
@@ -1813,7 +1813,7 @@ function Metricas({ ventas, gastos, config }) {
           ))}
           <span className="op">=</span>
           <div className="dg total" style={{ borderColor: k.ganancia >= 0 ? 'var(--ok)' : 'var(--danger)', background: k.ganancia >= 0 ? 'rgba(123,201,111,.08)' : 'rgba(230,57,70,.08)' }}>
-            <span className="dl">Ganancia neta</span><span style={{ color: k.ganancia >= 0 ? 'var(--ok)' : 'var(--danger)', fontSize: 15 }}>{L(k.ganancia)}</span>
+            <span className="dl">Ganancia neta</span><span style={{ color: k.ganancia >= 0 ? 'var(--ok)' : 'var(--danger)', fontSize: 'var(--fs-m)' }}>{L(k.ganancia)}</span>
           </div>
         </div>
       </div>
@@ -1842,7 +1842,7 @@ function Metricas({ ventas, gastos, config }) {
         <div className="panel crop">
           <div className="panel-head"><div className="panel-title">TOP SERVICIOS</div><span className="chip" style={{ marginLeft: 'auto' }}>{r.label}</span></div>
           {topServicios.length === 0
-            ? <div className="mono" style={{ padding: 24, color: 'var(--muted)', fontSize: 12, textAlign: 'center' }}>Sin ventas en el período</div>
+            ? <div className="mono" style={{ padding: 24, color: 'var(--muted)', fontSize: 'var(--fs-s)', textAlign: 'center' }}>Sin ventas en el período</div>
             : <div className="top-list">{topServicios.map((s, i) => (
                 <div key={i} className="top-row" style={{ gridTemplateColumns: '32px 1fr auto' }}>
                   <div className="rank">{pad2(i + 1)}</div>
@@ -1865,7 +1865,7 @@ function Metricas({ ventas, gastos, config }) {
         <div className="panel crop">
           <div className="panel-head"><div className="panel-title">TOP CLIENTES</div></div>
           {topClientes.length === 0
-            ? <div className="mono" style={{ padding: 24, color: 'var(--muted)', fontSize: 12, textAlign: 'center' }}>Sin ventas en el período</div>
+            ? <div className="mono" style={{ padding: 24, color: 'var(--muted)', fontSize: 'var(--fs-s)', textAlign: 'center' }}>Sin ventas en el período</div>
             : <div className="top-list">{topClientes.map((c, i) => (
                 <div key={i} className="top-row" style={{ gridTemplateColumns: '32px 1fr auto' }}>
                   <div className="rank">{pad2(i + 1)}</div>
@@ -1923,11 +1923,11 @@ function Gastos({ gastos, setGastos }) {
               <input className="input mini mono" placeholder="Monto" inputMode="decimal" value={nv.monto} onChange={e => setNv(x => ({ ...x, monto: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addVar()} />
               <button className="btn sm primary" onClick={addVar}><Icon name="plus" size={11} /></button>
             </div>
-            {vars.length === 0 ? <div className="mono dim" style={{ fontSize: 11, textAlign: 'center', padding: 20 }}>Sin gastos variables</div> : vars.map(g => (
+            {vars.length === 0 ? <div className="mono dim" style={{ fontSize: 'var(--fs-s)', textAlign: 'center', padding: 20 }}>Sin gastos variables</div> : vars.map(g => (
               <div key={g.id} className="abono-row">
                 <span className="mono dim" style={{ width: 60 }}>{fmtFecha(g.fecha)}</span>
                 <span style={{ flex: 1 }}>{g.concepto} <span className="srv-chip" style={{ marginLeft: 6 }}>{g.categoria}</span></span>
-                <span className="mono" style={{ fontWeight: 600 }}>{L(g.monto)}</span>
+                <span className="mono" style={{ fontWeight: 500 }}>{L(g.monto)}</span>
                 <button className="icon-btn danger" onClick={() => delVar(g.id)}><Icon name="x" size={11} /></button>
               </div>
             ))}
@@ -1943,11 +1943,11 @@ function Gastos({ gastos, setGastos }) {
               <input className="input mini mono" placeholder="Monto/mes" inputMode="decimal" value={nf.monto} onChange={e => setNf(x => ({ ...x, monto: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addFijo()} />
               <button className="btn sm primary" onClick={addFijo}><Icon name="plus" size={11} /></button>
             </div>
-            {(gastos.fijos || []).length === 0 ? <div className="mono dim" style={{ fontSize: 11, textAlign: 'center', padding: 20 }}>Sin gastos fijos</div> : gastos.fijos.map(f => (
+            {(gastos.fijos || []).length === 0 ? <div className="mono dim" style={{ fontSize: 'var(--fs-s)', textAlign: 'center', padding: 20 }}>Sin gastos fijos</div> : gastos.fijos.map(f => (
               <div key={f.id} className="abono-row" style={{ opacity: f.activo === false ? 0.45 : 1 }}>
                 <span style={{ flex: 1 }}>{f.concepto} <span className="srv-chip" style={{ marginLeft: 6 }}>{f.categoria}</span></span>
                 <button className="chipbtn" style={{ padding: '3px 9px' }} onClick={() => toggleFijo(f.id)}>{f.activo === false ? 'Pausado' : 'Activo'}</button>
-                <span className="mono" style={{ fontWeight: 600, width: 90, textAlign: 'right' }}>{L(f.monto)}</span>
+                <span className="mono" style={{ fontWeight: 500, width: 90, textAlign: 'right' }}>{L(f.monto)}</span>
                 <button className="icon-btn danger" onClick={() => delFijo(f)}><Icon name="x" size={11} /></button>
               </div>
             ))}
@@ -2016,7 +2016,7 @@ function Configuracion({ config, setConfig, allData, onImport, showToast }) {
                 <button className="icon-btn danger" disabled={config.payConfig.length <= 1} onClick={() => delPay(p)}><Icon name="x" size={11} /></button>
               </div>
             ))}
-            <div className="mono dim" style={{ fontSize: 10, marginTop: 10, lineHeight: 1.6 }}>La comisión se resta del total de cada venta al calcular la ganancia (ej. POS o PayPal).</div>
+            <div className="mono dim" style={{ fontSize: 'var(--fs-s)', marginTop: 10, lineHeight: 1.6 }}>La comisión se resta del total de cada venta al calcular la ganancia (ej. POS o PayPal).</div>
           </div>
         </div>
 
@@ -2029,10 +2029,10 @@ function Configuracion({ config, setConfig, allData, onImport, showToast }) {
             </div>
             <div className="field">
               <label>Dónde se guardan los datos</label>
-              <div className="mono" style={{ fontSize: 12, lineHeight: 1.7, color: window.USE_FB ? 'var(--ok)' : 'var(--warn)' }}>
+              <div className="mono" style={{ fontSize: 'var(--fs-s)', lineHeight: 1.7, color: window.USE_FB ? 'var(--ok)' : 'var(--warn)' }}>
                 {window.USE_FB ? '● Nube (Firebase) · sincronizado entre dispositivos' : '● Modo local · solo en este navegador'}
               </div>
-              {!window.USE_FB && <div className="muted" style={{ fontSize: 12, lineHeight: 1.6 }}>Para usarlo desde el celular y la compu con los mismos datos, conectá Firebase (instrucciones en <span className="mono">LEEME.md</span>). Mientras tanto, descargá respaldos seguido.</div>}
+              {!window.USE_FB && <div className="muted" style={{ fontSize: 'var(--fs-s)', lineHeight: 1.6 }}>Para usarlo desde el celular y la compu con los mismos datos, conectá Firebase (instrucciones en <span className="mono">LEEME.md</span>). Mientras tanto, descargá respaldos seguido.</div>}
             </div>
           </div>
         </div>
@@ -2063,7 +2063,7 @@ function Configuracion({ config, setConfig, allData, onImport, showToast }) {
           <button className="btn" onClick={exportJSON}><Icon name="dl" size={12} /> Descargar respaldo (.json)</button>
           <button className="btn ghost" onClick={() => fileRef.current?.click()}><Icon name="ul" size={12} /> Restaurar respaldo…</button>
           <input ref={fileRef} type="file" accept="application/json,.json" style={{ display: 'none' }} onChange={importJSON} />
-          <span className="mono dim" style={{ fontSize: 10 }}>{allData.ventas.length} ventas · {allData.servicios.length} tipos · {allData.clientes.length} clientes</span>
+          <span className="mono dim" style={{ fontSize: 'var(--fs-s)' }}>{allData.ventas.length} ventas · {allData.servicios.length} tipos · {allData.clientes.length} clientes</span>
         </div>
       </div>
     </div>
@@ -2103,11 +2103,11 @@ function LoginScreen() {
     <div className="login">
       <div style={{ width: 340, textAlign: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6, color: 'var(--accent)' }}><LoopaMark height={72} /></div>
-        <div className="mono" style={{ fontSize: 10, color: 'var(--dim)', letterSpacing: '0.22em', marginBottom: 44, textTransform: 'uppercase' }}>Acceso privado · misma cuenta que FRAME</div>
+        <div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--dim)', letterSpacing: '0.22em', marginBottom: 44, textTransform: 'uppercase' }}>Acceso privado · misma cuenta que FRAME</div>
         <div className={shake ? 'shake' : ''} style={{ background: 'var(--card)', border: `1px solid ${errorMsg ? 'var(--danger)' : 'var(--line)'}`, borderRadius: 18, padding: '32px 28px' }}>
           <input className="input mono" type="email" autoFocus autoComplete="username" placeholder="email" value={email} onChange={e => { setEmail(e.target.value); setErrorMsg(''); }} onKeyDown={onKey} style={{ marginBottom: 10 }} />
           <input className="input mono" type="password" autoComplete="current-password" placeholder="contraseña" value={password} onChange={e => { setPassword(e.target.value); setErrorMsg(''); }} onKeyDown={onKey} />
-          {errorMsg && <div className="mono" style={{ fontSize: 10, color: 'var(--danger)', marginTop: 10, lineHeight: 1.6 }}>{errorMsg}</div>}
+          {errorMsg && <div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--danger)', marginTop: 10, lineHeight: 1.6 }}>{errorMsg}</div>}
           <button className="btn primary" onClick={tryLogin} disabled={submitting || !email.trim() || !password} style={{ width: '100%', justifyContent: 'center', padding: 14, marginTop: 20 }}>
             {submitting ? 'VERIFICANDO…' : 'ENTRAR AL SISTEMA'}
           </button>
@@ -2138,14 +2138,14 @@ function DialogHost() {
       <div className="modal" style={{ maxWidth: 420 }} onMouseDown={e => e.stopPropagation()}>
         <div style={{ padding: '22px 22px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <span style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 8, background: state.danger ? 'rgba(230,57,70,.12)' : 'rgba(var(--accent-rgb),.14)', color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{state.danger ? '⚠' : 'ℹ'}</span>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 17 }}>{state.title}</div>
+            <span style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 8, background: state.danger ? 'rgba(230,57,70,.12)' : 'rgba(var(--accent-rgb),.14)', color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--fs-m)' }}>{state.danger ? '⚠' : 'ℹ'}</span>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 'var(--fs-m)' }}>{state.title}</div>
           </div>
-          {state.message && <div style={{ color: 'var(--muted)', fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-wrap', paddingLeft: 40 }}>{state.message}</div>}
+          {state.message && <div style={{ color: 'var(--muted)', fontSize: 'var(--fs-m)', lineHeight: 1.6, whiteSpace: 'pre-wrap', paddingLeft: 40 }}>{state.message}</div>}
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', padding: 22 }}>
           {state.kind === 'confirm' && <button className="btn sm" onClick={() => close(false)}>{state.cancelLabel}</button>}
-          <button className="btn sm" autoFocus onClick={() => close(true)} style={{ background: accent, borderColor: accent, color: state.danger ? '#fff' : 'var(--on-accent)', fontWeight: 700 }}>{state.confirmLabel}</button>
+          <button className="btn sm" autoFocus onClick={() => close(true)} style={{ background: accent, borderColor: accent, color: state.danger ? '#fff' : 'var(--on-accent)', fontWeight: 500 }}>{state.confirmLabel}</button>
         </div>
       </div>
     </div>
@@ -2440,7 +2440,7 @@ function App({ onLogout }) {
       <div style={{ color: 'var(--accent)' }}><LoopaMark height={66} /></div>
       {loadError ? (
         <>
-          <div className="boot-err"><span style={{ color: 'var(--danger)', fontSize: 18 }}>✕</span><div><div className="mono" style={{ fontSize: 11, color: 'var(--danger)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>No se pudieron cargar los datos</div><div className="mono muted" style={{ fontSize: 12 }}>{loadError}</div></div></div>
+          <div className="boot-err"><span style={{ color: 'var(--danger)', fontSize: 'var(--fs-m)' }}>✕</span><div><div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--danger)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>No se pudieron cargar los datos</div><div className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>{loadError}</div></div></div>
           <div style={{ display: 'flex', gap: 10 }}>
             <button className="btn primary" onClick={load}>↺ Reintentar</button>
             <button className="btn" onClick={() => window.location.reload()}>Recargar</button>
@@ -2448,7 +2448,7 @@ function App({ onLogout }) {
         </>
       ) : (
         <>
-          <div className="mono muted" style={{ fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{window.USE_FB ? 'Conectando con Firebase…' : 'Cargando…'}</div>
+          <div className="mono muted" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>{window.USE_FB ? 'Conectando con Firebase…' : 'Cargando…'}</div>
           <div style={{ width: 180, height: 2, background: '#1A1A1A', overflow: 'hidden' }}><div className="loadbar" /></div>
         </>
       )}
@@ -2476,17 +2476,17 @@ function App({ onLogout }) {
           </div>
           {gOpen && gq.length >= 2 && (
             <div className="dropdown" style={{ left: 12, right: 12 }}>
-              {gVentas.length + gClientes.length === 0 && <div className="mono muted" style={{ padding: '12px', fontSize: 11 }}>Sin resultados</div>}
+              {gVentas.length + gClientes.length === 0 && <div className="mono muted" style={{ padding: '12px', fontSize: 'var(--fs-s)' }}>Sin resultados</div>}
               {gVentas.length > 0 && <div className="dropdown-lbl">Ventas</div>}
               {gVentas.map(v => (
                 <div key={v.n} className="dropdown-row" onMouseDown={() => { openVenta(v.n); setGSearch(''); }}>
-                  <div><div className="mono" style={{ fontSize: 11, fontWeight: 700 }}>#{v.n} <span className="muted" style={{ fontWeight: 400 }}>· {v.cliente}</span></div><div className="mono dim" style={{ fontSize: 10 }}>{fmtFecha(v.fecha)} · {L(v.total)}</div></div>
+                  <div><div className="mono" style={{ fontSize: 'var(--fs-s)', fontWeight: 500 }}>#{v.n} <span className="muted" style={{ fontWeight: 400 }}>· {v.cliente}</span></div><div className="mono dim" style={{ fontSize: 'var(--fs-s)' }}>{fmtFecha(v.fecha)} · {L(v.total)}</div></div>
                 </div>
               ))}
               {gClientes.length > 0 && <div className="dropdown-lbl">Clientes</div>}
               {gClientes.map(c => (
                 <div key={c.id} className="dropdown-row" onMouseDown={() => { setRoute('clientes'); setGSearch(''); }}>
-                  <div><div style={{ fontSize: 12, fontWeight: 500 }}>{c.nombre}</div><div className="mono dim" style={{ fontSize: 10 }}>{c.empresa || c.telefono}</div></div>
+                  <div><div style={{ fontSize: 'var(--fs-s)', fontWeight: 500 }}>{c.nombre}</div><div className="mono dim" style={{ fontSize: 'var(--fs-s)' }}>{c.empresa || c.telefono}</div></div>
                 </div>
               ))}
             </div>
@@ -2578,7 +2578,7 @@ function Root() {
     return firebase.auth().onAuthStateChanged(u => { setAuthUser(u); setChecked(true); });
   }, []);
   if (!window.USE_FB) return <App onLogout={null} />;
-  if (!checked) return <div className="boot"><div className="mono dim" style={{ fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase' }}>Verificando sesión…</div></div>;
+  if (!checked) return <div className="boot"><div className="mono dim" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.22em', textTransform: 'uppercase' }}>Verificando sesión…</div></div>;
   if (!authUser) return <LoginScreen />;
   return <App onLogout={() => firebase.auth().signOut()} />;
 }

@@ -75,7 +75,7 @@ El código fuente está en `_fuente/`:
 - `build.js` — arma `index.html` (toma `base.css`, lo pasa a la paleta LOOPA y descarta lo que no se usa)
 - `logo-loopa.svg` — logo oficial; si cambia el logo, reemplazá este archivo y volvé a armar
 
-Identidad: fondo `#14281f`, acento `#e2e58d`, tipografía Montserrat.
+Identidad: fondo `#14281f`, acento `#e2e58d`, tipografía Roboto con solo 3 tamaños (`--fs-s` 12 px, `--fs-m` 14 px, `--fs-l` 30 px; 24 px en celular) y 3 pesos (300 títulos, 400 texto, 500 énfasis). Usá siempre esas variables al agregar pantallas.
 
 Después de editar: `node _fuente/build.js`. La config de Firebase que ya
 hayas pegado en `index.html` se conserva.
