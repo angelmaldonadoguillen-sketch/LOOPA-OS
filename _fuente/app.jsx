@@ -239,7 +239,7 @@ function Icon({ name, size = 16 }) {
 
 function LoopaMark({ height = 30 }) {
   // Logo oficial (logo-loopa.svg), en el color del texto que lo rodea
-  const L0 = window.LOOPA_SVG || { viewBox: '0 0 260.2 202.24', inner: '' };
+  const L0 = window.LOOPA_SVG || { viewBox: '0 0 281.69 202.24', inner: '' };
   return (
     <svg viewBox={L0.viewBox} height={height} style={{ display: 'block', fill: 'currentColor' }} aria-label="LOOPA"
       dangerouslySetInnerHTML={{ __html: L0.inner }} />

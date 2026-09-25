@@ -85,7 +85,7 @@ fs.writeFileSync(path.join(OUT, 'icon.svg'),
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="104" fill="#14281f"/><g transform="translate(50 64) scale(1.9)" fill="#e2e58d">${shapes.slice(-2).join('')}</g></svg>`);
 if (/<\/script/i.test(app)) throw new Error('app.jsx contiene </script>');
 
-const html = `<!doctype html><!-- LOOPA OS v2.2 · base TOONED OS v2.8 -->
+const html = `<!doctype html><!-- LOOPA OS v2.3 · base TOONED OS v2.8 -->
 <html lang="es">
 <head>
 <meta charset="utf-8" />
