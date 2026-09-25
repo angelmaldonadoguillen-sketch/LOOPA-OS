@@ -2102,7 +2102,7 @@ function LoginScreen() {
   return (
     <div className="login">
       <div style={{ width: 340, textAlign: 'center' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6, color: 'var(--accent)' }}><LoopaMark height={72} /></div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6, color: 'var(--accent)' }}><LoopaMark height={79} /></div>
         <div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--dim)', letterSpacing: '0.22em', marginBottom: 44, textTransform: 'uppercase' }}>Acceso privado · misma cuenta que FRAME</div>
         <div className={shake ? 'shake' : ''} style={{ background: 'var(--card)', border: `1px solid ${errorMsg ? 'var(--danger)' : 'var(--line)'}`, borderRadius: 18, padding: '32px 28px' }}>
           <input className="input mono" type="email" autoFocus autoComplete="username" placeholder="email" value={email} onChange={e => { setEmail(e.target.value); setErrorMsg(''); }} onKeyDown={onKey} style={{ marginBottom: 10 }} />
@@ -2437,7 +2437,7 @@ function App({ onLogout }) {
 
   if (!ready) return (
     <div className="boot">
-      <div style={{ color: 'var(--accent)' }}><LoopaMark height={66} /></div>
+      <div style={{ color: 'var(--accent)' }}><LoopaMark height={73} /></div>
       {loadError ? (
         <>
           <div className="boot-err"><span style={{ color: 'var(--danger)', fontSize: 'var(--fs-m)' }}>✕</span><div><div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--danger)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>No se pudieron cargar los datos</div><div className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>{loadError}</div></div></div>
@@ -2463,7 +2463,7 @@ function App({ onLogout }) {
     <div className="app">
       <aside className="sidebar">
         <div className="sidebar-brand" onClick={() => goNueva(null)} title="Nueva venta" style={{ cursor: 'pointer', color: 'var(--accent)' }}>
-          <LoopaMark height={65} />
+          <LoopaMark height={72} />
         </div>
 
         <div className="gsearch-wrap">
