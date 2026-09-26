@@ -2205,6 +2205,58 @@ function AlertBell({ ventas, onOpen }) {
   );
 }
 
+// ── Filtro de período de la barra superior (desplegable) ──
+// El menú se posiciona "fixed" para que la barra (overflow: hidden) no lo recorte.
+function tickerPeriodOptions() {
+  const now = new Date();
+  return [
+    { id: 'mes', label: now.toLocaleDateString('es-HN', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', ''), hint: 'Este mes' },
+    { id: 'año', label: String(now.getFullYear()), hint: 'Este año' },
+    { id: 'todo', label: 'Acumulado', hint: 'Desde el inicio' },
+  ];
+}
+function PeriodFilter({ value, onChange }) {
+  const [open, setOpen] = React.useState(false);
+  const [pos, setPos] = React.useState(null);
+  const ref = React.useRef(null);
+  const options = tickerPeriodOptions();
+  const current = options.find(o => o.id === value) || options[0];
+  React.useEffect(() => {
+    if (!open) return;
+    const outside = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const esc = (e) => { if (e.key === 'Escape') setOpen(false); };
+    const close = () => setOpen(false);
+    document.addEventListener('mousedown', outside);
+    window.addEventListener('keydown', esc);
+    window.addEventListener('resize', close);
+    return () => { document.removeEventListener('mousedown', outside); window.removeEventListener('keydown', esc); window.removeEventListener('resize', close); };
+  }, [open]);
+  const toggle = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    setPos({ left: r.left, top: r.bottom + 6 });
+    setOpen(o => !o);
+  };
+  return (
+    <span ref={ref} className="period-filter">
+      <button className={`period-btn${open ? ' open' : ''}`} onClick={toggle} aria-haspopup="listbox" aria-expanded={open}>
+        <span className="period-lbl">Período</span>
+        <span className="period-val">{current.label}</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M6 9l6 6 6-6" /></svg>
+      </button>
+      {open && pos && (
+        <div className="period-menu" role="listbox" style={{ left: pos.left, top: pos.top }}>
+          {options.map(o => (
+            <button key={o.id} role="option" aria-selected={o.id === value} className={`period-opt${o.id === value ? ' on' : ''}`}
+              onClick={() => { onChange(o.id); setOpen(false); }}>
+              <span>{o.label}</span><span className="period-hint">{o.hint}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
+  );
+}
+
 function App({ onLogout }) {
   const [route, setRoute] = useState(() => { try { return localStorage.getItem('loopa-route') || 'nueva'; } catch (e) { return 'nueva'; } });
   const [ventas, setVentas] = useState([]);
@@ -2321,15 +2373,8 @@ function App({ onLogout }) {
     });
     return m;
   }, [ventas]);
-  // Período de la barra superior: acumulado por defecto (así lo ya cobrado siempre se ve),
-  // tocando la etiqueta pasa a año y a mes. Se recuerda por equipo.
-  const TICKER_PERIODS = ['todo', 'año', 'mes'];
-  const [tickerPeriod, setTickerPeriod] = useState(() => { try { const p = localStorage.getItem('loopa-ticker'); return TICKER_PERIODS.includes(p) ? p : 'todo'; } catch (e) { return 'todo'; } });
-  const cycleTicker = () => setTickerPeriod(p => {
-    const next = TICKER_PERIODS[(TICKER_PERIODS.indexOf(p) + 1) % TICKER_PERIODS.length];
-    try { localStorage.setItem('loopa-ticker', next); } catch (e) {}
-    return next;
-  });
+  // Período de la barra superior: siempre arranca en el mes actual
+  const [tickerPeriod, setTickerPeriod] = useState('mes');
   const ticker = useMemo(() => {
     const now = new Date();
     const r = periodRange(tickerPeriod, now);
@@ -2508,7 +2553,7 @@ function App({ onLogout }) {
         <div className="ticker">
           <span className="item">● LOOPA OS</span>
           <span className="item">Próx. venta <span className="v">#{nextN}</span></span>
-          <button className="item ticker-period" onClick={cycleTicker} title="Cambiar período: acumulado · año · mes">{ticker.label} ▾</button>
+          <span className="item"><PeriodFilter value={tickerPeriod} onChange={setTickerPeriod} /></span>
           <span className="item">Venta <span className="v">{L(ticker.venta)}</span></span>
           <span className="item">Cobrado <span className="v" style={{ color: ticker.cobrado > 0 ? 'var(--ok)' : 'var(--muted)' }}>{L(ticker.cobrado)}</span></span>
           <span className="item">Ganancia <span className="v" style={{ color: ticker.ganancia >= 0 ? 'var(--ok)' : 'var(--danger)' }}>{L(ticker.ganancia)}</span></span>

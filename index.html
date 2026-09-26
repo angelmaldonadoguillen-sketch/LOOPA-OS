@@ -1,4 +1,4 @@
-<!doctype html><!-- LOOPA OS v2.10 · base TOONED OS v2.8 -->
+<!doctype html><!-- LOOPA OS v2.11 · base TOONED OS v2.8 -->
 <html lang="es">
 <head>
 <meta charset="utf-8" />
@@ -974,8 +974,17 @@ b, strong { font-weight: 500; }
 .nav-item { border-radius: 0; }
 .nav-item.active { background: transparent; }
 }
-.ticker-period { color: var(--accent); font: inherit; font-weight: 500; letter-spacing: .06em; padding: 3px 10px; border: 1px solid rgba(var(--accent-rgb), .35); border-radius: 999px; cursor: pointer; }
-.ticker-period:hover { background: rgba(var(--accent-rgb), .1); }
+.period-btn { display: inline-flex; align-items: center; gap: 8px; padding: 3px 10px 3px 12px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--surface); color: var(--text); font: inherit; cursor: pointer; transition: border-color .12s; }
+.period-btn:hover, .period-btn.open { border-color: var(--muted); }
+.period-btn svg { color: var(--muted); transition: transform .15s; }
+.period-btn.open svg { transform: rotate(180deg); }
+.period-lbl { font-size: var(--fs-s); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.period-val { font-weight: 500; }
+.period-menu { position: fixed; z-index: 950; min-width: 200px; padding: 6px; background: var(--card); border: 1px solid var(--line-2); border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.6); }
+.period-opt { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; width: 100%; padding: 8px 10px; border-radius: 8px; text-align: left; font-size: var(--fs-m); color: var(--text); cursor: pointer; }
+.period-opt:hover { background: rgba(255,255,255,.06); }
+.period-opt.on { background: rgba(var(--accent-rgb), .12); font-weight: 500; }
+.period-hint { font-size: var(--fs-s); color: var(--muted); font-weight: 400; }
 @media (max-width: 640px) {
 :root { --fs-l: 24px; }
 }
@@ -3198,6 +3207,58 @@ function AlertBell({ ventas, onOpen }) {
   );
 }
 
+// ── Filtro de período de la barra superior (desplegable) ──
+// El menú se posiciona "fixed" para que la barra (overflow: hidden) no lo recorte.
+function tickerPeriodOptions() {
+  const now = new Date();
+  return [
+    { id: 'mes', label: now.toLocaleDateString('es-HN', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', ''), hint: 'Este mes' },
+    { id: 'año', label: String(now.getFullYear()), hint: 'Este año' },
+    { id: 'todo', label: 'Acumulado', hint: 'Desde el inicio' },
+  ];
+}
+function PeriodFilter({ value, onChange }) {
+  const [open, setOpen] = React.useState(false);
+  const [pos, setPos] = React.useState(null);
+  const ref = React.useRef(null);
+  const options = tickerPeriodOptions();
+  const current = options.find(o => o.id === value) || options[0];
+  React.useEffect(() => {
+    if (!open) return;
+    const outside = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const esc = (e) => { if (e.key === 'Escape') setOpen(false); };
+    const close = () => setOpen(false);
+    document.addEventListener('mousedown', outside);
+    window.addEventListener('keydown', esc);
+    window.addEventListener('resize', close);
+    return () => { document.removeEventListener('mousedown', outside); window.removeEventListener('keydown', esc); window.removeEventListener('resize', close); };
+  }, [open]);
+  const toggle = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    setPos({ left: r.left, top: r.bottom + 6 });
+    setOpen(o => !o);
+  };
+  return (
+    <span ref={ref} className="period-filter">
+      <button className={`period-btn${open ? ' open' : ''}`} onClick={toggle} aria-haspopup="listbox" aria-expanded={open}>
+        <span className="period-lbl">Período</span>
+        <span className="period-val">{current.label}</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M6 9l6 6 6-6" /></svg>
+      </button>
+      {open && pos && (
+        <div className="period-menu" role="listbox" style={{ left: pos.left, top: pos.top }}>
+          {options.map(o => (
+            <button key={o.id} role="option" aria-selected={o.id === value} className={`period-opt${o.id === value ? ' on' : ''}`}
+              onClick={() => { onChange(o.id); setOpen(false); }}>
+              <span>{o.label}</span><span className="period-hint">{o.hint}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
+  );
+}
+
 function App({ onLogout }) {
   const [route, setRoute] = useState(() => { try { return localStorage.getItem('loopa-route') || 'nueva'; } catch (e) { return 'nueva'; } });
   const [ventas, setVentas] = useState([]);
@@ -3314,15 +3375,8 @@ function App({ onLogout }) {
     });
     return m;
   }, [ventas]);
-  // Período de la barra superior: acumulado por defecto (así lo ya cobrado siempre se ve),
-  // tocando la etiqueta pasa a año y a mes. Se recuerda por equipo.
-  const TICKER_PERIODS = ['todo', 'año', 'mes'];
-  const [tickerPeriod, setTickerPeriod] = useState(() => { try { const p = localStorage.getItem('loopa-ticker'); return TICKER_PERIODS.includes(p) ? p : 'todo'; } catch (e) { return 'todo'; } });
-  const cycleTicker = () => setTickerPeriod(p => {
-    const next = TICKER_PERIODS[(TICKER_PERIODS.indexOf(p) + 1) % TICKER_PERIODS.length];
-    try { localStorage.setItem('loopa-ticker', next); } catch (e) {}
-    return next;
-  });
+  // Período de la barra superior: siempre arranca en el mes actual
+  const [tickerPeriod, setTickerPeriod] = useState('mes');
   const ticker = useMemo(() => {
     const now = new Date();
     const r = periodRange(tickerPeriod, now);
@@ -3501,7 +3555,7 @@ function App({ onLogout }) {
         <div className="ticker">
           <span className="item">● LOOPA OS</span>
           <span className="item">Próx. venta <span className="v">#{nextN}</span></span>
-          <button className="item ticker-period" onClick={cycleTicker} title="Cambiar período: acumulado · año · mes">{ticker.label} ▾</button>
+          <span className="item"><PeriodFilter value={tickerPeriod} onChange={setTickerPeriod} /></span>
           <span className="item">Venta <span className="v">{L(ticker.venta)}</span></span>
           <span className="item">Cobrado <span className="v" style={{ color: ticker.cobrado > 0 ? 'var(--ok)' : 'var(--muted)' }}>{L(ticker.cobrado)}</span></span>
           <span className="item">Ganancia <span className="v" style={{ color: ticker.ganancia >= 0 ? 'var(--ok)' : 'var(--danger)' }}>{L(ticker.ganancia)}</span></span>
