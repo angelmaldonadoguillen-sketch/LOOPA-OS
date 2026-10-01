@@ -1,24 +1,24 @@
 // Ensambla LOOPA OS en un solo index.html, igual que TOONED OS.
-// CSS base = base.css (heredado de TOONED OS), recoloreado a la paleta LOOPA:
-// fondo #14281f (verde profundo) + acento #e2e58d (lima), tipografía Roboto (3 tamaños, 3 pesos).
+// CSS base = base.css (heredado de TOONED OS), recoloreado a la identidad LOOPA:
+// blanco y negro (negro cálido #121211, el tono del logo) y tipografía Manrope (3 tamaños, 3 pesos).
 const fs = require('fs');
 const path = require('path');
 const here = __dirname;
 const OUT = path.join(__dirname, '..');
 let baseCss = fs.readFileSync(path.join(here, "base.css"), "utf8");
 baseCss = baseCss
-  .replace('--accent: #E63946;', '--accent: #e2e58d;')
-  .replace('--accent-ink: #FF5461;', '--accent-ink: #eef0b3;')
+  .replace('--accent: #E63946;', '--accent: #f4f4f1;')
+  .replace('--accent-ink: #FF5461;', '--accent-ink: #ffffff;')
   .replace(/rgba\(230,\s*57,\s*70/g, 'rgba(var(--accent-rgb)');
 
-// Grises neutros de TOONED → verdes de LOOPA (mismo orden de luminosidad)
+// Grises neutros de TOONED → grises cálidos de LOOPA (mismo orden de luminosidad)
 const TINT = {
-  '060606': '0f2019', '0a0a0a': '14281f', '0b0b0b': '11231b', '0c0c0c': '11231b', '0d0d0d': '11231b',
-  '0f0f0f': '172e24', '111': '182f25', '121212': '1a3228', '141414': '1a3329', '151515': '1d372c',
-  '161616': '1d372c', '181818': '1f3a2f', '191919': '1f3a2f', '1a1a1a': '1f3a2f', '1c1c1c': '224034',
-  '1e1e1e': '224034', '1f1f1f': '224034', '242424': '29473a', '2a2a2a': '2c4a3d', '2e2e2e': '325243',
-  '333': '365646', '3a3a3a': '3d5e4e', '555': '58705f', '5a5a5a': '62796b', '888': '93a89b',
-  '8a8a8a': '93a89b', 'e0e0e0': 'e3e6d3', 'f1f1f1': 'f3f4e4',
+  '060606': '0c0c0b', '0a0a0a': '121211', '0b0b0b': '0e0e0d', '0c0c0c': '0e0e0d', '0d0d0d': '0e0e0d',
+  '0f0f0f': '171716', '111': '181817', '121212': '1a1a19', '141414': '1b1b1a', '151515': '1e1e1d',
+  '161616': '1e1e1d', '181818': '20201f', '191919': '20201f', '1a1a1a': '20201f', '1c1c1c': '252524',
+  '1e1e1e': '252524', '1f1f1f': '252524', '242424': '2a2a28', '2a2a2a': '2e2e2c', '2e2e2e': '343432',
+  '333': '383836', '3a3a3a': '3f3f3c', '555': '5a5a56', '5a5a5a': '63635f', '888': '9a9a95',
+  '8a8a8a': '9a9a95', 'e0e0e0': 'e6e6e2', 'f1f1f1': 'f4f4f1',
 };
 const tint = (s) => s.replace(/#([0-9a-f]{6}|[0-9a-f]{3})(?![0-9a-f])/gi, (m, h) => TINT[h.toLowerCase()] ? '#' + TINT[h.toLowerCase()] : m);
 baseCss = tint(baseCss);
@@ -80,10 +80,12 @@ const logoSvg = fs.readFileSync(path.join(here, 'logo-loopa.svg'), 'utf8');
 const viewBox = logoSvg.match(/viewBox="([^"]+)"/)[1];
 const shapes = [...logoSvg.matchAll(/<(path|circle|rect|polygon)\b[^>]*\/>/g)].map(m => m[0].replace(/\s*class="[^"]*"/, ''));
 if (!shapes.length) throw new Error('No se encontraron trazos en logo-loopa.svg');
-const paths = 'window.LOOPA_SVG = ' + JSON.stringify({ viewBox, inner: shapes.join('') }) + ';\n';
-// Ícono de app: solo la marca "loopa." (punto + trazo principal = el path más largo),
-// sin "estudio creativo", que a 48 px no se lee. La caja de la marca se mide sola,
-// así que al cambiar el logo alcanza con reemplazar logo-loopa.svg.
+const largoSvg = fs.readFileSync(path.join(here, 'logo-loopa-largo.svg'), 'utf8');
+const largo = { viewBox: largoSvg.match(/viewBox="([^"]+)"/)[1], inner: [...largoSvg.matchAll(/<(path|circle|rect|polygon)\b[^>]*\/>/g)].map(m => m[0].replace(/\s*class="[^"]*"/, '')).join('') };
+// LOOPA_SVG = logo compacto (menú) · LOOPA_SVG_LARGO = loop largo (acceso y carga)
+const paths = 'window.LOOPA_SVG = ' + JSON.stringify({ viewBox, inner: shapes.join('') }) + ';\nwindow.LOOPA_SVG_LARGO = ' + JSON.stringify(largo) + ';\n';
+// Ícono de app: la "L" + el loop (las dos primeras formas de logo-loopa.svg), que es lo
+// más reconocible del logotipo; "estudio creativo" no se lee a 48 px. La caja se mide sola.
 function pathBox(d) {
   const t = d.match(/[a-zA-Z]|-?(?:\d+\.?\d*|\.\d+)(?:e-?\d+)?/g); let i = 0, x = 0, y = 0, sx = 0, sy = 0, cmd = '';
   const P = [], n = () => parseFloat(t[i++]), isNum = (v) => v !== undefined && !/^[a-zA-Z]$/.test(v);
@@ -111,23 +113,21 @@ const markBox = (els) => {
   });
   const xs = P.map(p => p[0]), ys = P.map(p => p[1]);
   const x0 = Math.min(...xs), y0 = Math.min(...ys), w = Math.max(...xs) - x0, h = Math.max(...ys) - y0, pad = Math.max(w, h) * 0.01;
-  // + corrimiento óptico a la izquierda (mismo % que LOOPA_OPTICAL_SHIFT en app.jsx)
-  const shift = w * 0.06;
-  return [x0 - pad + shift, y0 - pad, w + 2 * pad, h + 2 * pad].map(v => +v.toFixed(2)).join(' ');
+  return [x0 - pad, y0 - pad, w + 2 * pad, h + 2 * pad].map(v => +v.toFixed(2)).join(' ');
 };
-const mark = shapes.filter(x => x.startsWith('<circle')).concat([shapes.filter(x => x.startsWith('<path')).sort((p, q) => q.length - p.length)[0]]);
+const mark = shapes.slice(0, 2);
 fs.writeFileSync(path.join(OUT, 'icon.svg'),
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="104" fill="#14281f"/><svg x="72" y="72" width="368" height="368" viewBox="${markBox(mark)}" fill="#e2e58d">${mark.join('')}</svg></svg>`);
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="104" fill="#121211"/><svg x="72" y="72" width="368" height="368" viewBox="${markBox(mark)}" fill="#f4f4f1">${mark.join('')}</svg></svg>`);
 if (/<\/script/i.test(app)) throw new Error('app.jsx contiene </script>');
 
-const html = `<!doctype html><!-- LOOPA OS v2.11 · base TOONED OS v2.8 -->
+const html = `<!doctype html><!-- LOOPA OS v3.0 · base TOONED OS v2.8 -->
 <html lang="es">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>LOOPA OS</title>
 <link rel="manifest" href="manifest.json" />
-<meta name="theme-color" content="#14281f" />
+<meta name="theme-color" content="#121211" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -141,7 +141,7 @@ const html = `<!doctype html><!-- LOOPA OS v2.11 · base TOONED OS v2.8 -->
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500&display=swap" rel="stylesheet" />
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>

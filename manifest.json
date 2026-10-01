@@ -4,8 +4,8 @@
   "description": "Sistema de ventas de LOOPA studio",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#14281f",
-  "theme_color": "#14281f",
+  "background_color": "#121211",
+  "theme_color": "#121211",
   "icons": [
     {
       "src": "icon.svg",

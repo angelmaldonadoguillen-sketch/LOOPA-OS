@@ -237,14 +237,12 @@ function Icon({ name, size = 16 }) {
   }
 }
 
-// Centrado óptico: el cuerpo "oopa." carga el peso a la derecha, así que el logo
-// se corre un poco a la izquierda (en % de su propio ancho). También lo usa el ícono.
-const LOOPA_OPTICAL_SHIFT = 6;
-function LoopaMark({ height = 30 }) {
-  // Logo oficial (logo-loopa.svg), en el color del texto que lo rodea
-  const L0 = window.LOOPA_SVG || { viewBox: '0 0 60.5 54.65', inner: '' };
+// Logo oficial. Compacto (logo-loopa.svg) en el menú; "largo" (logo-loopa-largo.svg,
+// loop extendido) en acceso y carga. Toma el color del texto que lo rodea.
+function LoopaMark({ height = 30, largo = false }) {
+  const L0 = (largo ? window.LOOPA_SVG_LARGO : window.LOOPA_SVG) || { viewBox: largo ? '0 0 487.99 31.12' : '0 0 201.77 31.12', inner: '' };
   return (
-    <svg viewBox={L0.viewBox} height={height} style={{ display: 'block', fill: 'currentColor', transform: `translateX(-${LOOPA_OPTICAL_SHIFT}%)` }} aria-label="LOOPA"
+    <svg viewBox={L0.viewBox} height={height} style={{ display: 'block', fill: 'currentColor', maxWidth: '100%' }} aria-label="LOOPA"
       dangerouslySetInnerHTML={{ __html: L0.inner }} />
   );
 }
@@ -1792,7 +1790,7 @@ function Metricas({ ventas, gastos, config }) {
         <div className="kpi"><div className="label"><span className="idx">01</span>Venta</div><div className="value">{L(k.venta)}</div></div>
         <div className="kpi"><div className="label"><span className="idx">02</span>Cobrado</div><div className="value">{L(k.cobrado)}</div><div className="delta" style={{ color: 'var(--muted)' }}>Caja del período {L(cajaPeriodo)}</div></div>
         <div className="kpi"><div className="label"><span className="idx">03</span>Por cobrar</div><div className="value" style={{ color: k.porCobrar > 0 ? 'var(--warn)' : undefined }}>{L(k.porCobrar)}</div></div>
-        <div className="kpi accent"><div className="label"><span className="idx" style={{ color: 'rgba(20,40,31,0.55)' }}>04</span>Ganancia neta</div><div className="value">{L(k.ganancia)}</div></div>
+        <div className="kpi accent"><div className="label"><span className="idx" style={{ color: 'rgba(18,18,17,0.5)' }}>04</span>Ganancia neta</div><div className="value">{L(k.ganancia)}</div></div>
         <div className="kpi"><div className="label"><span className="idx">05</span>Margen</div><div className="value">{k.margen.toFixed(1)}<span className="unit">%</span></div></div>
       </div>
 
@@ -2101,8 +2099,8 @@ function LoginScreen() {
   const onKey = (e) => { if (e.key === 'Enter') tryLogin(); };
   return (
     <div className="login">
-      <div style={{ width: 340, textAlign: 'center' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6, color: 'var(--accent)' }}><LoopaMark height={79} /></div>
+      <div style={{ width: 380, maxWidth: '100%', textAlign: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 22, color: 'var(--accent)' }}><LoopaMark height={21} largo /></div>
         <div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--dim)', letterSpacing: '0.22em', marginBottom: 44, textTransform: 'uppercase' }}>Acceso privado · misma cuenta que FRAME</div>
         <div className={shake ? 'shake' : ''} style={{ background: 'var(--card)', border: `1px solid ${errorMsg ? 'var(--danger)' : 'var(--line)'}`, borderRadius: 18, padding: '32px 28px' }}>
           <input className="input mono" type="email" autoFocus autoComplete="username" placeholder="email" value={email} onChange={e => { setEmail(e.target.value); setErrorMsg(''); }} onKeyDown={onKey} style={{ marginBottom: 10 }} />
@@ -2482,7 +2480,7 @@ function App({ onLogout }) {
 
   if (!ready) return (
     <div className="boot">
-      <div style={{ color: 'var(--accent)' }}><LoopaMark height={73} /></div>
+      <div style={{ color: 'var(--accent)' }}><LoopaMark height={20} largo /></div>
       {loadError ? (
         <>
           <div className="boot-err"><span style={{ color: 'var(--danger)', fontSize: 'var(--fs-m)' }}>✕</span><div><div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--danger)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>No se pudieron cargar los datos</div><div className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>{loadError}</div></div></div>
@@ -2508,7 +2506,7 @@ function App({ onLogout }) {
     <div className="app">
       <aside className="sidebar">
         <div className="sidebar-brand" onClick={() => goNueva(null)} title="Nueva venta" style={{ cursor: 'pointer', color: 'var(--accent)' }}>
-          <LoopaMark height={72} />
+          <LoopaMark height={26} />
         </div>
 
         <div className="gsearch-wrap">
