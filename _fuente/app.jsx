@@ -48,7 +48,7 @@ const PAY_CONFIG_DEFAULT = [
   { id: 'paypal',    label: 'PayPal',             comisionPct: 5.4 },
 ];
 const GASTO_CATS = ['Freelancer', 'Pauta propia', 'Software', 'Equipo', 'Oficina', 'Otro'];
-const CONFIG_DEFAULT = { payConfig: PAY_CONFIG_DEFAULT, categorias: CATEGORIAS_DEFAULT, canales: CANALES_DEFAULT, moneda: 'L' };
+const CONFIG_DEFAULT = { payConfig: PAY_CONFIG_DEFAULT, categorias: CATEGORIAS_DEFAULT, canales: CANALES_DEFAULT, moneda: 'L', gastoTipos: GASTO_CATS };
 const GASTOS_DEFAULT = { variables: [], fijos: [] };
 
 // ─── Finanzas de una venta ─────────────────────────────────────
@@ -80,8 +80,8 @@ function periodRange(period, now = new Date()) {
   if (period === 'mes') return { start: ymd(new Date(y, m, 1)), end: ymd(new Date(y, m, last(y, m))), months: 1, label: mesLbl(now) };
   if (period === 'mes-ant') { const d = new Date(y, m - 1, 1); return { start: ymd(d), end: ymd(new Date(d.getFullYear(), d.getMonth(), last(d.getFullYear(), d.getMonth()))), months: 1, label: mesLbl(d) }; }
   if (period === '30d') { const d = new Date(now); d.setDate(d.getDate() - 29); return { start: ymd(d), end: ymd(now), months: 1, label: 'ÚLTIMOS 30 DÍAS' }; }
-  if (period === 'trim') { const qs = Math.floor(m / 3) * 3; return { start: ymd(new Date(y, qs, 1)), end: ymd(new Date(y, qs + 2, last(y, qs + 2))), months: 3, label: `T${qs / 3 + 1} ${y}` }; }
-  if (period === 'año') return { start: `${y}-01-01`, end: `${y}-12-31`, months: 12, label: String(y) };
+  if (period === 'trim') { const qs = Math.floor(m / 3) * 3; return { start: ymd(new Date(y, qs, 1)), end: ymd(new Date(y, qs + 2, last(y, qs + 2))), months: m - qs + 1, label: `T${qs / 3 + 1} ${y}` }; }
+  if (period === 'año') return { start: `${y}-01-01`, end: `${y}-12-31`, months: m + 1, label: String(y) };
   return { start: '0000-01-01', end: '9999-12-31', months: null, label: 'TODO' };
 }
 const inRange = (fecha, r) => fecha >= r.start && fecha <= r.end;
@@ -1878,13 +1878,119 @@ function Metricas({ ventas, gastos, config }) {
 }
 
 // ═══════════════════════ GASTOS ═══════════════════════
-function Gastos({ gastos, setGastos }) {
-  const [nv, setNv] = useState({ fecha: today(), concepto: '', categoria: GASTO_CATS[0], monto: '' });
-  const [nf, setNf] = useState({ concepto: '', categoria: 'Software', monto: '' });
-  const r = periodRange('mes');
-  const mesVar = (gastos.variables || []).filter(g => inRange(g.fecha, r)).reduce((a, g) => a + num(g.monto), 0);
-  const fijoM = fijoMensual(gastos.fijos);
+// Tipos de gasto: config.gastoTipos (editables). Se suman los que ya usan los gastos
+// guardados, así ningún gasto queda con un tipo "huérfano".
+function tiposDeGasto(config, gastos) {
+  const usados = [...(gastos.variables || []), ...(gastos.fijos || [])].map(g => g.categoria).filter(Boolean);
+  return [...new Set([...(config.gastoTipos || GASTO_CATS), ...usados])];
+}
 
+// Selector de tipo con opción para crear uno nuevo en el momento
+function TipoGastoSelect({ value, tipos, onChange, onCreate }) {
+  const [nuevo, setNuevo] = useState(false);
+  const [txt, setTxt] = useState('');
+  const crear = () => { const t = onCreate(txt); if (t) onChange(t); setNuevo(false); setTxt(''); };
+  if (nuevo) return (
+    <input className="input mini" autoFocus placeholder="Nombre del tipo nuevo" value={txt}
+      onChange={e => setTxt(e.target.value)}
+      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); crear(); } if (e.key === 'Escape') { setNuevo(false); setTxt(''); } }}
+      onBlur={() => { if (txt.trim()) crear(); else setNuevo(false); }} />
+  );
+  return (
+    <select className="select mini" value={value} onChange={e => e.target.value === '__nuevo__' ? setNuevo(true) : onChange(e.target.value)}>
+      {tipos.map(t => <option key={t} value={t}>{t}</option>)}
+      <option value="__nuevo__">＋ Nuevo tipo…</option>
+    </select>
+  );
+}
+
+function GastoModal({ gasto, fijo, tipos, onCreateTipo, onSave, onDelete, onClose }) {
+  const [d, setD] = useState(() => ({ ...gasto, monto: String(gasto.monto ?? ''), nota: gasto.nota || '' }));
+  const set = (k) => (e) => setD(x => ({ ...x, [k]: e.target.value }));
+  const valido = d.concepto.trim() && num(d.monto) > 0;
+  const guardar = () => { if (valido) onSave({ ...d, concepto: d.concepto.trim(), monto: num(d.monto), nota: d.nota.trim() }); };
+  return (
+    <Modal kicker={fijo ? 'Gasto fijo mensual' : 'Gasto variable'} title={gasto.concepto || 'Gasto'} onClose={onClose} width={520}
+      footer={<>
+        <button className="btn sm ghost" style={{ color: 'var(--danger)', marginRight: 'auto' }}
+          onClick={() => uiConfirm({ title: `Eliminar «${gasto.concepto}»`, message: 'Deja de restarse en Métricas.', confirmLabel: 'Eliminar' }).then(ok => { if (ok) onDelete(); })}>
+          <Icon name="trash" size={12} /> Eliminar
+        </button>
+        <button className="btn sm ghost" onClick={onClose}>Cancelar</button>
+        <button className="btn sm primary" disabled={!valido} onClick={guardar}>Guardar</button>
+      </>}>
+      <div className="grid-2">
+        {!fijo && (
+          <div className="field">
+            <label>Fecha</label>
+            <input className="input mono" type="date" value={d.fecha} onChange={e => setD(x => ({ ...x, fecha: e.target.value || x.fecha }))} style={{ colorScheme: 'dark' }} />
+          </div>
+        )}
+        <div className="field">
+          <label>{fijo ? 'Monto por mes' : 'Monto'}</label>
+          <input className="input mono" inputMode="decimal" value={d.monto} onChange={set('monto')} onKeyDown={e => e.key === 'Enter' && guardar()} />
+        </div>
+        <div className="field" style={{ gridColumn: '1 / -1' }}>
+          <label>Concepto</label>
+          <input className="input" autoFocus value={d.concepto} onChange={set('concepto')} onKeyDown={e => e.key === 'Enter' && guardar()} />
+        </div>
+        <div className="field">
+          <label>Tipo</label>
+          <TipoGastoSelect value={d.categoria} tipos={tipos} onChange={t => setD(x => ({ ...x, categoria: t }))} onCreate={onCreateTipo} />
+        </div>
+        {fijo && (
+          <div className="field">
+            <label>Estado</label>
+            <div className="segmented" style={{ alignSelf: 'flex-start' }}>
+              <button className={d.activo !== false ? 'on' : ''} onClick={() => setD(x => ({ ...x, activo: true }))}>Activo</button>
+              <button className={d.activo === false ? 'on' : ''} onClick={() => setD(x => ({ ...x, activo: false }))}>Pausado</button>
+            </div>
+          </div>
+        )}
+        <div className="field" style={{ gridColumn: '1 / -1' }}>
+          <label>Nota <span className="dim">(opcional: nº de factura, proveedor…)</span></label>
+          <textarea className="textarea" rows="2" value={d.nota} onChange={set('nota')} />
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function Gastos({ gastos, setGastos, config, setConfig }) {
+  const tipos = tiposDeGasto(config, gastos);
+  const [nv, setNv] = useState({ fecha: today(), concepto: '', categoria: tipos[0] || 'Otro', monto: '' });
+  const [nf, setNf] = useState({ concepto: '', categoria: tipos.includes('Software') ? 'Software' : tipos[0] || 'Otro', monto: '' });
+  const [periodo, setPeriodo] = useState('mes');
+  const [editando, setEditando] = useState(null);   // { fijo: bool, gasto }
+  const [verTipos, setVerTipos] = useState(false);
+  const [renombrando, setRenombrando] = useState(null); // { de, a }
+
+  // ── Tipos ──
+  const crearTipo = (t) => {
+    const v = (t || '').trim();
+    if (!v) return null;
+    const ya = tipos.find(x => norm(x) === norm(v));
+    if (ya) return ya;
+    setConfig(c => ({ ...c, gastoTipos: [...tiposDeGasto(c, gastos), v] }));
+    return v;
+  };
+  const usosDe = (t) => [...(gastos.variables || []), ...(gastos.fijos || [])].filter(g => g.categoria === t).length;
+  const renombrarTipo = (de, a) => {
+    const nuevo = (a || '').trim();
+    setRenombrando(null);
+    if (!nuevo || nuevo === de) return;
+    if (tipos.some(x => x !== de && norm(x) === norm(nuevo))) { uiAlert({ title: 'Ese tipo ya existe', message: `Ya hay un tipo llamado «${nuevo}».` }); return; }
+    setConfig(c => ({ ...c, gastoTipos: tiposDeGasto(c, gastos).map(x => x === de ? nuevo : x) }));
+    const cambiar = (lista) => (lista || []).map(g => g.categoria === de ? { ...g, categoria: nuevo } : g);
+    setGastos(g => ({ ...g, variables: cambiar(g.variables), fijos: cambiar(g.fijos) }));
+  };
+  const borrarTipo = (t) => {
+    const n = usosDe(t);
+    if (n) { uiAlert({ title: 'No se puede eliminar', message: `«${t}» lo ${n === 1 ? 'usa 1 gasto' : `usan ${n} gastos`}. Renombralo o cambiale el tipo a ${n === 1 ? 'ese gasto' : 'esos gastos'} primero.` }); return; }
+    setConfig(c => ({ ...c, gastoTipos: tiposDeGasto(c, gastos).filter(x => x !== t) }));
+  };
+
+  // ── Alta / edición / baja ──
   const addVar = () => {
     if (!nv.concepto.trim() || num(nv.monto) <= 0) return;
     setGastos(g => ({ ...g, variables: [{ id: uid('GV'), ...nv, concepto: nv.concepto.trim(), monto: num(nv.monto) }, ...(g.variables || [])] }));
@@ -1893,12 +1999,46 @@ function Gastos({ gastos, setGastos }) {
   const addFijo = () => {
     if (!nf.concepto.trim() || num(nf.monto) <= 0) return;
     setGastos(g => ({ ...g, fijos: [...(g.fijos || []), { id: uid('GF'), ...nf, concepto: nf.concepto.trim(), monto: num(nf.monto), activo: true }] }));
-    setNf({ concepto: '', categoria: 'Software', monto: '' });
+    setNf(x => ({ ...x, concepto: '', monto: '' }));
   };
-  const delVar = (id) => setGastos(g => ({ ...g, variables: g.variables.filter(x => x.id !== id) }));
-  const delFijo = (f) => uiConfirm({ title: `Quitar «${f.concepto}»`, message: 'Deja de restarse en Métricas.', confirmLabel: 'Quitar' }).then(ok => { if (ok) setGastos(g => ({ ...g, fijos: g.fijos.filter(x => x.id !== f.id) })); });
+  const guardarEdicion = (gasto) => {
+    const key = editando.fijo ? 'fijos' : 'variables';
+    setGastos(g => ({ ...g, [key]: (g[key] || []).map(x => x.id === gasto.id ? gasto : x) }));
+    setEditando(null);
+  };
+  const borrarEdicion = () => {
+    const key = editando.fijo ? 'fijos' : 'variables', id = editando.gasto.id;
+    setGastos(g => ({ ...g, [key]: (g[key] || []).filter(x => x.id !== id) }));
+    setEditando(null);
+  };
   const toggleFijo = (id) => setGastos(g => ({ ...g, fijos: g.fijos.map(x => x.id === id ? { ...x, activo: x.activo === false } : x) }));
+
+  // ── Período, totales y desglose por tipo ──
+  const r = periodRange(periodo);
   const vars = [...(gastos.variables || [])].sort((a, b) => b.fecha.localeCompare(a.fecha));
+  const varsPeriodo = vars.filter(g => inRange(g.fecha, r));
+  const primera = vars.length ? vars[vars.length - 1].fecha : today();
+  const now = new Date();
+  const mesesTodo = Math.max(1, (now.getFullYear() - parseYmd(primera).getFullYear()) * 12 + now.getMonth() - parseYmd(primera).getMonth() + 1);
+  const meses = r.months == null ? mesesTodo : r.months;
+  const fijoM = fijoMensual(gastos.fijos);
+  const totalVar = varsPeriodo.reduce((a, g) => a + num(g.monto), 0);
+  const porTipo = useMemo(() => {
+    const m = {};
+    varsPeriodo.forEach(g => { m[g.categoria || 'Otro'] = (m[g.categoria || 'Otro'] || 0) + num(g.monto); });
+    (gastos.fijos || []).filter(f => f.activo !== false).forEach(f => { m[f.categoria || 'Otro'] = (m[f.categoria || 'Otro'] || 0) + num(f.monto) * meses; });
+    const tot = Object.values(m).reduce((a, b) => a + b, 0) || 1;
+    return Object.entries(m).map(([key, v]) => ({ key, v, pct: Math.round(v / tot * 100) })).sort((a, b) => b.v - a.v);
+  }, [gastos, periodo]);
+  const totalPeriodo = totalVar + fijoM * meses;
+  const PERIODOS = [['mes', 'Este mes'], ['mes-ant', 'Mes anterior'], ['año', 'Este año'], ['todo', 'Todo']];
+
+  const exportar = () => downloadCSV(`loopa-gastos-${periodo}-${today()}.csv`,
+    ['Fecha', 'Concepto', 'Tipo', 'Monto', 'Clase', 'Nota'],
+    [
+      ...varsPeriodo.map(g => [g.fecha, g.concepto, g.categoria, num(g.monto), 'Variable', g.nota || '']),
+      ...(gastos.fijos || []).filter(f => f.activo !== false).map(f => ['', f.concepto, f.categoria, num(f.monto) * meses, `Fijo (${L(f.monto)}/mes × ${meses} ${meses === 1 ? 'mes' : 'meses'})`, f.nota || '']),
+    ]);
 
   return (
     <div>
@@ -1906,52 +2046,124 @@ function Gastos({ gastos, setGastos }) {
         <div>
           <div className="page-kicker">Operación</div>
           <div className="page-title">Gastos</div>
-          <div className="page-desc">Lo que cuesta mover LOOPA. Se resta en Métricas para llegar a la ganancia neta real. Este mes: variables <span className="mono">{L(mesVar)}</span> + fijos <span className="mono">{L(fijoM)}</span>.</div>
+          <div className="page-desc">Lo que cuesta mover LOOPA; se resta en Métricas para llegar a la ganancia neta. Tocá cualquier gasto para editarlo.</div>
         </div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <button className={`btn${verTipos ? ' primary' : ''}`} onClick={() => setVerTipos(v => !v)}><Icon name="tag" size={12} /> Tipos de gasto · {tipos.length}</button>
+          <button className="btn" onClick={exportar}><Icon name="dl" size={12} /> Excel</button>
+        </div>
+      </div>
+
+      {verTipos && (
+        <div className="panel crop" style={{ marginBottom: 20 }}>
+          <div className="panel-head"><div className="panel-title">TIPOS DE GASTO</div>
+            <span className="mono dim" style={{ marginLeft: 'auto', fontSize: 'var(--fs-s)' }}>Tocá un tipo para renombrarlo</span></div>
+          <div className="panel-body">
+            <div className="chips" style={{ marginBottom: 14 }}>
+              {tipos.map(t => renombrando?.de === t ? (
+                <input key={t} className="input mini" style={{ width: 170 }} autoFocus value={renombrando.a}
+                  onChange={e => setRenombrando({ de: t, a: e.target.value })}
+                  onKeyDown={e => { if (e.key === 'Enter') renombrarTipo(t, renombrando.a); if (e.key === 'Escape') setRenombrando(null); }}
+                  onBlur={() => renombrarTipo(t, renombrando.a)} />
+              ) : (
+                <span key={t} className="tag-edit">
+                  <span style={{ cursor: 'pointer' }} onClick={() => setRenombrando({ de: t, a: t })} title="Renombrar">{t}</span>
+                  <span className="mono dim" style={{ fontSize: 'var(--fs-s)', marginLeft: 6 }}>{usosDe(t)}</span>
+                  <button onClick={() => borrarTipo(t)} title="Eliminar tipo"><Icon name="x" size={10} /></button>
+                </span>
+              ))}
+            </div>
+            <NuevoTipoGasto onCreate={crearTipo} />
+          </div>
+        </div>
+      )}
+
+      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+        <div className="kpi"><div className="label">Variables · {r.label.toLowerCase()}</div><div className="value">{L(totalVar)}</div></div>
+        <div className="kpi"><div className="label">Fijos · {meses} {meses === 1 ? 'mes' : 'meses'}</div><div className="value">{L(fijoM * meses)}</div><div className="delta" style={{ color: 'var(--muted)' }}>{L(fijoM)} por mes</div></div>
+        <div className="kpi accent"><div className="label">Total del período</div><div className="value">{L(totalPeriodo)}</div></div>
       </div>
 
       <div className="metrics-grid-2">
         <div className="panel crop">
-          <div className="panel-head"><div className="panel-title">GASTOS VARIABLES · <span className="dim">CON FECHA</span></div></div>
+          <div className="panel-head" style={{ flexWrap: 'wrap' }}>
+            <div className="panel-title">GASTOS VARIABLES · <span className="dim">CON FECHA</span></div>
+            <div className="segmented" style={{ marginLeft: 'auto' }}>
+              {PERIODOS.map(([id, l]) => <button key={id} className={periodo === id ? 'on' : ''} onClick={() => setPeriodo(id)}>{l}</button>)}
+            </div>
+          </div>
           <div className="panel-body">
             <div className="gasto-form">
               <input className="input mini mono" type="date" value={nv.fecha} onChange={e => setNv(x => ({ ...x, fecha: e.target.value || today() }))} style={{ colorScheme: 'dark' }} />
               <input className="input mini" placeholder="Concepto (ej. Editor freelance)" value={nv.concepto} onChange={e => setNv(x => ({ ...x, concepto: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addVar()} />
-              <select className="select mini" value={nv.categoria} onChange={e => setNv(x => ({ ...x, categoria: e.target.value }))}>{GASTO_CATS.map(c => <option key={c}>{c}</option>)}</select>
+              <TipoGastoSelect value={nv.categoria} tipos={tipos} onChange={t => setNv(x => ({ ...x, categoria: t }))} onCreate={crearTipo} />
               <input className="input mini mono" placeholder="Monto" inputMode="decimal" value={nv.monto} onChange={e => setNv(x => ({ ...x, monto: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addVar()} />
-              <button className="btn sm primary" onClick={addVar}><Icon name="plus" size={11} /></button>
+              <button className="btn sm primary" onClick={addVar} title="Agregar gasto"><Icon name="plus" size={11} /></button>
             </div>
-            {vars.length === 0 ? <div className="mono dim" style={{ fontSize: 'var(--fs-s)', textAlign: 'center', padding: 20 }}>Sin gastos variables</div> : vars.map(g => (
-              <div key={g.id} className="abono-row">
-                <span className="mono dim" style={{ width: 60 }}>{fmtFecha(g.fecha)}</span>
-                <span style={{ flex: 1 }}>{g.concepto} <span className="srv-chip" style={{ marginLeft: 6 }}>{g.categoria}</span></span>
-                <span className="mono" style={{ fontWeight: 500 }}>{L(g.monto)}</span>
-                <button className="icon-btn danger" onClick={() => delVar(g.id)}><Icon name="x" size={11} /></button>
-              </div>
-            ))}
+            {varsPeriodo.length === 0
+              ? <div className="mono dim" style={{ fontSize: 'var(--fs-s)', textAlign: 'center', padding: 20 }}>{vars.length ? 'Sin gastos variables en este período' : 'Sin gastos variables'}</div>
+              : varsPeriodo.map(g => (
+                <div key={g.id} className="abono-row gasto-row" onClick={() => setEditando({ fijo: false, gasto: g })} title={g.nota || 'Editar gasto'}>
+                  <span className="mono dim" style={{ width: 60 }}>{fmtFecha(g.fecha)}</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>{g.concepto} <span className="srv-chip" style={{ marginLeft: 6 }}>{g.categoria}</span>{g.nota && <span className="dim" style={{ marginLeft: 6 }}>· {g.nota}</span>}</span>
+                  <span className="mono" style={{ fontWeight: 500 }}>{L(g.monto)}</span>
+                  <span className="gasto-edit"><Icon name="edit" size={12} /></span>
+                </div>
+              ))}
           </div>
         </div>
 
-        <div className="panel crop">
-          <div className="panel-head"><div className="panel-title">GASTOS FIJOS · <span className="dim">MENSUALES</span></div><span className="chip" style={{ marginLeft: 'auto' }}>MES <span className="v mono">{L(fijoM)}</span></span></div>
-          <div className="panel-body">
-            <div className="gasto-form" style={{ gridTemplateColumns: '1fr 130px 110px auto' }}>
-              <input className="input mini" placeholder="Concepto (ej. Adobe CC)" value={nf.concepto} onChange={e => setNf(x => ({ ...x, concepto: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addFijo()} />
-              <select className="select mini" value={nf.categoria} onChange={e => setNf(x => ({ ...x, categoria: e.target.value }))}>{GASTO_CATS.map(c => <option key={c}>{c}</option>)}</select>
-              <input className="input mini mono" placeholder="Monto/mes" inputMode="decimal" value={nf.monto} onChange={e => setNf(x => ({ ...x, monto: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addFijo()} />
-              <button className="btn sm primary" onClick={addFijo}><Icon name="plus" size={11} /></button>
-            </div>
-            {(gastos.fijos || []).length === 0 ? <div className="mono dim" style={{ fontSize: 'var(--fs-s)', textAlign: 'center', padding: 20 }}>Sin gastos fijos</div> : gastos.fijos.map(f => (
-              <div key={f.id} className="abono-row" style={{ opacity: f.activo === false ? 0.45 : 1 }}>
-                <span style={{ flex: 1 }}>{f.concepto} <span className="srv-chip" style={{ marginLeft: 6 }}>{f.categoria}</span></span>
-                <button className="chipbtn" style={{ padding: '3px 9px' }} onClick={() => toggleFijo(f.id)}>{f.activo === false ? 'Pausado' : 'Activo'}</button>
-                <span className="mono" style={{ fontWeight: 500, width: 90, textAlign: 'right' }}>{L(f.monto)}</span>
-                <button className="icon-btn danger" onClick={() => delFijo(f)}><Icon name="x" size={11} /></button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div className="panel crop">
+            <div className="panel-head"><div className="panel-title">GASTOS FIJOS · <span className="dim">MENSUALES</span></div><span className="chip" style={{ marginLeft: 'auto' }}>MES <span className="v mono">{L(fijoM)}</span></span></div>
+            <div className="panel-body">
+              <div className="gasto-form" style={{ gridTemplateColumns: '1fr 140px 110px auto' }}>
+                <input className="input mini" placeholder="Concepto (ej. Adobe CC)" value={nf.concepto} onChange={e => setNf(x => ({ ...x, concepto: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addFijo()} />
+                <TipoGastoSelect value={nf.categoria} tipos={tipos} onChange={t => setNf(x => ({ ...x, categoria: t }))} onCreate={crearTipo} />
+                <input className="input mini mono" placeholder="Monto/mes" inputMode="decimal" value={nf.monto} onChange={e => setNf(x => ({ ...x, monto: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addFijo()} />
+                <button className="btn sm primary" onClick={addFijo} title="Agregar gasto fijo"><Icon name="plus" size={11} /></button>
               </div>
-            ))}
+              {(gastos.fijos || []).length === 0 ? <div className="mono dim" style={{ fontSize: 'var(--fs-s)', textAlign: 'center', padding: 20 }}>Sin gastos fijos</div> : gastos.fijos.map(f => (
+                <div key={f.id} className="abono-row gasto-row" style={{ opacity: f.activo === false ? 0.45 : 1 }} onClick={() => setEditando({ fijo: true, gasto: f })} title={f.nota || 'Editar gasto'}>
+                  <span style={{ flex: 1, minWidth: 0 }}>{f.concepto} <span className="srv-chip" style={{ marginLeft: 6 }}>{f.categoria}</span></span>
+                  <button className="chipbtn" style={{ padding: '3px 9px' }} onClick={e => { e.stopPropagation(); toggleFijo(f.id); }}>{f.activo === false ? 'Pausado' : 'Activo'}</button>
+                  <span className="mono" style={{ fontWeight: 500, width: 90, textAlign: 'right' }}>{L(f.monto)}</span>
+                  <span className="gasto-edit"><Icon name="edit" size={12} /></span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="panel crop">
+            <div className="panel-head"><div className="panel-title">POR TIPO · <span className="dim">{r.label}</span></div></div>
+            {porTipo.length === 0
+              ? <div className="mono" style={{ padding: 24, color: 'var(--muted)', fontSize: 'var(--fs-s)', textAlign: 'center' }}>Sin gastos en el período</div>
+              : <div>{porTipo.map(c => (
+                  <div key={c.key} className="channel-row">
+                    <div className="ch" title={c.key}>{c.key}</div>
+                    <div className="trk"><span style={{ width: `${c.pct}%` }} /></div>
+                    <div className="v">{c.pct}% · {L(c.v)}</div>
+                  </div>
+                ))}</div>}
           </div>
         </div>
       </div>
+
+      {editando && (
+        <GastoModal gasto={editando.gasto} fijo={editando.fijo} tipos={tipos} onCreateTipo={crearTipo}
+          onSave={guardarEdicion} onDelete={borrarEdicion} onClose={() => setEditando(null)} />
+      )}
+    </div>
+  );
+}
+
+function NuevoTipoGasto({ onCreate }) {
+  const [v, setV] = useState('');
+  const crear = () => { if (onCreate(v)) setV(''); };
+  return (
+    <div style={{ display: 'flex', gap: 8, maxWidth: 360 }}>
+      <input className="input mini" placeholder="Nuevo tipo (ej. Transporte, Impuestos…)" value={v} onChange={e => setV(e.target.value)} onKeyDown={e => e.key === 'Enter' && crear()} />
+      <button className="btn sm" onClick={crear}><Icon name="plus" size={11} /> Agregar</button>
     </div>
   );
 }
@@ -2592,7 +2804,7 @@ function App({ onLogout }) {
               onNuevaVenta={(c) => goNueva({ cliente: clientePrefill(c) })} onOpenVenta={openVenta} />
           )}
           {route === 'metricas' && <Metricas ventas={ventas} gastos={gastos} config={config} />}
-          {route === 'gastos' && <Gastos gastos={gastos} setGastos={setGastos} />}
+          {route === 'gastos' && <Gastos gastos={gastos} setGastos={setGastos} config={config} setConfig={setConfig} />}
           {route === 'config' && (
             <Configuracion config={config} setConfig={setConfig} showToast={showToast} onImport={handleImport}
               allData={{ ventas, clientes, servicios, config, gastos }} />
