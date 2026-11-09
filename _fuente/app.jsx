@@ -37,6 +37,20 @@ const ESTADO_LABELS = {
 };
 const PAGO_LABELS = { pagado: 'Pagado', anticipo: 'Anticipo', pendiente: 'Por cobrar', 'n/a': 'Anulada' };
 const UNIDADES = ['proyecto', 'mes', 'pieza', 'hora', 'campaña', 'paquete'];
+const MODELOS_SERVICIO = [
+  { id: 'plan',     label: 'Plan mensual' },
+  { id: 'unitario', label: 'Servicio unitario' },
+  { id: 'proyecto', label: 'Proyecto' },
+  { id: 'especial', label: 'Acuerdo especial' },
+];
+const modeloServicio = (s = {}) => s.modelo || (s.unidad === 'mes' ? 'plan' : s.unidad === 'pieza' ? 'unitario' : 'proyecto');
+const modeloLabel = (s) => MODELOS_SERVICIO.find(m => m.id === modeloServicio(s))?.label || 'Proyecto';
+const servicioDisponiblePara = (s, cliente) => modeloServicio(s) !== 'especial' || (!!cliente?.id && s.clienteIdEspecial === cliente.id);
+const snapshotServicio = (s) => ({
+  tipoId: s.id, nombre: s.nombre, categoria: s.categoria, unidad: s.unidad,
+  descripcion: s.descripcion || '', modelo: modeloServicio(s), recomendado: s.recomendado === true,
+  clienteIdEspecial: s.clienteIdEspecial || '', precio: String(num(s.precio)), costo: String(num(s.costo)), q: 1,
+});
 const CATEGORIAS_DEFAULT = ['Redes sociales', 'Diseño gráfico', 'Video / Reels', 'Pauta digital', 'Branding', 'Web', 'Fotografía', 'Otro'];
 const CANALES_DEFAULT = ['WhatsApp', 'Instagram', 'Facebook', 'TikTok', 'Referido', 'Web', 'Otro'];
 const PAY_CONFIG_DEFAULT = [
@@ -347,10 +361,7 @@ function NuevaVenta({ nextN, clientes, servicios, ventas, stats, config, onCreat
   // Tocar un tipo que ya está en la venta suma 1 a la cantidad en vez de duplicar la línea
   const addItem = (s) => setItems(prev => prev.some(i => i.tipoId === s.id)
     ? prev.map(i => i.tipoId === s.id ? { ...i, q: num(i.q) + 1 } : i)
-    : [...prev, {
-        key: uid('LN'), tipoId: s.id, nombre: s.nombre, categoria: s.categoria, unidad: s.unidad,
-        descripcion: s.descripcion || '', precio: String(num(s.precio)), costo: String(num(s.costo)), q: 1,
-      }]);
+    : [...prev, { key: uid('LN'), ...snapshotServicio(s) }]);
   const updItem = (key, patch) => setItems(prev => prev.map(i => i.key === key ? { ...i, ...patch } : i));
   const delItem = (key) => setItems(prev => prev.filter(i => i.key !== key));
 
@@ -418,7 +429,7 @@ function NuevaVenta({ nextN, clientes, servicios, ventas, stats, config, onCreat
 
       {step === 1 && <PasoCliente cliente={cliente} setCliente={setCliente} clientes={clientes} ventas={ventas} canales={canales} nota={nota} setNota={setNota} />}
       {step === 2 && (
-        <PasoServicios servicios={servicios} stats={stats} categorias={categorias} items={items}
+        <PasoServicios cliente={cliente} servicios={servicios} stats={stats} categorias={categorias} items={items}
           addItem={addItem} updItem={updItem} delItem={delItem} totals={totals}
           onCreateServicio={onCreateServicio} onUpdateServicio={onUpdateServicio} />
       )}
@@ -542,24 +553,24 @@ function PasoCliente({ cliente, setCliente, clientes, ventas, canales, nota, set
   );
 }
 
-function PasoServicios({ servicios, stats, categorias, items, addItem, updItem, delItem, totals, onCreateServicio, onUpdateServicio }) {
+function PasoServicios({ cliente, servicios, stats, categorias, items, addItem, updItem, delItem, totals, onCreateServicio, onUpdateServicio }) {
   const [q, setQ] = useState('');
   const [cat, setCat] = useState('all');
   const [draft, setDraft] = useState(null);
   const searchRef = useRef(null);
 
-  const activos = servicios.filter(s => s.activo !== false);
+  const activos = servicios.filter(s => s.activo !== false && servicioDisponiblePara(s, cliente));
   const nq = norm(q);
   const list = activos
     .filter(s => (cat === 'all' || s.categoria === cat) && (!nq || norm(`${s.nombre} ${s.categoria} ${s.descripcion}`).includes(nq)))
     .sort((a, b) => (stats[b.id]?.q || 0) - (stats[a.id]?.q || 0) || a.nombre.localeCompare(b.nombre));
-  const exact = nq ? servicios.find(s => norm(s.nombre) === nq) : null;
+  const exact = nq ? servicios.find(s => norm(s.nombre) === nq && servicioDisponiblePara(s, cliente)) : null;
   const catsConServicios = categorias.filter(c => activos.some(s => s.categoria === c));
   const enCarrito = (id) => items.filter(i => i.tipoId === id).reduce((a, i) => a + num(i.q), 0);
 
   const startCreate = () => setDraft({
     nombre: q.trim(), categoria: cat !== 'all' ? cat : (categorias[0] || 'Otro'),
-    unidad: 'proyecto', precio: '', costo: '', descripcion: '',
+    unidad: 'proyecto', precio: '', costo: '', descripcion: '', modelo: 'proyecto', recomendado: false, clienteIdEspecial: '',
   });
   const saveDraft = () => {
     if (!draft.nombre.trim()) return;
@@ -619,6 +630,10 @@ function PasoServicios({ servicios, stats, categorias, items, addItem, updItem, 
                 return (
                   <button key={s.id} className={`srv-card ${n ? 'on' : ''}`} onClick={() => addItem(s)} title={s.descripcion || s.nombre}>
                     {n > 0 && <span className="srv-in">{n}</span>}
+                    <div className="service-badges">
+                      <span className={`service-model ${modeloServicio(s)}`}>{modeloLabel(s)}</span>
+                      {s.recomendado === true && <span className="service-recommended">Recomendado</span>}
+                    </div>
                     <div className="srv-cat">{s.categoria}</div>
                     <div className="srv-name">{s.nombre}</div>
                     <div className="srv-meta">
@@ -661,7 +676,7 @@ function PasoServicios({ servicios, stats, categorias, items, addItem, updItem, 
                   <span className="mono dim" style={{ fontSize: 'var(--fs-s)', paddingTop: 2 }}>{pad2(idx + 1)}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="srv-name">{i.nombre}</div>
-                    <div className="mono dim" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 2 }}>{i.categoria} · por {i.unidad}</div>
+                    <div className="mono dim" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 2 }}>{i.categoria} · {modeloLabel(i)} · por {i.unidad}</div>
                   </div>
                   <button className="icon-btn danger" onClick={() => delItem(i.key)} title="Quitar"><Icon name="x" size={12} /></button>
                 </div>
@@ -1295,9 +1310,10 @@ function VentaModal({ venta: v, config, onClose, onUpdate, onAbono, onDuplicate,
 }
 
 // ═══════════════════════ SERVICIOS (TIPOS) ═══════════════════════
-function Servicios({ servicios, stats, config, onSave, onDelete, onVender }) {
+function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVender }) {
   const [q, setQ] = useState('');
   const [cat, setCat] = useState('all');
+  const [modelo, setModelo] = useState('all');
   const [verArchivados, setVerArchivados] = useState(false);
   const [editing, setEditing] = useState(null); // servicio o {} nuevo
   const [sort, setSort] = useState({ col: 'q', dir: 'desc' });
@@ -1305,7 +1321,8 @@ function Servicios({ servicios, stats, config, onSave, onDelete, onVender }) {
   const list = servicios.filter(s =>
     (verArchivados || s.activo !== false) &&
     (cat === 'all' || s.categoria === cat) &&
-    (!q || norm(`${s.nombre} ${s.categoria} ${s.descripcion}`).includes(norm(q))));
+    (modelo === 'all' || modeloServicio(s) === modelo) &&
+    (!q || norm(`${s.nombre} ${s.categoria} ${s.descripcion} ${modeloLabel(s)} ${clientes.find(c => c.id === s.clienteIdEspecial)?.nombre || ''}`).includes(norm(q))));
   const val = (s, col) => {
     const st = stats[s.id] || {};
     if (col === 'nombre') return norm(s.nombre);
@@ -1358,6 +1375,13 @@ function Servicios({ servicios, stats, config, onSave, onDelete, onVender }) {
             {cats.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
+        <div className="filter-group">
+          <span className="flabel">Modelo</span>
+          <select value={modelo} onChange={e => setModelo(e.target.value)}>
+            <option value="all">Todos</option>
+            {MODELOS_SERVICIO.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+          </select>
+        </div>
         {archivados > 0 && (
           <button className={`chipbtn ${verArchivados ? 'on' : ''}`} onClick={() => setVerArchivados(x => !x)}>
             <Icon name="archive" size={11} /> Ver archivados
@@ -1395,6 +1419,11 @@ function Servicios({ servicios, stats, config, onSave, onDelete, onVender }) {
                     <tr key={s.id} onClick={() => setEditing(s)} style={{ opacity: s.activo === false ? 0.45 : 1 }}>
                       <td>
                         <div style={{ fontWeight: 500 }}>{s.nombre}{s.activo === false && <span className="mono dim" style={{ fontSize: 'var(--fs-s)', marginLeft: 8, letterSpacing: '0.1em' }}>ARCHIVADO</span>}</div>
+                        <div className="service-badges" style={{ marginTop: 5 }}>
+                          <span className={`service-model ${modeloServicio(s)}`}>{modeloLabel(s)}</span>
+                          {s.recomendado === true && <span className="service-recommended">Recomendado</span>}
+                          {modeloServicio(s) === 'especial' && <span className="service-special-client">{clientes.find(c => c.id === s.clienteIdEspecial)?.nombre || 'Cliente sin asignar'}</span>}
+                        </div>
                         {s.descripcion && <div className="muted" style={{ fontSize: 'var(--fs-s)', maxWidth: 340, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.descripcion}</div>}
                       </td>
                       <td><span className="srv-chip">{s.categoria}</span></td>
@@ -1419,7 +1448,7 @@ function Servicios({ servicios, stats, config, onSave, onDelete, onVender }) {
       </div>
 
       {editing && (
-        <ServicioForm servicio={editing} servicios={servicios} categorias={config.categorias} stats={stats}
+        <ServicioForm servicio={editing} servicios={servicios} clientes={clientes} categorias={config.categorias} stats={stats}
           onClose={() => setEditing(null)}
           onSave={(s) => { onSave(s); setEditing(null); }}
           onRemove={editing.id ? () => remove(editing) : null} />
@@ -1428,20 +1457,26 @@ function Servicios({ servicios, stats, config, onSave, onDelete, onVender }) {
   );
 }
 
-function ServicioForm({ servicio, servicios, categorias, stats, onClose, onSave, onRemove }) {
+function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClose, onSave, onRemove }) {
   const isNew = !servicio.id;
   const [d, setD] = useState(() => ({
     nombre: servicio.nombre || '', categoria: servicio.categoria || categorias[0] || 'Otro', unidad: servicio.unidad || 'proyecto',
     precio: servicio.precio != null ? String(servicio.precio) : '', costo: servicio.costo != null ? String(servicio.costo) : '',
     descripcion: servicio.descripcion || '', activo: servicio.activo !== false,
+    modelo: modeloServicio(servicio), recomendado: servicio.recomendado === true, clienteIdEspecial: servicio.clienteIdEspecial || '',
   }));
   const set = (k) => (e) => setD(x => ({ ...x, [k]: e.target.value }));
   const dup = servicios.find(s => s.id !== servicio.id && norm(s.nombre) === norm(d.nombre));
   const st = stats[servicio.id] || {};
   const margen = num(d.precio) > 0 ? ((num(d.precio) - num(d.costo)) / num(d.precio)) * 100 : null;
   const save = () => {
-    if (!d.nombre.trim() || dup) return;
-    onSave({ ...servicio, ...d, nombre: d.nombre.trim(), categoria: d.categoria.trim() || 'Otro', precio: num(d.precio), costo: num(d.costo), descripcion: d.descripcion.trim() });
+    if (!d.nombre.trim() || dup || (d.modelo === 'especial' && !d.clienteIdEspecial)) return;
+    onSave({
+      ...servicio, ...d,
+      nombre: d.nombre.trim(), categoria: d.categoria.trim() || 'Otro', precio: num(d.precio), costo: num(d.costo), descripcion: d.descripcion.trim(),
+      recomendado: d.modelo === 'plan' && d.recomendado === true,
+      clienteIdEspecial: d.modelo === 'especial' ? d.clienteIdEspecial : '',
+    });
   };
   return (
     <Modal kicker={isNew ? 'Nuevo tipo de servicio' : `Tipo · ${servicio.id}`} title={isNew ? 'Nuevo tipo' : servicio.nombre} onClose={onClose} width={620}
@@ -1450,7 +1485,7 @@ function ServicioForm({ servicio, servicios, categorias, stats, onClose, onSave,
           <Icon name={st.ventas ? 'archive' : 'trash'} size={12} /> {st.ventas ? 'Archivar' : 'Eliminar'}
         </button>}
         <button className="btn sm ghost" onClick={onClose}>Cancelar</button>
-        <button className="btn sm primary" onClick={save} disabled={!d.nombre.trim() || !!dup}>{isNew ? 'Crear tipo' : 'Guardar'}</button>
+        <button className="btn sm primary" onClick={save} disabled={!d.nombre.trim() || !!dup || (d.modelo === 'especial' && !d.clienteIdEspecial)}>{isNew ? 'Crear tipo' : 'Guardar'}</button>
       </>}>
       {!isNew && st.q > 0 && (
         <div className="fin-strip" style={{ marginBottom: 18 }}>
@@ -1475,6 +1510,29 @@ function ServicioForm({ servicio, servicios, categorias, stats, onClose, onSave,
           <label>Se cobra por</label>
           <select className="select" value={d.unidad} onChange={set('unidad')}>{UNIDADES.map(u => <option key={u} value={u}>{u}</option>)}</select>
         </div>
+        <div className="field">
+          <label>Modelo comercial</label>
+          <select className="select" value={d.modelo} onChange={e => setD(x => ({ ...x, modelo: e.target.value, recomendado: e.target.value === 'plan' ? x.recomendado : false, clienteIdEspecial: e.target.value === 'especial' ? x.clienteIdEspecial : '' }))}>
+            {MODELOS_SERVICIO.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+          </select>
+        </div>
+        <div className="field">
+          <label>Destacado comercial</label>
+          <div className="segmented" style={{ alignSelf: 'flex-start' }}>
+            <button className={d.recomendado ? '' : 'on'} onClick={() => setD(x => ({ ...x, recomendado: false }))}>Normal</button>
+            <button disabled={d.modelo !== 'plan'} className={d.recomendado ? 'on' : ''} onClick={() => setD(x => ({ ...x, recomendado: true }))}>Recomendado</button>
+          </div>
+        </div>
+        {d.modelo === 'especial' && (
+          <div className="field" style={{ gridColumn: '1 / -1' }}>
+            <label>Cliente del acuerdo <span className="req">*</span></label>
+            <select className="select" value={d.clienteIdEspecial} onChange={set('clienteIdEspecial')}>
+              <option value="">Elegir cliente…</option>
+              {[...clientes].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')).map(c => <option key={c.id} value={c.id}>{c.nombre}{c.empresa ? ` · ${c.empresa}` : ''}</option>)}
+            </select>
+            <div className="mono dim" style={{ fontSize: 'var(--fs-s)', marginTop: 6, lineHeight: 1.5 }}>Solo aparecerá en Nueva venta cuando este cliente esté seleccionado.</div>
+          </div>
+        )}
         <div className="field">
           <label>Precio base</label>
           <input className="input mono" inputMode="decimal" value={d.precio} onChange={set('precio')} placeholder="0" />
@@ -2646,7 +2704,13 @@ function App({ onLogout }) {
   };
   const addCategoria = (cat) => { if (cat && !config.categorias.some(c => norm(c) === norm(cat))) setConfig(c => ({ ...c, categorias: [...c.categorias, cat] })); };
   const handleCreateServicio = (d) => {
-    const s = { id: uid('SRV'), nombre: d.nombre.trim(), categoria: (d.categoria || '').trim() || 'Otro', unidad: d.unidad || 'proyecto', precio: num(d.precio), costo: num(d.costo), descripcion: (d.descripcion || '').trim(), activo: true, creado: today() };
+    const s = {
+      id: uid('SRV'), nombre: d.nombre.trim(), categoria: (d.categoria || '').trim() || 'Otro', unidad: d.unidad || 'proyecto',
+      precio: num(d.precio), costo: num(d.costo), descripcion: (d.descripcion || '').trim(), activo: true, creado: today(),
+      modelo: d.modelo || (d.unidad === 'mes' ? 'plan' : d.unidad === 'pieza' ? 'unitario' : 'proyecto'),
+      recomendado: d.modelo === 'plan' && d.recomendado === true,
+      clienteIdEspecial: d.modelo === 'especial' ? (d.clienteIdEspecial || '') : '',
+    };
     setServicios(prev => [...prev, s]);
     addCategoria(s.categoria);
     showToast(`✓ Tipo «${s.nombre}» guardado`);
@@ -2794,9 +2858,12 @@ function App({ onLogout }) {
               onDuplicate={handleDuplicate} focusN={focusN} onFocusConsumed={() => setFocusN(null)} />
           )}
           {route === 'servicios' && (
-            <Servicios servicios={servicios} stats={stats} config={config} onSave={handleSaveServicio}
+            <Servicios servicios={servicios} clientes={clientes} stats={stats} config={config} onSave={handleSaveServicio}
               onDelete={(id) => setServicios(prev => prev.filter(s => s.id !== id))}
-              onVender={(s) => goNueva({ items: [{ tipoId: s.id, nombre: s.nombre, categoria: s.categoria, unidad: s.unidad, descripcion: s.descripcion || '', precio: String(s.precio), costo: String(s.costo), q: 1 }] })} />
+              onVender={(s) => {
+                const specialClient = modeloServicio(s) === 'especial' ? clientes.find(c => c.id === s.clienteIdEspecial) : null;
+                goNueva({ cliente: specialClient ? clientePrefill(specialClient) : undefined, items: [snapshotServicio(s)] });
+              }} />
           )}
           {route === 'clientes' && (
             <Clientes clientes={clientes} ventas={ventas} config={config} onSave={handleSaveCliente}

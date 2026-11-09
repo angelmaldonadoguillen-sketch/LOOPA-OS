@@ -61,6 +61,14 @@ b, strong { font-weight: 500; }
 .chipbtn:hover { color: var(--text); border-color: var(--muted); }
 .chipbtn.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 500; }
 .srv-chip { display: inline-block; font-family: var(--font-mono); font-size: var(--fs-s); letter-spacing: .04em; color: var(--muted); border: 1px solid var(--line-2); border-radius: 6px; padding: 2px 7px; white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+.service-badges { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.service-model, .service-recommended, .service-special-client { display: inline-flex; align-items: center; min-height: 20px; padding: 2px 7px; border: 1px solid var(--line-2); border-radius: 999px; font-family: var(--font-mono); font-size: var(--fs-s); line-height: 1; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.service-model.plan { color: var(--info); border-color: color-mix(in srgb, var(--info) 45%, transparent); }
+.service-model.unitario { color: var(--muted); }
+.service-model.proyecto { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+.service-model.especial, .service-special-client { color: var(--accent); border-color: rgba(var(--accent-rgb), .45); }
+.service-recommended { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 500; }
+.segmented button:disabled { opacity: .35; cursor: not-allowed; }
 .tag-edit { display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px 4px 12px; border: 1px solid var(--line-2); border-radius: 999px; font-size: var(--fs-s); }
 .tag-edit button { width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--dim); }
 .tag-edit button:hover { background: rgba(230,57,70,.15); color: var(--danger); }

@@ -79,3 +79,10 @@ Identidad (v3.0): blanco y negro sobre negro cálido `#121211` (el tono del logo
 
 Después de editar: `node _fuente/build.js`. La config de Firebase que ya
 hayas pegado en `index.html` se conserva.
+
+Verificación local mínima:
+
+```bash
+node --test service-ecosystem.test.cjs
+node _fuente/build.js
+```
