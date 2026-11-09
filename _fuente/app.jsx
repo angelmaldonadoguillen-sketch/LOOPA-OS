@@ -1401,7 +1401,7 @@ function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVen
               <thead>
                 <tr>
                   {[
-                    { col: 'nombre', label: 'Servicio' }, { col: 'categoria', label: 'Categoría' }, { col: null, label: 'Unidad' },
+                    { col: 'nombre', label: 'Servicio' }, { col: null, label: 'Modelo' }, { col: 'categoria', label: 'Categoría' }, { col: null, label: 'Unidad' },
                     { col: 'precio', label: 'Precio base', r: 1 }, { col: null, label: 'Costo', r: 1 }, { col: 'margen', label: 'Margen', r: 1 },
                     { col: 'q', label: 'Vendidos', r: 1 }, { col: 'ingresos', label: 'Ingresos', r: 1 }, { col: 'ultima', label: 'Última venta' }, { col: null, label: '' },
                   ].map((h, i) => (
@@ -1419,12 +1419,14 @@ function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVen
                     <tr key={s.id} onClick={() => setEditing(s)} style={{ opacity: s.activo === false ? 0.45 : 1 }}>
                       <td>
                         <div style={{ fontWeight: 500 }}>{s.nombre}{s.activo === false && <span className="mono dim" style={{ fontSize: 'var(--fs-s)', marginLeft: 8, letterSpacing: '0.1em' }}>ARCHIVADO</span>}</div>
-                        <div className="service-badges" style={{ marginTop: 5 }}>
+                        {s.descripcion && <div className="muted" style={{ fontSize: 'var(--fs-s)', maxWidth: 340, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.descripcion}</div>}
+                      </td>
+                      <td className="service-model-cell">
+                        <div className="service-badges">
                           <span className={`service-model ${modeloServicio(s)}`}>{modeloLabel(s)}</span>
                           {s.recomendado === true && <span className="service-recommended">Recomendado</span>}
                           {modeloServicio(s) === 'especial' && <span className="service-special-client">{clientes.find(c => c.id === s.clienteIdEspecial)?.nombre || 'Cliente sin asignar'}</span>}
                         </div>
-                        {s.descripcion && <div className="muted" style={{ fontSize: 'var(--fs-s)', maxWidth: 340, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.descripcion}</div>}
                       </td>
                       <td><span className="srv-chip">{s.categoria}</span></td>
                       <td className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>{s.unidad}</td>
@@ -1440,7 +1442,7 @@ function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVen
                     </tr>
                   );
                 })}
-                {sorted.length === 0 && <tr><td colSpan="10" className="mono" style={{ textAlign: 'center', padding: 32, color: 'var(--muted)', cursor: 'default' }}>Ningún tipo coincide</td></tr>}
+                {sorted.length === 0 && <tr><td colSpan="11" className="mono" style={{ textAlign: 'center', padding: 32, color: 'var(--muted)', cursor: 'default' }}>Ningún tipo coincide</td></tr>}
               </tbody>
             </table>
           </div>
@@ -1459,6 +1461,7 @@ function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVen
 
 function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClose, onSave, onRemove }) {
   const isNew = !servicio.id;
+  const [paso, setPaso] = useState(1);
   const [d, setD] = useState(() => ({
     nombre: servicio.nombre || '', categoria: servicio.categoria || categorias[0] || 'Otro', unidad: servicio.unidad || 'proyecto',
     precio: servicio.precio != null ? String(servicio.precio) : '', costo: servicio.costo != null ? String(servicio.costo) : '',
@@ -1469,6 +1472,10 @@ function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClos
   const dup = servicios.find(s => s.id !== servicio.id && norm(s.nombre) === norm(d.nombre));
   const st = stats[servicio.id] || {};
   const margen = num(d.precio) > 0 ? ((num(d.precio) - num(d.costo)) / num(d.precio)) * 100 : null;
+  const ofertaValida = !!d.nombre.trim() && !dup;
+  const alcanceValido = d.modelo !== 'especial' || !!d.clienteIdEspecial;
+  const steps = [{ n: '01', t: 'Oferta' }, { n: '02', t: 'Alcance' }, { n: '03', t: 'Finanzas' }];
+  const puedeAbrir = (n) => n <= paso || (n === 2 && ofertaValida) || (n === 3 && ofertaValida && alcanceValido);
   const save = () => {
     if (!d.nombre.trim() || dup || (d.modelo === 'especial' && !d.clienteIdEspecial)) return;
     onSave({
@@ -1479,14 +1486,27 @@ function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClos
     });
   };
   return (
-    <Modal kicker={isNew ? 'Nuevo tipo de servicio' : `Tipo · ${servicio.id}`} title={isNew ? 'Nuevo tipo' : servicio.nombre} onClose={onClose} width={620}
+    <Modal kicker={isNew ? 'Catálogo · nueva plantilla' : `Catálogo · ${servicio.id}`} title={isNew ? 'Nuevo servicio' : servicio.nombre} onClose={onClose} width={760}
       footer={<>
         {onRemove && <button className="btn sm ghost" style={{ color: 'var(--danger)', marginRight: 'auto' }} onClick={onRemove}>
           <Icon name={st.ventas ? 'archive' : 'trash'} size={12} /> {st.ventas ? 'Archivar' : 'Eliminar'}
         </button>}
         <button className="btn sm ghost" onClick={onClose}>Cancelar</button>
-        <button className="btn sm primary" onClick={save} disabled={!d.nombre.trim() || !!dup || (d.modelo === 'especial' && !d.clienteIdEspecial)}>{isNew ? 'Crear tipo' : 'Guardar'}</button>
+        {paso > 1 && <button className="btn sm ghost" onClick={() => setPaso(p => p - 1)}><Icon name="arrow-l" size={12} /> Volver</button>}
+        {paso < 3
+          ? <button className="btn sm primary" disabled={paso === 1 ? !ofertaValida : !alcanceValido} onClick={() => setPaso(p => p + 1)}>Continuar <Icon name="arrow-r" size={12} /></button>
+          : <button className="btn sm primary" onClick={save} disabled={!ofertaValida || !alcanceValido}>{isNew ? 'Crear servicio' : 'Guardar cambios'}</button>}
       </>}>
+      <div className="service-form-lead">
+        <div>
+          <div className="service-badges">
+            <span className={`service-model ${d.modelo}`}>{MODELOS_SERVICIO.find(m => m.id === d.modelo)?.label}</span>
+            {d.recomendado && <span className="service-recommended">Recomendado</span>}
+          </div>
+          <div className="service-form-copy">Esta plantilla define cómo se presenta el servicio en el catálogo y qué información pasa a Nueva venta.</div>
+        </div>
+        {!isNew && <span className={`service-availability ${d.activo ? 'active' : 'archived'}`}>{d.activo ? 'Disponible' : 'Archivado'}</span>}
+      </div>
       {!isNew && st.q > 0 && (
         <div className="fin-strip" style={{ marginBottom: 18 }}>
           <div><div className="k">Vendido</div><div className="v">{st.q}×</div></div>
@@ -1496,66 +1516,102 @@ function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClos
           <div><div className="k">Última</div><div className="v">{fmtFecha(st.ultima)}</div></div>
         </div>
       )}
-      <div className="grid-2">
-        <div className="field" style={{ gridColumn: '1 / -1' }}>
-          <label>Nombre <span className="req">*</span> {dup && <span style={{ color: 'var(--danger)' }}>· ya existe un tipo con ese nombre</span>}</label>
-          <input className="input" autoFocus value={d.nombre} onChange={set('nombre')} placeholder="Ej. Reel publicitario 30s" onKeyDown={e => { if (e.key === 'Enter') save(); }} />
-        </div>
-        <div className="field">
-          <label>Categoría</label>
-          <input className="input" list="loopa-cats-form" value={d.categoria} onChange={set('categoria')} />
-          <datalist id="loopa-cats-form">{categorias.map(c => <option key={c} value={c} />)}</datalist>
-        </div>
-        <div className="field">
-          <label>Se cobra por</label>
-          <select className="select" value={d.unidad} onChange={set('unidad')}>{UNIDADES.map(u => <option key={u} value={u}>{u}</option>)}</select>
-        </div>
-        <div className="field">
-          <label>Modelo comercial</label>
-          <select className="select" value={d.modelo} onChange={e => setD(x => ({ ...x, modelo: e.target.value, recomendado: e.target.value === 'plan' ? x.recomendado : false, clienteIdEspecial: e.target.value === 'especial' ? x.clienteIdEspecial : '' }))}>
-            {MODELOS_SERVICIO.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
-          </select>
-        </div>
-        <div className="field">
-          <label>Destacado comercial</label>
-          <div className="segmented" style={{ alignSelf: 'flex-start' }}>
-            <button className={d.recomendado ? '' : 'on'} onClick={() => setD(x => ({ ...x, recomendado: false }))}>Normal</button>
-            <button disabled={d.modelo !== 'plan'} className={d.recomendado ? 'on' : ''} onClick={() => setD(x => ({ ...x, recomendado: true }))}>Recomendado</button>
+      <div className="stepper service-form-stepper">
+        {steps.map((s, idx) => (
+          <button key={s.n} className={`step ${paso === idx + 1 ? 'active' : paso > idx + 1 ? 'done' : ''}`} disabled={!puedeAbrir(idx + 1)} onClick={() => setPaso(idx + 1)}>
+            <div className="n mono">{paso > idx + 1 ? '✓' : s.n}</div>
+            <div className="t">{s.t}</div>
+          </button>
+        ))}
+      </div>
+      {paso === 1 && (
+        <div className="service-form-stage">
+          <div className="service-stage-head"><span>01</span><div><b>Definición de la oferta</b><small>Lo que el equipo seleccionará en Nueva venta.</small></div></div>
+          <div className="grid-2">
+            <div className="field" style={{ gridColumn: '1 / -1' }}>
+              <label>Nombre <span className="req">*</span> {dup && <span style={{ color: 'var(--danger)' }}>· ya existe un servicio con ese nombre</span>}</label>
+              <input className="input" autoFocus value={d.nombre} onChange={set('nombre')} placeholder="Ej. Plan Impulso" />
+            </div>
+            <div className="field">
+              <label>Modelo comercial</label>
+              <select className="select" value={d.modelo} onChange={e => setD(x => ({
+                ...x, modelo: e.target.value,
+                unidad: e.target.value === 'plan' ? 'mes' : e.target.value === 'unitario' ? 'pieza' : x.unidad,
+                recomendado: e.target.value === 'plan' ? x.recomendado : false,
+                clienteIdEspecial: e.target.value === 'especial' ? x.clienteIdEspecial : '',
+              }))}>{MODELOS_SERVICIO.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}</select>
+            </div>
+            <div className="field">
+              <label>Categoría</label>
+              <input className="input" list="loopa-cats-form" value={d.categoria} onChange={set('categoria')} />
+              <datalist id="loopa-cats-form">{categorias.map(c => <option key={c} value={c} />)}</datalist>
+            </div>
+            <div className="field">
+              <label>Unidad de cobro</label>
+              <select className="select" value={d.unidad} onChange={set('unidad')}>{UNIDADES.map(u => <option key={u} value={u}>{u}</option>)}</select>
+            </div>
+            {d.modelo === 'plan' && (
+              <div className="field">
+                <label>Presentación comercial</label>
+                <div className="segmented" style={{ alignSelf: 'flex-start' }}>
+                  <button className={d.recomendado ? '' : 'on'} onClick={() => setD(x => ({ ...x, recomendado: false }))}>Normal</button>
+                  <button className={d.recomendado ? 'on' : ''} onClick={() => setD(x => ({ ...x, recomendado: true }))}>Recomendado</button>
+                </div>
+              </div>
+            )}
+            {d.modelo === 'especial' && (
+              <div className="field" style={{ gridColumn: '1 / -1' }}>
+                <label>Cliente del acuerdo <span className="req">*</span></label>
+                <select className="select" value={d.clienteIdEspecial} onChange={set('clienteIdEspecial')}>
+                  <option value="">Elegir cliente…</option>
+                  {[...clientes].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')).map(c => <option key={c.id} value={c.id}>{c.nombre}{c.empresa ? ` · ${c.empresa}` : ''}</option>)}
+                </select>
+                <div className="field-help">Solo aparecerá en Nueva venta cuando este cliente esté seleccionado.</div>
+              </div>
+            )}
           </div>
         </div>
-        {d.modelo === 'especial' && (
-          <div className="field" style={{ gridColumn: '1 / -1' }}>
-            <label>Cliente del acuerdo <span className="req">*</span></label>
-            <select className="select" value={d.clienteIdEspecial} onChange={set('clienteIdEspecial')}>
-              <option value="">Elegir cliente…</option>
-              {[...clientes].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')).map(c => <option key={c.id} value={c.id}>{c.nombre}{c.empresa ? ` · ${c.empresa}` : ''}</option>)}
-            </select>
-            <div className="mono dim" style={{ fontSize: 'var(--fs-s)', marginTop: 6, lineHeight: 1.5 }}>Solo aparecerá en Nueva venta cuando este cliente esté seleccionado.</div>
+      )}
+      {paso === 2 && (
+        <div className="service-form-stage">
+          <div className="service-stage-head"><span>02</span><div><b>Alcance reutilizable</b><small>La base que se copia a cada venta y luego puede ajustarse.</small></div></div>
+          <div className="field">
+            <label>Qué incluye</label>
+            <textarea className="textarea service-scope" rows="8" autoFocus value={d.descripcion} onChange={set('descripcion')} placeholder="Entregables, frecuencia, límites, seguimiento y exclusiones principales…" />
+            <div className="field-help">Escribí el alcance comercial, no el proceso interno. Esta información aparecerá como detalle editable de la venta.</div>
           </div>
-        )}
-        <div className="field">
-          <label>Precio base</label>
-          <input className="input mono" inputMode="decimal" value={d.precio} onChange={set('precio')} placeholder="0" />
         </div>
-        <div className="field">
-          <label>Costo base {margen != null && <span className="dim">· margen {margen.toFixed(0)}%</span>}</label>
-          <input className="input mono" inputMode="decimal" value={d.costo} onChange={set('costo')} placeholder="0" />
-        </div>
-        <div className="field" style={{ gridColumn: '1 / -1' }}>
-          <label>Qué incluye</label>
-          <textarea className="textarea" rows="3" value={d.descripcion} onChange={set('descripcion')} placeholder="Se copia como detalle cada vez que lo vendés (editable en la venta)" />
-        </div>
-        {!isNew && (
-          <div className="field" style={{ gridColumn: '1 / -1' }}>
-            <label>Disponible en Nueva venta</label>
-            <div className="segmented" style={{ alignSelf: 'flex-start' }}>
-              <button className={d.activo ? 'on' : ''} onClick={() => setD(x => ({ ...x, activo: true }))}>Activo</button>
-              <button className={!d.activo ? 'on' : ''} onClick={() => setD(x => ({ ...x, activo: false }))}>Archivado</button>
+      )}
+      {paso === 3 && (
+        <div className="service-form-stage">
+          <div className="service-stage-head"><span>03</span><div><b>Finanzas y disponibilidad</b><small>Valores base para cotizar sin alterar ventas históricas.</small></div></div>
+          <div className="grid-2">
+            <div className="field">
+              <label>Precio base</label>
+              <input className="input mono" autoFocus inputMode="decimal" value={d.precio} onChange={set('precio')} placeholder="0" />
+            </div>
+            <div className="field">
+              <label>Costo base</label>
+              <input className="input mono" inputMode="decimal" value={d.costo} onChange={set('costo')} placeholder="0" />
             </div>
           </div>
-        )}
-      </div>
-      {!isNew && <div className="mono dim" style={{ fontSize: 'var(--fs-s)', marginTop: 14, lineHeight: 1.6 }}>Cambiar el precio base solo afecta ventas nuevas: las pasadas conservan lo que se cobró.</div>}
+          <div className="service-finance-preview">
+            <div><span>Precio</span><b>{L(d.precio)}</b></div>
+            <div><span>Costo</span><b>{L(d.costo)}</b></div>
+            <div><span>Margen estimado</span><b className={margen != null && margen < 25 ? 'low' : ''}>{margen == null ? '—' : `${margen.toFixed(0)}%`}</b></div>
+          </div>
+          {!isNew && (
+            <div className="field" style={{ marginTop: 18 }}>
+              <label>Disponibilidad en Nueva venta</label>
+              <div className="segmented" style={{ alignSelf: 'flex-start' }}>
+                <button className={d.activo ? 'on' : ''} onClick={() => setD(x => ({ ...x, activo: true }))}>Disponible</button>
+                <button className={!d.activo ? 'on' : ''} onClick={() => setD(x => ({ ...x, activo: false }))}>Archivado</button>
+              </div>
+            </div>
+          )}
+          {!isNew && <div className="service-history-note">Los cambios aplican a ventas nuevas. Las ventas anteriores conservan nombre, alcance y precio registrados.</div>}
+        </div>
+      )}
     </Modal>
   );
 }

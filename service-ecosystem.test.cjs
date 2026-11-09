@@ -28,7 +28,22 @@ test('la venta conserva una instantánea del modelo comercial', () => {
 
 test('el catálogo permite recomendar planes y filtrar por modelo', () => {
   assert.match(source, /Plan mensual/);
-  assert.match(source, /Destacado comercial/);
+  assert.match(source, /Presentación comercial/);
   assert.match(source, /Recomendado/);
   assert.match(source, /setModelo/);
+});
+
+test('el modelo comercial ocupa una columna propia en la tabla', () => {
+  assert.match(source, /label: 'Servicio' \}, \{ col: null, label: 'Modelo' \}/);
+  assert.match(source, /className="service-model-cell"/);
+  assert.match(source, /colSpan="11"/);
+});
+
+test('el editor refleja el flujo de venta en tres etapas', () => {
+  assert.match(source, /\{ n: '01', t: 'Oferta' \}/);
+  assert.match(source, /\{ n: '02', t: 'Alcance' \}/);
+  assert.match(source, /\{ n: '03', t: 'Finanzas' \}/);
+  assert.match(source, /Definición de la oferta/);
+  assert.match(source, /Alcance reutilizable/);
+  assert.match(source, /Finanzas y disponibilidad/);
 });
