@@ -82,6 +82,10 @@ const pagoEstado = (v) => {
   return 'pendiente';
 };
 const esActiva = (v) => v.estado !== 'cancelado';
+// Cómo se identifica una venta en las pantallas: por su id (modelo de la
+// fusión, donde dos ventas migradas pueden compartir el número visible) o,
+// sin id, por su número (LOOPA de siempre).
+const claveVenta = (v) => (v && v.id) || (v && v.n);
 const entregaVencida = (v) => v.entrega && v.entrega < today() && !['entregado', 'cancelado'].includes(v.estado);
 
 // ─── Períodos (Ventas + Métricas) ──────────────────────────────
@@ -120,6 +124,43 @@ function downloadCSV(name, headers, rows) {
   downloadFile(name, csv, 'text/csv;charset=utf-8;');
 }
 
+// ─── Datos de la fusión (Fase 3, tanda 3.3) ───
+// ?datos=fusion → ventas, clientes y servicios vienen del modelo nuevo y se
+// guardan SÓLO a través del servidor, con una cola persistente (se reintenta
+// sola si se corta la red; ver _fuente/datos/fuente.js). Por ahora sólo con
+// el servidor local de integracion/servidor-local (este equipo, 127.0.0.1):
+// la conexión al proyecto real llega con la puesta en marcha (ADR-0004).
+// Sin la bandera, LOOPA funciona exactamente como siempre.
+const DATOS_FUSION = (() => {
+  try {
+    if (new URLSearchParams(window.location.search).get('datos') !== 'fusion') return null;
+    if (['127.0.0.1', 'localhost', '[::1]'].includes(window.location.hostname)) return 'local';
+    console.warn('?datos=fusion sólo funciona con el servidor local (127.0.0.1)');
+    return null;
+  } catch (e) { return null; }
+})();
+const FUSION_API = DATOS_FUSION ? LoopaFuente.adaptadorHttp((...a) => window.fetch(...a), '') : null;
+const nuevoIdFusion = () => (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID()
+  : 'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g, () => Math.floor(Math.random() * 16).toString(16)));
+const confirmarCancelar = (v) => ({
+  title: `Cancelar venta #${v.n}`,
+  message: `Cliente: ${v.cliente}\nTotal: ${L(v.total)}\n\nCon la ficha única las ventas no se borran: queda cancelada (se puede reactivar cambiando el estado) y su trabajo de producción se archiva.`,
+  confirmLabel: 'Cancelar venta',
+});
+const numProx = (n) => (n ? `#${n}` : 'al guardar');
+// Con la fusión cada cambio es una escritura: una fecha a medio escribir
+// (año 0002) no se manda.
+const fechaValida = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s) && s >= '2000-01-01' && s <= '2100-12-31';
+// El avance REAL de producción lo lleva el tablero; acá sólo se resume.
+const produccionTexto = (p) => {
+  const t = p.tareas === 1 ? '1 tarea' : `${p.tareas} tareas`;
+  if (p.status === 'attention') return `Producción: necesita atención (p. ej. falta la fecha de entrega) · ${t}`;
+  if (p.status === 'cancelled_review') return `Producción: venta cancelada · ${t} para revisar`;
+  if (p.status === 'ready') return p.tareas ? `Producción: ${t} en el tablero` : 'Producción: sin tareas (sus servicios no tienen plantilla de producción)';
+  if (p.status === 'resync_required') return `Producción: cambios de la venta por revisar en el tablero · ${t}`;
+  return `Producción: en preparación · ${t}`;
+};
+
 // ─── Persistencia: Firebase si está configurado, si no este navegador ───
 const DOC_KEYS = ['ventas', 'clientes', 'servicios', 'config', 'gastos'];
 const Store = {
@@ -138,6 +179,10 @@ const Store = {
     return out;
   },
   save(k, data) {
+    if (DATOS_FUSION) {
+      try { localStorage.setItem('loopa-fusion-' + k, JSON.stringify(data)); return Promise.resolve(); }
+      catch (e) { return Promise.reject(e); }
+    }
     if (window.USE_FB) return window.db.collection('loopa').doc(k).set(data);
     try { localStorage.setItem('loopa-' + k, JSON.stringify(data)); return Promise.resolve(); }
     catch (e) { return Promise.reject(e); }
@@ -385,7 +430,10 @@ function NuevaVenta({ nextN, clientes, servicios, ventas, stats, config, onCreat
     3: !!pay && (cobro !== 'anticipo' || totals.cobrado > 0),
   };
 
+  const enviando = useRef(false);
   const confirm = () => {
+    if (enviando.current) return;
+    enviando.current = true;
     const venta = {
       n: nextN, fecha,
       cliente: cliente.nombre.trim(), empresa: (cliente.empresa || '').trim(),
@@ -396,10 +444,14 @@ function NuevaVenta({ nextN, clientes, servicios, ventas, stats, config, onCreat
       estado, entrega, nota: nota.trim(), creado: new Date().toISOString(),
     };
     const saved = onCreate(venta, cliente);
+    if (saved === false) { enviando.current = false; return; } // no se pudo encolar: el aviso ya salió
     setCreated(saved || venta);
   };
 
-  if (created) return <VentaCreada venta={created} payConfig={payConfig} onReset={onReset} onOpen={() => onOpenVenta(created.n)} />;
+  // Con la fusión el número lo da el servidor: se muestra la venta guardada
+  // (por id) en cuanto llega; mientras tanto, «guardando».
+  const creadaVista = created && created.id ? (ventas.find(v => v.id === created.id) || created) : created;
+  if (created) return <VentaCreada venta={creadaVista} payConfig={payConfig} onReset={onReset} onOpen={() => onOpenVenta(claveVenta(created))} />;
 
   const steps = [{ n: '01', t: 'Cliente' }, { n: '02', t: 'Servicios' }, { n: '03', t: 'Cobro' }];
 
@@ -412,7 +464,7 @@ function NuevaVenta({ nextN, clientes, servicios, ventas, stats, config, onCreat
           <div className="page-desc">Elegí el cliente, sumá servicios desde tus tipos guardados (o creá uno nuevo al vuelo) y registrá el cobro.</div>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <span className="chip">CORRELATIVO <span className="v mono">#{nextN}</span></span>
+          <span className="chip">CORRELATIVO <span className="v mono">{numProx(nextN)}</span></span>
           <span className="chip">SERVICIOS <span className="v mono">{pad2(items.length)}</span></span>
           <span className="chip">TOTAL <span className="v mono">{L(totals.total)}</span></span>
         </div>
@@ -576,6 +628,7 @@ function PasoServicios({ cliente, servicios, stats, categorias, items, addItem, 
   const saveDraft = () => {
     if (!draft.nombre.trim()) return;
     const s = onCreateServicio(draft);
+    if (!s) return; // no se pudo guardar (el aviso ya salió)
     addItem(s); setDraft(null); setQ('');
     setTimeout(() => searchRef.current?.focus({ preventScroll: true }), 50);
   };
@@ -813,6 +866,7 @@ function PasoCobro({ payConfig, pay, setPay, cobro, setCobro, anticipo, setAntic
               <div className="field">
                 <label>Fecha de entrega <span className="dim">(opcional)</span></label>
                 <input className="input mono" type="date" value={entrega} min={fecha} onChange={e => setEntrega(e.target.value)} style={{ colorScheme: 'dark' }} />
+                {DATOS_FUSION && !entrega && <div className="dim" style={{ fontSize: 'var(--fs-s)', marginTop: 6 }}>Sin fecha de entrega, el trabajo que se programa desde esa fecha queda esperando en Producción.</div>}
               </div>
               <div className="field" style={{ gridColumn: '1 / -1' }}>
                 <label>Estado del trabajo</label>
@@ -829,7 +883,7 @@ function PasoCobro({ payConfig, pay, setPay, cobro, setCobro, anticipo, setAntic
 
       <div className="panel crop sticky-panel">
         <div className="panel-head">
-          <div className="panel-title">RESUMEN · <span className="dim">VENTA #{nextN}</span></div>
+          <div className="panel-title">RESUMEN · <span className="dim">VENTA {numProx(nextN)}</span></div>
         </div>
         <div className="panel-body">
           <div style={{ marginBottom: 14 }}>
@@ -852,7 +906,7 @@ function PasoCobro({ payConfig, pay, setPay, cobro, setCobro, anticipo, setAntic
           <div className="summary-row"><span className="l">Cobrado hoy</span><span className="r" style={{ color: 'var(--ok)' }}>{L(totals.cobrado)}</span></div>
           <div className="summary-row"><span className="l">Saldo</span><span className="r" style={{ color: totals.saldo > 0 ? 'var(--warn)' : 'var(--muted)' }}>{L(totals.saldo)}</span></div>
           <button className="btn primary" style={{ width: '100%', justifyContent: 'center', marginTop: 16, padding: 14 }} disabled={!canConfirm} onClick={onConfirm}>
-            <Icon name="check" size={13} /> Registrar venta #{nextN}
+            <Icon name="check" size={13} /> Registrar venta{nextN ? ` #${nextN}` : ''}
           </button>
         </div>
       </div>
@@ -865,8 +919,8 @@ function VentaCreada({ venta: v, onReset, onOpen }) {
     <div>
       <div className="order-hero">
         <div className="ord-stack">
-          <div className="ord-label">✓ Venta registrada</div>
-          <div className="ord-num">#{v.n}</div>
+          <div className="ord-label">{v.n ? '✓ Venta registrada' : 'Guardando venta…'}</div>
+          <div className="ord-num">{v.n ? `#${v.n}` : '—'}</div>
         </div>
         <div className="ord-meta">
           <div className="k">Cliente</div><div className="v">{v.cliente}{v.empresa ? ` · ${v.empresa}` : ''}</div>
@@ -889,7 +943,7 @@ function VentaCreada({ venta: v, onReset, onOpen }) {
       </div>
       <div style={{ display: 'flex', gap: 10, marginTop: 20, flexWrap: 'wrap' }}>
         <button className="btn primary" onClick={onReset}><Icon name="plus" size={12} /> Nueva venta</button>
-        <button className="btn" onClick={onOpen}><Icon name="list" size={12} /> Ver en ventas</button>
+        <button className="btn" onClick={onOpen} disabled={!v.n}><Icon name="list" size={12} /> Ver en ventas</button>
       </div>
     </div>
   );
@@ -957,14 +1011,14 @@ function Ventas({ ventas, config, onUpdate, onDelete, onDuplicate, onAbono, focu
   const openMenu = (e, kind, v) => {
     e.stopPropagation();
     const r = e.currentTarget.getBoundingClientRect();
-    setMenu({ kind, n: v.n, x: r.left, y: r.bottom + 4, current: kind === 'estado' ? v.estado : pagoEstado(v) });
+    setMenu({ kind, k: claveVenta(v), x: r.left, y: r.bottom + 4, current: kind === 'estado' ? v.estado : pagoEstado(v) });
   };
-  const menuVenta = menu && ventas.find(v => v.n === menu.n);
+  const menuVenta = menu && ventas.find(v => claveVenta(v) === menu.k);
   const pickPago = (id) => {
     const v = menuVenta; setMenu(null);
     if (!v) return;
-    if (id === 'cobrar') onAbono(v.n, { id: uid('AB'), fecha: today(), monto: ventaSaldo(v), metodo: v.pay });
-    if (id === 'abono') setOpenN(v.n);
+    if (id === 'cobrar') onAbono(claveVenta(v), { id: uid('AB'), fecha: today(), monto: ventaSaldo(v), metodo: v.pay });
+    if (id === 'abono') setOpenN(claveVenta(v));
   };
 
   return (
@@ -1060,7 +1114,7 @@ function Ventas({ ventas, config, onUpdate, onDelete, onDuplicate, onAbono, focu
                 {sorted.map(v => {
                   const cancel = v.estado === 'cancelado';
                   return (
-                    <tr key={v.n} onClick={() => setOpenN(v.n)} style={{ opacity: cancel ? 0.5 : 1 }}>
+                    <tr key={claveVenta(v)} onClick={() => setOpenN(claveVenta(v))} style={{ opacity: cancel ? 0.5 : 1 }}>
                       <td className="order-n">#{v.n}</td>
                       <td>
                         <div style={{ fontWeight: 500 }}>{v.cliente}</div>
@@ -1092,7 +1146,7 @@ function Ventas({ ventas, config, onUpdate, onDelete, onDuplicate, onAbono, focu
                       <td className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--muted)' }}>{fmtFecha(v.fecha)}</td>
                       <td onClick={e => e.stopPropagation()}>
                         <button className="icon-btn danger" title="Eliminar venta"
-                          onClick={() => uiConfirm({ title: `Eliminar venta #${v.n}`, message: `Cliente: ${v.cliente}\nTotal: ${L(v.total)}\n\nSi solo se canceló, mejor cambiá el estado a «Cancelado» para conservar el registro.`, confirmLabel: 'Eliminar' }).then(ok => { if (ok) onDelete(v.n); })}>
+                          onClick={() => uiConfirm(DATOS_FUSION ? confirmarCancelar(v) : { title: `Eliminar venta #${v.n}`, message: `Cliente: ${v.cliente}\nTotal: ${L(v.total)}\n\nSi solo se canceló, mejor cambiá el estado a «Cancelado» para conservar el registro.`, confirmLabel: 'Eliminar' }).then(ok => { if (ok) onDelete(claveVenta(v)); })}>
                           <Icon name="x" size={12} />
                         </button>
                       </td>
@@ -1122,7 +1176,7 @@ function Ventas({ ventas, config, onUpdate, onDelete, onDuplicate, onAbono, focu
       <PickMenu
         menu={menu && menu.kind === 'estado' ? menu : null}
         options={ESTADOS.map(s => ({ id: s, node: <EstadoBadge s={s} /> }))}
-        onPick={(s) => { onUpdate(menu.n, { estado: s }); setMenu(null); }}
+        onPick={(s) => { onUpdate(menu.k, { estado: s }); setMenu(null); }}
         onClose={() => setMenu(null)} />
       <PickMenu
         menu={menu && menu.kind === 'pago' ? { ...menu, current: null } : null}
@@ -1134,14 +1188,14 @@ function Ventas({ ventas, config, onUpdate, onDelete, onDuplicate, onAbono, focu
         onClose={() => setMenu(null)} />
 
       {openN && (() => {
-        const v = ventas.find(x => x.n === openN);
+        const v = ventas.find(x => claveVenta(x) === openN);
         if (!v) return null;
         return (
           <VentaModal venta={v} config={config} onClose={() => setOpenN(null)}
-            onUpdate={(patch) => onUpdate(v.n, patch)}
-            onAbono={(ab) => onAbono(v.n, ab)}
+            onUpdate={(patch) => onUpdate(claveVenta(v), patch)}
+            onAbono={(ab) => onAbono(claveVenta(v), ab)}
             onDuplicate={() => { setOpenN(null); onDuplicate(v); }}
-            onDelete={() => uiConfirm({ title: `Eliminar venta #${v.n}`, message: `Cliente: ${v.cliente}\nTotal: ${L(v.total)}`, confirmLabel: 'Eliminar' }).then(ok => { if (ok) { setOpenN(null); onDelete(v.n); } })} />
+            onDelete={() => uiConfirm(DATOS_FUSION ? confirmarCancelar(v) : { title: `Eliminar venta #${v.n}`, message: `Cliente: ${v.cliente}\nTotal: ${L(v.total)}`, confirmLabel: 'Eliminar' }).then(ok => { if (ok) { setOpenN(null); onDelete(claveVenta(v)); } })} />
         );
       })()}
     </div>
@@ -1197,14 +1251,15 @@ function VentaModal({ venta: v, config, onClose, onUpdate, onAbono, onDuplicate,
           <div className="chips" style={{ marginTop: 4 }}>
             {ESTADOS.map(s => <button key={s} className={`chipbtn ${v.estado === s ? 'on' : ''}`} onClick={() => onUpdate({ estado: s })}>{ESTADO_LABELS[s]}</button>)}
           </div>
+          {v.produccion && <div className="mono dim" style={{ fontSize: 'var(--fs-s)', marginTop: 6 }}>{produccionTexto(v.produccion)}</div>}
         </div>
         <div className="field">
           <label>Fecha de venta</label>
-          <input className="input mini mono" type="date" value={v.fecha} onChange={e => e.target.value && onUpdate({ fecha: e.target.value })} style={{ colorScheme: 'dark' }} />
+          <input className="input mini mono" type="date" value={v.fecha} onChange={e => e.target.value && (!DATOS_FUSION || fechaValida(e.target.value)) && onUpdate({ fecha: e.target.value })} style={{ colorScheme: 'dark' }} />
         </div>
         <div className="field">
           <label>Entrega {entregaVencida(v) && <span style={{ color: 'var(--danger)' }}>· vencida</span>}</label>
-          <input className="input mini mono" type="date" value={v.entrega || ''} onChange={e => onUpdate({ entrega: e.target.value })} style={{ colorScheme: 'dark' }} />
+          <input className="input mini mono" type="date" value={v.entrega || ''} onChange={e => (!DATOS_FUSION || !e.target.value || fechaValida(e.target.value)) && onUpdate({ entrega: e.target.value })} style={{ colorScheme: 'dark' }} />
         </div>
       </div>
 
@@ -1791,7 +1846,7 @@ function ClienteModal({ cliente, ventas, config, clientes, onClose, onSave, onDe
               <table className="tbl">
                 <tbody>
                   {hist.map(v => (
-                    <tr key={v.n} onClick={() => onOpenVenta(v.n)} style={{ opacity: esActiva(v) ? 1 : 0.5 }}>
+                    <tr key={claveVenta(v)} onClick={() => onOpenVenta(claveVenta(v))} style={{ opacity: esActiva(v) ? 1 : 0.5 }}>
                       <td className="order-n">#{v.n}</td>
                       <td className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>{fmtFecha(v.fecha)}</td>
                       <td style={{ fontSize: 'var(--fs-s)' }}>{v.items.map(i => i.nombre).join(', ')}</td>
@@ -2355,7 +2410,7 @@ function Configuracion({ config, setConfig, allData, onImport, showToast }) {
             <div className="field">
               <label>Dónde se guardan los datos</label>
               <div className="mono" style={{ fontSize: 'var(--fs-s)', lineHeight: 1.7, color: window.USE_FB ? 'var(--ok)' : 'var(--warn)' }}>
-                {window.USE_FB ? '● Nube (Firebase) · sincronizado entre dispositivos' : '● Modo local · solo en este navegador'}
+                {DATOS_FUSION ? '● Fusión · ventas, clientes y servicios en el servidor local; configuración y gastos sólo en este navegador' : window.USE_FB ? '● Nube (Firebase) · sincronizado entre dispositivos' : '● Modo local · solo en este navegador'}
               </div>
               {!window.USE_FB && <div className="muted" style={{ fontSize: 'var(--fs-s)', lineHeight: 1.6 }}>Para usarlo desde el celular y la compu con los mismos datos, conectá Firebase (instrucciones en <span className="mono">LEEME.md</span>). Mientras tanto, descargá respaldos seguido.</div>}
             </div>
@@ -2482,8 +2537,8 @@ function AlertBell({ ventas, onOpen }) {
   const ref = useRef(null);
   const alerts = useMemo(() => {
     const a = [];
-    ventas.filter(entregaVencida).forEach(v => a.push({ key: `ent|${v.n}|${v.entrega}`, n: v.n, tipo: 'entrega', label: `#${v.n} · ${v.cliente}`, right: `vence ${fmtFecha(v.entrega)}` }));
-    ventas.filter(v => esActiva(v) && ventaSaldo(v) > 0).sort((x, y) => x.fecha.localeCompare(y.fecha)).forEach(v => a.push({ key: `sal|${v.n}|${ventaSaldo(v)}`, n: v.n, tipo: 'cobro', label: `#${v.n} · ${v.cliente}`, right: L(ventaSaldo(v)) }));
+    ventas.filter(entregaVencida).forEach(v => a.push({ key: `ent|${v.n}|${v.entrega}`, n: claveVenta(v), tipo: 'entrega', label: `#${v.n} · ${v.cliente}`, right: `vence ${fmtFecha(v.entrega)}` }));
+    ventas.filter(v => esActiva(v) && ventaSaldo(v) > 0).sort((x, y) => x.fecha.localeCompare(y.fecha)).forEach(v => a.push({ key: `sal|${v.n}|${ventaSaldo(v)}`, n: claveVenta(v), tipo: 'cobro', label: `#${v.n} · ${v.cliente}`, right: L(ventaSaldo(v)) }));
     return a;
   }, [ventas]);
   const [read, setRead] = useState(() => { try { return JSON.parse(localStorage.getItem('loopa-bell-read') || '[]'); } catch (e) { return []; } });
@@ -2603,6 +2658,21 @@ function App({ onLogout }) {
   const [focusN, setFocusN] = useState(null);
   const [gSearch, setGSearch] = useState('');
   const [gOpen, setGOpen] = useState(false);
+  const [colaEstado, setColaEstado] = useState({ pendientes: 0, error: null, etiquetas: [] });
+  const cola = useRef(null);
+  const recargarRef = useRef(() => {});
+  const confirmadoRef = useRef(() => {});
+  if (DATOS_FUSION && !cola.current) {
+    const almacen = { leer: (k) => localStorage.getItem(k), escribir: (k, v) => localStorage.setItem(k, v) };
+    cola.current = LoopaFuente.crearCola({
+      llamar: FUSION_API.llamar, almacen, nuevoId: nuevoIdFusion,
+      // Una sola pestaña ejecuta la cola a la vez (las demás esperan el candado).
+      exclusivo: window.navigator && window.navigator.locks ? (fn) => window.navigator.locks.request('loopa-fusion-cola', fn) : undefined,
+      alCambiar: (e) => setColaEstado(e),
+      alConfirmar: (e, res) => confirmadoRef.current(e, res),
+      alVaciarse: () => recargarRef.current(),
+    });
+  }
 
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
@@ -2638,6 +2708,19 @@ function App({ onLogout }) {
   const load = useCallback(() => {
     setLoadError(null);
     const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('Tiempo de espera agotado (12 s) — revisá tu conexión')), 12000));
+    if (DATOS_FUSION) {
+      Promise.race([FUSION_API.leer(), timeout]).then(docs => {
+        const d = LoopaFuente.armarDatos(docs);
+        setVentas(d.ventas); setClientes(d.clientes); setServicios(d.servicios);
+        const local = (k) => { try { return JSON.parse(localStorage.getItem('loopa-fusion-' + k) || 'null'); } catch (e) { return null; } };
+        if (local('config')) setConfig({ ...CONFIG_DEFAULT, ...local('config') });
+        if (local('gastos')) setGastos({ ...GASTOS_DEFAULT, ...local('gastos') });
+        setReady(true);
+        setColaEstado(cola.current.estado());
+        cola.current.procesar(); // retoma lo que quedó sin guardar
+      }).catch(e => { console.error('Carga (fusión):', e); setLoadError(LoopaFuente.normalizarError(e).mensaje); });
+      return;
+    }
     Promise.race([Store.loadAll(), timeout]).then(d => {
       if (d.ventas?.items) setVentas(d.ventas.items);
       if (d.clientes?.items) setClientes(d.clientes.items);
@@ -2681,15 +2764,16 @@ function App({ onLogout }) {
     document.addEventListener('visibilitychange', vis);
     return () => { window.removeEventListener('beforeunload', flush); window.removeEventListener('pagehide', flush); document.removeEventListener('visibilitychange', vis); };
   }, []);
-  useEffect(() => { if (ready) queueSave('ventas', { items: ventas }); }, [ventas, ready]);
-  useEffect(() => { if (ready) queueSave('clientes', { items: clientes }); }, [clientes, ready]);
-  useEffect(() => { if (ready) queueSave('servicios', { items: servicios }); }, [servicios, ready]);
+  useEffect(() => { if (ready && !DATOS_FUSION) queueSave('ventas', { items: ventas }); }, [ventas, ready]);
+  useEffect(() => { if (ready && !DATOS_FUSION) queueSave('clientes', { items: clientes }); }, [clientes, ready]);
+  useEffect(() => { if (ready && !DATOS_FUSION) queueSave('servicios', { items: servicios }); }, [servicios, ready]);
   useEffect(() => { if (ready) queueSave('config', config); }, [config, ready]);
   useEffect(() => { if (ready) queueSave('gastos', gastos); }, [gastos, ready]);
 
   useEffect(() => { try { localStorage.setItem('loopa-route', route); } catch (e) {} }, [route]);
   // ── Derivados ──
-  const nextN = Math.max(1000, ...ventas.map(v => v.n)) + 1;
+  // Con la fusión el número lo asigna el servidor al guardar.
+  const nextN = DATOS_FUSION ? null : Math.max(1000, ...ventas.map(v => v.n)) + 1;
   const stats = useMemo(() => {
     const m = {};
     ventas.filter(esActiva).forEach(v => {
@@ -2725,6 +2809,57 @@ function App({ onLogout }) {
     return { venta, cobrado, ganancia, porCobrar, enCurso, label };
   }, [ventas, gastos, config, tickerPeriod]);
 
+  // ── Fusión: recarga, confirmaciones, reintentos ──
+  const lectura = useRef(0);
+  const recargar = () => {
+    const mia = ++lectura.current;
+    FUSION_API.leer().then(docs => {
+      // Una lectura vieja (empezó antes de otra, o antes de un cambio nuevo)
+      // no pisa la pantalla; con cambios pendientes se espera a la cola.
+      if (mia !== lectura.current || cola.current.estado().pendientes) return;
+      const d = LoopaFuente.armarDatos(docs);
+      setVentas(d.ventas); setClientes(d.clientes); setServicios(d.servicios);
+    }).catch(e => console.warn('Recargar (fusión):', e));
+  };
+  recargarRef.current = recargar;
+  const creadas = useRef({});
+  confirmadoRef.current = (e, res) => {
+    const r = (res || []).find(x => x && x.n && x.saleId);
+    if (!r) return;
+    const base = creadas.current[r.saleId];
+    delete creadas.current[r.saleId];
+    if (base) setVentas(prev => (prev.some(x => x.id === r.saleId) ? prev : [{ ...base, n: r.n, version: r.version }, ...prev]));
+    showToast(`✓ Venta #${r.n} registrada`);
+  };
+  const encolar = (etiqueta, ops, id) => {
+    if (!ops.length) return true;
+    lectura.current += 1; // una lectura en vuelo ya no refleja este cambio
+    try { cola.current.encolar({ etiqueta, ops, id }); return true; }
+    catch (e) { showToast(e.message, 'err'); return false; }
+  };
+  useEffect(() => {
+    if (!DATOS_FUSION) return;
+    const online = () => cola.current.reintentar();
+    // Otra pestaña cambió la cola: refrescar el aviso y seguir.
+    const otra = (ev) => { if (ev.key === LoopaFuente.CLAVE) { setColaEstado(cola.current.estado()); cola.current.procesar(); } };
+    window.addEventListener('online', online);
+    window.addEventListener('storage', otra);
+    return () => { window.removeEventListener('online', online); window.removeEventListener('storage', otra); };
+  }, []);
+  useEffect(() => {
+    // Sin red / servidor ocupado: se reintenta solo cada 15 s, hasta 5 veces
+    // seguidas; después, sólo con «Reintentar» (o se descarta).
+    if (!DATOS_FUSION || !colaEstado.error || !colaEstado.error.transitorio || colaEstado.error.intentos >= 5) return;
+    const t = setTimeout(() => cola.current.reintentar(), 15000);
+    return () => clearTimeout(t);
+  }, [colaEstado]);
+  const descartarCambio = () => { const id = colaEstado.error && colaEstado.error.id; return uiConfirm({
+    title: 'Descartar este cambio',
+    message: `«${colaEstado.error && colaEstado.error.etiqueta}» no se guardó: ${colaEstado.error && colaEstado.error.mensaje}\n\nSe descarta y la pantalla vuelve a mostrar lo que tiene el servidor.`,
+    confirmLabel: 'Descartar',
+  }).then(ok => { if (ok && cola.current.descartar(id) && !cola.current.estado().pendientes) recargar(); }); };
+  const ventaPorClave = (k) => ventas.find(x => claveVenta(x) === k);
+
   // ── Acciones ──
   const handleCreate = (venta, cli) => {
     // Resolver cliente: el elegido, o uno existente con mismo teléfono / email / nombre
@@ -2737,6 +2872,19 @@ function App({ onLogout }) {
       cid = match ? match.id : null;
     }
     const datos = { nombre: cli.nombre.trim(), empresa: (cli.empresa || '').trim(), telefono: (cli.telefono || '').trim(), email: (cli.email || '').trim(), canal: cli.canal };
+    if (DATOS_FUSION) {
+      let armado;
+      try { armado = LoopaFusion.operacionesNuevaVenta(venta, { ...cli, ...datos }, cid, nuevoIdFusion); }
+      catch (e) { showToast(e.message, 'err'); return false; }
+      if (!encolar(`Venta nueva · ${datos.nombre}`, armado.ops, `V-${armado.ventaId}`)) return false;
+      if (cid) setClientes(prev => prev.map(c => (c.id === cid ? { ...c, ...Object.fromEntries(Object.entries(datos).filter(([, v]) => v)) } : c)));
+      else setClientes(prev => [{ id: armado.clienteId, ...datos, notas: '', creado: today() }, ...prev]);
+      const lineas = armado.ops[armado.ops.length - 1].data.draft.lines;
+      const enPantalla = { ...venta, id: armado.ventaId, n: null, clienteId: armado.clienteId, items: venta.items.map((i, k) => ({ ...i, lineId: lineas[k].lineId })), estadoLog: [] };
+      creadas.current[armado.ventaId] = enPantalla;
+      showToast('Guardando venta…', 'info');
+      return enPantalla;
+    }
     if (cid) {
       setClientes(prev => prev.map(c => c.id === cid ? { ...c, ...Object.fromEntries(Object.entries(datos).filter(([, v]) => v)) } : c));
     } else {
@@ -2749,21 +2897,44 @@ function App({ onLogout }) {
     return saved;
   };
   const handleUpdate = (n, patch) => {
+    if (DATOS_FUSION) {
+      const v = ventaPorClave(n);
+      if (!v) return;
+      // Las líneas nuevas reciben su id una sola vez (el mismo en la cola y en pantalla).
+      if (patch.items) patch = { ...patch, items: patch.items.map(i => (i.lineId || !i.tipoId ? i : { ...i, lineId: nuevoIdFusion() })) };
+      let ops;
+      try { ops = LoopaFusion.operacionesCambio(v, patch, nuevoIdFusion); }
+      catch (e) { showToast(e.message, 'err'); return; }
+      if (!encolar(`Venta #${v.n}`, ops)) return;
+    }
     setVentas(prev => prev.map(v => {
-      if (v.n !== n) return v;
+      if (claveVenta(v) !== n) return v;
       const log = patch.estado && patch.estado !== v.estado ? { estadoLog: [...(v.estadoLog || []), { estado: patch.estado, ts: new Date().toISOString() }] } : {};
       return { ...v, ...patch, ...log };
     }));
   };
   const handleAbono = (n, ab) => {
-    setVentas(prev => prev.map(v => v.n === n ? { ...v, abonos: [...(v.abonos || []), ab] } : v));
-    showToast(`✓ Cobro de ${L(ab.monto)} registrado en #${n}`);
+    const actual = ventaPorClave(n);
+    if (DATOS_FUSION && (!actual || !encolar(`Cobro · venta #${actual.n}`, [LoopaFusion.operacionCobro(actual, ab)]))) return;
+    setVentas(prev => prev.map(v => claveVenta(v) === n ? { ...v, abonos: [...(v.abonos || []), ab] } : v));
+    showToast(`✓ Cobro de ${L(ab.monto)} registrado en #${actual ? actual.n : n}`);
   };
   const handleDelete = (n) => {
-    const v = ventas.find(x => x.n === n);
+    const v = ventaPorClave(n);
     if (!v) return;
-    setVentas(prev => prev.filter(x => x.n !== n));
-    showActionToast(`Venta #${n} eliminada`, 'Deshacer', () => setVentas(prev => prev.some(x => x.n === n) ? prev : [...prev, v].sort((a, b) => b.n - a.n)));
+    if (DATOS_FUSION) {
+      // D16: «eliminar» es cancelar; deshacer la reactiva con su avance anterior.
+      if (v.estado === 'cancelado') { showToast(`La venta #${v.n} ya está cancelada`, 'info'); return; }
+      if (!encolar(`Cancelar venta #${v.n}`, [LoopaFusion.operacionEliminar(v)])) return;
+      setVentas(prev => prev.map(x => claveVenta(x) === n ? { ...x, estado: 'cancelado' } : x));
+      showActionToast(`Venta #${v.n} cancelada`, 'Deshacer', () => {
+        const ops = LoopaFusion.operacionesCambio({ ...v, estado: 'cancelado' }, { estado: v.estado }, nuevoIdFusion);
+        if (encolar(`Reactivar venta #${v.n}`, ops)) setVentas(prev => prev.map(x => claveVenta(x) === n ? { ...x, estado: v.estado } : x));
+      });
+      return;
+    }
+    setVentas(prev => prev.filter(x => claveVenta(x) !== n));
+    showActionToast(`Venta #${v.n} eliminada`, 'Deshacer', () => setVentas(prev => prev.some(x => claveVenta(x) === n) ? prev : [...prev, v].sort((a, b) => b.n - a.n)));
   };
   const addCategoria = (cat) => { if (cat && !config.categorias.some(c => norm(c) === norm(cat))) setConfig(c => ({ ...c, categorias: [...c.categorias, cat] })); };
   const handleCreateServicio = (d) => {
@@ -2774,20 +2945,36 @@ function App({ onLogout }) {
       recomendado: d.modelo === 'plan' && d.recomendado === true,
       clienteIdEspecial: d.modelo === 'especial' ? (d.clienteIdEspecial || '') : '',
     };
+    // Con la fusión se guarda en el catálogo ANTES que la venta que lo usa (la cola va en orden).
+    if (DATOS_FUSION && !encolar(`Servicio «${s.nombre}»`, [LoopaFusion.operacionServicio(s)])) return null;
     setServicios(prev => [...prev, s]);
     addCategoria(s.categoria);
     showToast(`✓ Tipo «${s.nombre}» guardado`);
     return s;
   };
   const handleUpdateServicio = (id, patch) => {
+    if (DATOS_FUSION) {
+      const s = servicios.find(x => x.id === id);
+      if (!s || !encolar(`Servicio «${s.nombre}»`, [LoopaFusion.operacionServicio({ ...s, ...patch })])) return;
+    }
     setServicios(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s));
     if (patch.precio != null) showToast(`✓ Precio base actualizado a ${L(patch.precio)}`);
   };
   const handleSaveServicio = (s) => {
-    if (s.id) { setServicios(prev => prev.map(x => x.id === s.id ? s : x)); addCategoria(s.categoria); showToast('✓ Tipo guardado'); }
+    if (s.id) {
+      if (DATOS_FUSION && !encolar(`Servicio «${s.nombre}»`, [LoopaFusion.operacionServicio(s)])) return;
+      setServicios(prev => prev.map(x => x.id === s.id ? s : x)); addCategoria(s.categoria); showToast('✓ Tipo guardado');
+    }
     else handleCreateServicio(s);
   };
   const handleSaveCliente = (c) => {
+    if (DATOS_FUSION) {
+      const cc = c.id ? c : { ...c, id: nuevoIdFusion(), creado: today() };
+      if (!encolar(`Cliente «${(cc.nombre || '').trim()}»`, [LoopaFusion.operacionCliente(cc)])) return;
+      setClientes(prev => (c.id ? prev.map(x => x.id === c.id ? cc : x) : [cc, ...prev]));
+      showToast(c.id ? '✓ Cliente guardado' : '✓ Cliente creado');
+      return;
+    }
     if (c.id) { setClientes(prev => prev.map(x => x.id === c.id ? c : x)); showToast('✓ Cliente guardado'); }
     else { setClientes(prev => [{ ...c, id: uid('CL'), creado: today() }, ...prev]); showToast('✓ Cliente creado'); }
   };
@@ -2799,8 +2986,13 @@ function App({ onLogout }) {
     const items = v.items.map(i => { const s = servicios.find(x => x.id === i.tipoId); return { ...i, precio: String(i.precio), costo: String(s ? s.costo : i.costo) }; });
     goNueva({ cliente: clientePrefill(c), items, pay: v.pay });
   };
-  const openVenta = (n) => { setFocusN(n); setRoute('ventas'); };
+  const openVenta = (k) => {
+    const porNumero = ventas.filter(x => x.n === k);
+    const v = ventas.find(x => claveVenta(x) === k) || (porNumero.length === 1 ? porNumero[0] : null);
+    setFocusN(v ? claveVenta(v) : k); setRoute('ventas');
+  };
   const handleImport = (d) => {
+    if (DATOS_FUSION) { showToast('Restaurar un respaldo no está disponible con los datos de la fusión', 'err'); return; }
     setVentas(d.ventas || []); setClientes(d.clientes || []); setServicios(d.servicios || []);
     setConfig({ ...CONFIG_DEFAULT, ...(d.config || {}) }); setGastos({ ...GASTOS_DEFAULT, ...(d.gastos || {}) });
     showToast('✓ Respaldo restaurado');
@@ -2831,7 +3023,7 @@ function App({ onLogout }) {
         </>
       ) : (
         <>
-          <div className="mono muted" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>{window.USE_FB ? 'Conectando con Firebase…' : 'Cargando…'}</div>
+          <div className="mono muted" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>{window.USE_FB && !DATOS_FUSION ? 'Conectando con Firebase…' : 'Cargando…'}</div>
           <div style={{ width: 180, height: 2, background: '#1A1A1A', overflow: 'hidden' }}><div className="loadbar" /></div>
         </>
       )}
@@ -2862,7 +3054,7 @@ function App({ onLogout }) {
               {gVentas.length + gClientes.length === 0 && <div className="mono muted" style={{ padding: '12px', fontSize: 'var(--fs-s)' }}>Sin resultados</div>}
               {gVentas.length > 0 && <div className="dropdown-lbl">Ventas</div>}
               {gVentas.map(v => (
-                <div key={v.n} className="dropdown-row" onMouseDown={() => { openVenta(v.n); setGSearch(''); }}>
+                <div key={claveVenta(v)} className="dropdown-row" onMouseDown={() => { openVenta(claveVenta(v)); setGSearch(''); }}>
                   <div><div className="mono" style={{ fontSize: 'var(--fs-s)', fontWeight: 500 }}>#{v.n} <span className="muted" style={{ fontWeight: 400 }}>· {v.cliente}</span></div><div className="mono dim" style={{ fontSize: 'var(--fs-s)' }}>{fmtFecha(v.fecha)} · {L(v.total)}</div></div>
                 </div>
               ))}
@@ -2892,7 +3084,7 @@ function App({ onLogout }) {
       <div className="main">
         <div className="ticker">
           <span className="item">● LOOPA OS</span>
-          <span className="item">Próx. venta <span className="v">#{nextN}</span></span>
+          <span className="item">Próx. venta <span className="v">{numProx(nextN)}</span></span>
           <span className="item"><PeriodFilter value={tickerPeriod} onChange={setTickerPeriod} /></span>
           <span className="item">Venta <span className="v">{L(ticker.venta)}</span></span>
           <span className="item">Cobrado <span className="v" style={{ color: ticker.cobrado > 0 ? 'var(--ok)' : 'var(--muted)' }}>{L(ticker.cobrado)}</span></span>
@@ -2906,6 +3098,7 @@ function App({ onLogout }) {
           <div className="breadcrumb"><span className="cur">{current.label}</span></div>
           <div className="topbar-mobile-title">{current.label.toUpperCase()}</div>
           <div className="topbar-right">
+            {DATOS_FUSION && <ColaAviso estado={colaEstado} onReintentar={() => cola.current.reintentar()} onDescartar={descartarCambio} />}
             {saveError && <span className="chip" style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }} title="Los últimos cambios no se guardaron. Revisá la conexión.">● Error al guardar</span>}
             <span className="chip mob-hide">{new Date().toLocaleDateString('es-HN', { weekday: 'short', day: '2-digit', month: 'short' }).toUpperCase()}</span>
             <AlertBell ventas={ventas} onOpen={openVenta} />
@@ -2925,7 +3118,14 @@ function App({ onLogout }) {
           )}
           {route === 'servicios' && (
             <Servicios servicios={servicios} clientes={clientes} stats={stats} config={config} onSave={handleSaveServicio}
-              onDelete={(id) => setServicios(prev => prev.filter(s => s.id !== id))}
+              onDelete={(id) => {
+                if (!DATOS_FUSION) { setServicios(prev => prev.filter(s => s.id !== id)); return; }
+                // En el catálogo nada se borra (hay ventas que lo usan): se desactiva.
+                const s = servicios.find(x => x.id === id);
+                if (!s || !encolar(`Desactivar «${s.nombre}»`, [LoopaFusion.operacionServicio({ ...s, activo: false })])) return;
+                setServicios(prev => prev.map(x => (x.id === id ? { ...x, activo: false } : x)));
+                showToast(`«${s.nombre}» quedó inactivo (con la ficha única los servicios no se borran)`, 'info');
+              }}
               onVender={(s) => {
                 const specialClient = modeloServicio(s) === 'especial' ? clientes.find(c => c.id === s.clienteIdEspecial) : null;
                 goNueva({ cliente: specialClient ? clientePrefill(specialClient) : undefined, items: [snapshotServicio(s)] });
@@ -2933,7 +3133,10 @@ function App({ onLogout }) {
           )}
           {route === 'clientes' && (
             <Clientes clientes={clientes} ventas={ventas} config={config} onSave={handleSaveCliente}
-              onDelete={(id) => setClientes(prev => prev.filter(c => c.id !== id))}
+              onDelete={(id) => {
+                if (!DATOS_FUSION) { setClientes(prev => prev.filter(c => c.id !== id)); return; }
+                showToast('Con la ficha única los clientes no se borran desde LOOPA', 'err');
+              }}
               onNuevaVenta={(c) => goNueva({ cliente: clientePrefill(c) })} onOpenVenta={openVenta} />
           )}
           {route === 'produccion' && PROD_FLAG && <ProduccionModulo modo={PROD_FLAG} onAbrirVenta={openVenta} />}
@@ -2959,14 +3162,29 @@ function App({ onLogout }) {
   );
 }
 
+// Estado de la cola de la fusión en la barra superior.
+function ColaAviso({ estado, onReintentar, onDescartar }) {
+  const e = estado.error;
+  if (e) return (
+    <span className="chip" role="alert" style={{ color: e.transitorio ? 'var(--warn)' : 'var(--danger)', borderColor: 'currentColor', gap: 8, display: 'inline-flex', alignItems: 'center' }} title={`${e.etiqueta}: ${e.mensaje}`}>
+      ● {e.transitorio ? `Sin guardar (${estado.pendientes})` : 'No se guardó'}
+      <button className="linkbtn" onClick={onReintentar}>Reintentar</button>
+      <button className="linkbtn" onClick={onDescartar}>Descartar…</button>
+    </span>
+  );
+  if (estado.sinPersistencia) return <span className="chip" style={{ color: 'var(--warn)', borderColor: 'currentColor' }} title="El navegador no deja guardar la cola (sin espacio o modo privado): si cerrás la página, los cambios sin enviar se pierden.">● Cola sin respaldo{estado.pendientes ? ` · ${estado.pendientes}` : ''}</span>;
+  if (estado.pendientes) return <span className="chip" title={estado.etiquetas.join('\n')}>● Guardando {estado.pendientes}…</span>;
+  return <span className="chip mob-hide" title="Datos de la fusión: servidor local de este equipo" style={{ color: 'var(--ok)' }}>● Fusión · local</span>;
+}
+
 function Root() {
   const [authUser, setAuthUser] = useState(null);
-  const [checked, setChecked] = useState(!window.USE_FB);
+  const [checked, setChecked] = useState(!window.USE_FB || !!DATOS_FUSION);
   useEffect(() => {
-    if (!window.USE_FB) return;
+    if (!window.USE_FB || DATOS_FUSION) return;
     return firebase.auth().onAuthStateChanged(u => { setAuthUser(u); setChecked(true); });
   }, []);
-  if (!window.USE_FB) return <App onLogout={null} />;
+  if (!window.USE_FB || DATOS_FUSION) return <App onLogout={null} />;
   if (!checked) return <div className="boot"><div className="mono dim" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.22em', textTransform: 'uppercase' }}>Verificando sesión…</div></div>;
   if (!authUser) return <LoginScreen />;
   return <App onLogout={() => firebase.auth().signOut()} />;

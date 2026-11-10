@@ -114,6 +114,15 @@ y nunca duplica.
   `cd integracion/emulador && npm install --ignore-scripts`, y desde la raíz
   `node integracion/emulador/correr.cjs`.
 
+- `_fuente/datos/` — las pantallas de LOOPA sobre el modelo unificado, detrás
+  de la bandera `?datos=fusion` (sin la bandera LOOPA funciona como siempre).
+  Por ahora sólo con el **servidor local** de este equipo, que corre la misma
+  lógica del servidor sobre datos de ejemplo en memoria (nada sale de la PC):
+
+      node _fuente/build.js && node integracion/preview/armar-preview.cjs
+      node integracion/servidor-local/servidor.cjs
+      → http://127.0.0.1:8790/?datos=fusion&produccion=demo
+
 Nada de esto cambia `index.html` ni escribe en Firebase. Las decisiones están
 en `integracion/ADR-0001-fusion-loopa-os.md` (producción) y
 `integracion/ADR-0002-modelo-unificado-y-migracion.md` (datos y migración).

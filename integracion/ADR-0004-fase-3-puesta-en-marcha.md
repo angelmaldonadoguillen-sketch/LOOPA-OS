@@ -22,8 +22,10 @@ Hasta la Fase 2 todo corre en memoria o en el emulador local. La Fase 3 conecta 
 |---|---|---|
 | 3.1 | Funciones del servidor: `createSale`/`updateSale`/`addPayment` (`onCall`, sólo para el equipo comercial aprobado), el worker del outbox (al crearse un evento) y el barrido programado. Probadas en memoria y en el emulador. | No |
 | 3.2 | Capa de datos de LOOPA: leer ventas de `loopa_sales` (lector compatible) y escribir por las funciones, detrás de una bandera. | No |
-| 3.3 | Producción con datos reales: `frame_projects` del tablero, con los cambios de interfaz que piden las reglas. | No |
-| 3.4 | Ajustes en la app de FRAME (duplicar, borrar, papelera), si sigue en uso durante la transición. | No |
+| 3.3 | Pantallas de LOOPA conectadas al modelo nuevo detrás de `?datos=fusion`, con cola persistente de cambios; probadas con un servidor local (§9). | No |
+| 3.4 | Conexión al proyecto: lecturas con el SDK (bajo las reglas) y llamadas `httpsCallable`, probadas con los emuladores de Firestore + Functions + Auth. | No |
+| 3.5 | Producción con datos reales: `frame_projects` del tablero, con los cambios de interfaz que piden las reglas. | No |
+| 3.6 | Ajustes en la app de FRAME (duplicar, borrar, papelera), si sigue en uso durante la transición. | No |
 
 ## 4. Puntos de aprobación (cada uno con un «sí» explícito)
 
@@ -156,3 +158,86 @@ Sólo lectura, con aprobación:
 - La pantalla muestra el número de venta que devuelve el servidor, no el que calculaba LOOPA.
 
 **Verificación:** 182 pruebas sin red, LOOPA 6/6 y 22/22 en el emulador, en dos corridas.
+
+
+## 9. Tanda 3.3 · Pantallas de LOOPA sobre el modelo nuevo (hecha)
+
+Con `?datos=fusion`, las ventas, los clientes y los servicios salen del modelo nuevo y todo cambio pasa por el servidor. Sin la bandera, LOOPA funciona como siempre. Por ahora la bandera sólo funciona con el **servidor local** (`127.0.0.1`), que corre la misma lógica del servidor sobre datos de ejemplo en memoria. La conexión al proyecto real queda para la 3.4.
+
+**Piezas:**
+- `_fuente/datos/fuente.js` (puro, probado con Node):
+  - `armarDatos`: pasa los documentos a la forma que usan las pantallas.
+  - `crearCola`: cola **persistente** de cambios. Cada acción se guarda como una lista fija de operaciones con su progreso, y se manda en orden. Si algo falla, la cola se detiene ahí, sobrevive a recargar la página y se reintenta con las mismas operaciones.
+    - El almacén (localStorage) es la fuente de verdad: dos pestañas comparten la cola.
+    - Un candado (`navigator.locks`) hace que la ejecute una sola pestaña a la vez.
+  - `normalizarError`: separa lo que se reintenta solo (sin red, servidor ocupado, contención) de lo que no (conflicto, permiso, dato inválido).
+  - `adaptadorHttp`: habla con el servidor local con el mismo contrato que una función `onCall`.
+- `integracion/servidor-local/servidor.cjs`: servidor de prueba.
+  - Sólo acepta pedidos desde este equipo: `Host` local y JSON declarado.
+  - Arranca con el respaldo sintético migrado y el catálogo de ejemplo.
+  - Simula el disparador: cada venta genera su trabajo de producción.
+  - `POST /api/fallar` simula cortes de red.
+- `_fuente/app.jsx`, detrás de `DATOS_FUSION`:
+  - la carga y las acciones de las pantallas van por la cola;
+  - las ventas se identifican por id (`claveVenta`), porque dos ventas migradas pueden compartir el número visible;
+  - un aviso en la barra muestra «Guardando N…», «Sin guardar», «No se guardó» o «Cola sin respaldo», con «Reintentar» y «Descartar…». Se reintenta solo cada 15 s, hasta 5 veces seguidas, y al volver la red.
+
+**Requisitos de la §8 cumplidos:**
+- Las operaciones se guardan con su progreso y se reintentan tal cual.
+- Un servicio creado a mitad de una venta se encola antes que la venta.
+- La pantalla muestra el número que devuelve el servidor. Mientras tanto dice «Guardando venta…», y al confirmarse la venta entra a la lista con su número.
+
+**Decisiones:**
+- **D19. Idempotencia por operación y cadena de versiones.**
+  - Cada cambio que sube la versión de una venta (`updateSale`, `addPayment`, `removePayment`) lleva un `opId`. El servidor guarda los últimos 30 en la venta (`appliedOps`, sólo del servidor). Si la respuesta se perdió y la app reintenta, contesta `existing` con el salto `from → to` que hizo esa operación, en vez de un conflicto falso o un cambio repetido.
+  - La cola anota esos saltos con la **sesión** (carga de página) que los encoló. Una operación armada con la versión vieja sigue sólo saltos de su misma sesión, es decir, lo que su pantalla ya mostraba.
+  - Un cambio de otra persona, de otra pestaña o de antes de recargar no está en esa cadena: da `version_conflict`, y nunca se pisa en silencio.
+- **D20. Con la fusión, nada se borra desde LOOPA.**
+  - «Eliminar venta» la cancela (D16), y «Deshacer» la reactiva.
+  - Un servicio «eliminado» queda inactivo.
+  - Un cliente no se borra.
+  - Restaurar un respaldo no está disponible.
+- **D21. Configuración y gastos** quedan en este navegador (`loopa-fusion-*`), nunca en la colección `loopa`, hasta que tengan funciones del servidor.
+- La pantalla de la venta muestra el estado de producción. Al vender sin fecha de entrega, se avisa que el trabajo que se programa desde esa fecha queda esperando.
+
+**Revisión independiente de la tanda 3.3:** encontró 11 problemas confirmados. Todos están corregidos, con prueba:
+
+1. **Si se perdía la respuesta de un cambio**, el reintento daba un conflicto falso. Eso trababa la cola, y descartar perdía el resto de la acción. Ahora hay `opId` (D19).
+2. **Si se perdía la respuesta de un cobro o de una anulación**, el cambio siguiente sobre la venta daba un conflicto falso. Ahora el servidor devuelve el salto `from → to` y la cadena lo anota.
+3. **Un error permanente tomado como transitorio trababa la cola para siempre.** Por ejemplo, un cuerpo enorme que cortaba la conexión, o un error de programación tomado por «sin red».
+   - Ahora «Descartar» está siempre disponible y los reintentos automáticos tienen tope.
+   - El servidor local responde 413 en vez de cortar la conexión.
+   - Sólo un error de red es «sin red».
+4. **Dos pestañas se pisaban la cola** y podían ejecutar dos veces. Ahora el almacén es la fuente de verdad y hay un candado entre pestañas. (Al probarlo apareció otro caso: una pestaña podaba los saltos de otra todavía abierta; ahora un salto se guarda 10 minutos aunque su sesión no tenga nada pendiente.)
+5. **Después de recargar, un cambio nuevo podía pisar en silencio uno viejo que seguía pendiente.** Ahora la cadena es por sesión (D19).
+6. **Dos ventas seguidas a un cliente nuevo creaban dos fichas.** Ahora el cliente entra a la lista al vender.
+7. **Una lectura vieja podía pisar una más nueva** en la pantalla. Ahora cada lectura lleva un número de generación.
+8. **«Abrir venta» desde Producción** buscaba por número. Ahora abre la venta si el número es único.
+9. **Borrar en el modo de siempre** comparaba por número con una clave que podía ser id.
+10. **«Descartar» podía tirar una entrada distinta** de la que la persona vio. Ahora descarta por id.
+11. **El servidor local respondía a nombres del prototipo** (`/api/fn/constructor`).
+
+También se corrigió:
+- otro sitio abierto en el navegador podía usar el servidor local;
+- un aviso de pantalla que fallaba podía trabar la cola;
+- si el navegador no deja guardar, ahora se avisa («Cola sin respaldo»);
+- una fecha a medio escribir (año 0002) ya no se manda;
+- el doble clic en «Registrar venta» ya no crea dos ventas;
+- se corrigieron los textos de servicio desactivado y de dónde se guardan los datos.
+
+**Queda para después:**
+- Si la venta del servicio creado a mitad de la venta se descarta, la venta falla con «servicio no está en el catálogo» (visible; se descarta y se rehace).
+- Los avisos de éxito de cobros y cambios son optimistas: un rechazo aparece después en la barra.
+- Con la cola trabada, lo pendiente no se ve en las listas (sólo en el aviso).
+- La nota abierta en la ficha no se refresca si otra persona la cambió (igual que antes).
+- Producción con datos reales (3.5) debe abrir la venta por id (`sourceSaleId`).
+
+**Pruebas:** 22 pruebas de la tanda (`integracion/test/fuente.test.cjs`). De 25 mutaciones del código nuevo, 24 hacen fallar la suite. La que sobrevive (sacar `appliedOps` de los campos sólo del servidor) es equivalente: la lista cerrada de campos editables ya la rechaza.
+
+**Probado en el navegador (servidor local):**
+- Venta nueva con un servicio creado a mitad de la venta.
+- Venta a una clienta nueva con doble clic: una sola venta (#1006) y una sola ficha.
+- Fecha de entrega cargada después: producción pasó de «necesita atención» a «1 tarea en el tablero».
+- Conflicto con otra persona: aviso «No se guardó». Al descartar, la pantalla volvió a lo que tiene el servidor.
+- Corte de red: aviso «Sin guardar»; el cambio sobrevivió a recargar la página y se guardó solo al volver la red.
+- Sin la bandera, LOOPA guarda como siempre en este navegador.

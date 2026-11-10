@@ -47,7 +47,26 @@ const TRANSITIONS = {
   cancelled: ['cancelled', 'confirmed'],
 };
 const PAYMENT_TOLERANCE = 0.5;
-const SERVER_ONLY = new Set(['id', 'n', 'revision', 'version', 'operations', 'lock', 'migration', 'createdAt', 'createdBy', 'updatedBy']);
+const SERVER_ONLY = new Set(['id', 'n', 'revision', 'version', 'operations', 'lock', 'migration', 'createdAt', 'createdBy', 'updatedBy', 'appliedOps']);
+
+// Idempotencia por operación (tanda 3.3): la app manda un opId por cambio. Si
+// la respuesta se pierde y la app reintenta, el servidor reconoce el opId y
+// contesta 'existing' con el salto de versión que hizo esa operación
+// (from → to), en vez de un version_conflict falso. Se guardan las últimas
+// APPLIED_OPS_MAX en la venta (campo sólo del servidor).
+const APPLIED_OPS_MAX = 30;
+const OP_ID = /^[A-Za-z0-9_-]{8,64}$/;
+function checkOpId(opId) {
+  if (opId !== undefined && opId !== null && (typeof opId !== 'string' || !OP_ID.test(opId))) throw repoError('invalid', 'opId inválido');
+}
+function appliedOp(current, opId) {
+  if (!opId) return null;
+  const hit = (current.appliedOps || []).find(o => o.opId === opId);
+  return hit ? { status: 'existing', from: hit.from, to: hit.to, version: current.version } : null;
+}
+const withAppliedOp = (current, opId, to) => (opId
+  ? { appliedOps: [...(current.appliedOps || []), { opId, from: current.version, to }].slice(-APPLIED_OPS_MAX) }
+  : {});
 
 const repoError = (code, message, issues) => Object.assign(new Error(message), { code, issues });
 
@@ -228,7 +247,8 @@ async function markClientWithSales(store, clientId) {
  * que la persona tenía en pantalla. Si alguien guardó antes, falla con
  * 'version_conflict' en lugar de pisar.
  */
-async function updateSale(store, saleId, patch, { expectedVersion, now = () => new Date().toISOString(), actor } = {}) {
+async function updateSale(store, saleId, patch, { expectedVersion, now = () => new Date().toISOString(), actor, opId } = {}) {
+  checkOpId(opId);
   const keys = Object.keys(patch || {});
   const forbidden = keys.filter(k => SERVER_ONLY.has(k) || !EDITABLE.has(k));
   if (forbidden.length) throw repoError('field_not_editable', `Campos no editables: ${forbidden.join(', ')}`);
@@ -245,6 +265,8 @@ async function updateSale(store, saleId, patch, { expectedVersion, now = () => n
   return store.transaction(async tx => {
     const current = await tx.get(COLLECTIONS.sales, saleId);
     if (!current) throw repoError('not_found', 'La venta no existe');
+    const replay = appliedOp(current, opId);
+    if (replay) return replay;
     const clientChanged = !!patch.client && patch.client.clientId !== current.client.clientId;
     const newClient = clientChanged ? await tx.get(CLIENTS, patch.client.clientId) : null;
     if (current.version !== expectedVersion) throw repoError('version_conflict', 'Otra persona guardó esta venta; recargá antes de editar');
@@ -282,6 +304,7 @@ async function updateSale(store, saleId, patch, { expectedVersion, now = () => n
     }
     if (log.length) update.estadoLog = [...(current.estadoLog || []), ...log];
     if (actor) update.updatedBy = actor;
+    Object.assign(update, withAppliedOp(current, opId, next.version));
     tx.update(COLLECTIONS.sales, saleId, update);
     if (clientChanged && newClient.hasSales !== true) tx.update(CLIENTS, patch.client.clientId, { hasSales: true });
 
@@ -304,7 +327,7 @@ async function updateSale(store, saleId, patch, { expectedVersion, now = () => n
       tx.create(COLLECTIONS.events, event.eventId, outboxDoc(event, at));
       eventId = event.eventId;
     }
-    return { status: 'updated', revision: next.revision, version: next.version, eventId };
+    return { status: 'updated', revision: next.revision, version: next.version, from: current.version, eventId };
   });
 }
 
@@ -315,13 +338,16 @@ async function updateSale(store, saleId, patch, { expectedVersion, now = () => n
 // actor: uid de quien cobra; queda en el cobro como registradoPor. Un
 // registradoPor que mande la app se ignora (lo pone sólo el servidor) y no
 // cuenta para la idempotencia: reintentar el mismo cobro sigue siendo 'existing'.
-async function addPayment(store, saleId, abonoIn, { allowOverpayment = false, actor } = {}) {
+async function addPayment(store, saleId, abonoIn, { allowOverpayment = false, actor, opId } = {}) {
+  checkOpId(opId);
   const { registradoPor: _ignorado, ...abono } = abonoIn || {};
   const problems = validatePayment(abono);
   if (hasErrors(problems)) throw new ContractError(problems, 'Cobro inválido');
   return store.transaction(async tx => {
     const current = await tx.get(COLLECTIONS.sales, saleId);
     if (!current) throw repoError('not_found', 'La venta no existe');
+    const replay = appliedOp(current, opId);
+    if (replay) return replay;
     if (current.status === 'cancelled') throw repoError('sale_cancelled', 'No se registran cobros en una venta cancelada');
     const abonos = current.commercial.abonos || [];
     // Un id anulado no se reutiliza: sería otro cobro con el mismo id.
@@ -337,8 +363,8 @@ async function addPayment(store, saleId, abonoIn, { allowOverpayment = false, ac
       throw repoError('payment_exceeds_total', `El cobro deja la venta pagada de más (${paid} sobre ${current.commercial.total})`);
     }
     const guardado = actor ? { ...abono, registradoPor: actor } : abono;
-    tx.update(COLLECTIONS.sales, saleId, { commercial: { ...current.commercial, abonos: [...abonos, guardado] }, version: current.version + 1 });
-    return { status: 'added', version: current.version + 1 };
+    tx.update(COLLECTIONS.sales, saleId, { commercial: { ...current.commercial, abonos: [...abonos, guardado] }, version: current.version + 1, ...withAppliedOp(current, opId, current.version + 1) });
+    return { status: 'added', version: current.version + 1, from: current.version };
   });
 }
 
@@ -347,11 +373,14 @@ async function addPayment(store, saleId, abonoIn, { allowOverpayment = false, ac
  * commercial.abonosAnulados con quién y cuándo, y deja de sumar. Idempotente:
  * anular uno ya anulado devuelve 'existing'.
  */
-async function removePayment(store, saleId, abonoId, { now = () => new Date().toISOString(), actor, motivo = '' } = {}) {
+async function removePayment(store, saleId, abonoId, { now = () => new Date().toISOString(), actor, motivo = '', opId } = {}) {
+  checkOpId(opId);
   if (!isStableId(abonoId)) throw repoError('invalid', 'Falta el id del cobro');
   return store.transaction(async tx => {
     const current = await tx.get(COLLECTIONS.sales, saleId);
     if (!current) throw repoError('not_found', 'La venta no existe');
+    const replay = appliedOp(current, opId);
+    if (replay) return replay;
     const abonos = current.commercial.abonos || [];
     const anulados = current.commercial.abonosAnulados || [];
     const target = abonos.find(a => a.id === abonoId);
@@ -364,8 +393,9 @@ async function removePayment(store, saleId, abonoId, { now = () => new Date().to
       commercial: { ...current.commercial, abonos: abonos.filter(a => a.id !== abonoId), abonosAnulados: [...anulados, anulado] },
       version: current.version + 1,
       ...(actor ? { updatedBy: actor } : {}),
+      ...withAppliedOp(current, opId, current.version + 1),
     });
-    return { status: 'removed', version: current.version + 1 };
+    return { status: 'removed', version: current.version + 1, from: current.version };
   });
 }
 

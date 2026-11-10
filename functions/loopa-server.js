@@ -131,6 +131,12 @@ const asCall = (fn) => async (...args) => {
   try { return await fn(...args); } catch (err) { throw toServerError(err); }
 };
 
+// El salto de versión que hizo la operación (también al reconocer un opId
+// repetido): la app lo usa para encadenar sus cambios pendientes.
+const saltoDe = (r) => {
+  const to = r.to !== undefined ? r.to : r.version;
+  return Number.isInteger(r.from) && Number.isInteger(to) ? { from: r.from, to } : {};
+};
 const isPlain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const requirePlain = (v, what) => { if (!isPlain(v)) throw new ServerError('invalid-argument', `Falta ${what}`); };
 const requireId = (v, what) => { if (typeof v !== 'string' || !v || v.length > 128 || v.includes('/')) throw new ServerError('invalid-argument', `Falta ${what}`); };
@@ -165,8 +171,8 @@ const updateSale = asCall(async (store, auth, data, { now } = {}) => {
     const clientId = isPlain(patch.client) ? patch.client.clientId : (current && current.client ? current.client.clientId : null);
     patch = { ...patch, lines: await linesFromCatalog(store, patch.lines, current ? current.lines : [], clientId) };
   }
-  const r = await repo.updateSale(store, data.saleId, patch, { expectedVersion: data.expectedVersion, actor: uid, ...(now ? { now } : {}) });
-  return { status: r.status, saleId: data.saleId, version: r.version !== undefined ? r.version : r.sale.version, eventId: r.eventId || null };
+  const r = await repo.updateSale(store, data.saleId, patch, { expectedVersion: data.expectedVersion, actor: uid, opId: data.opId, ...(now ? { now } : {}) });
+  return { status: r.status, saleId: data.saleId, version: r.version !== undefined ? r.version : r.sale.version, ...saltoDe(r), eventId: r.eventId || null };
 });
 
 const addPayment = asCall(async (store, auth, data) => {
@@ -174,8 +180,8 @@ const addPayment = asCall(async (store, auth, data) => {
   requirePlain(data, 'los datos');
   requireId(data.saleId, 'la venta');
   requirePlain(data.abono, 'el cobro');
-  const r = await repo.addPayment(store, data.saleId, data.abono, { actor: uid });
-  return { status: r.status, saleId: data.saleId, version: r.version !== undefined ? r.version : null };
+  const r = await repo.addPayment(store, data.saleId, data.abono, { actor: uid, opId: data.opId });
+  return { status: r.status, saleId: data.saleId, version: r.version !== undefined ? r.version : null, ...saltoDe(r) };
 });
 
 const removePayment = asCall(async (store, auth, data, { now } = {}) => {
@@ -183,8 +189,8 @@ const removePayment = asCall(async (store, auth, data, { now } = {}) => {
   requirePlain(data, 'los datos');
   requireId(data.saleId, 'la venta');
   requireId(data.abonoId, 'el cobro');
-  const r = await repo.removePayment(store, data.saleId, data.abonoId, { actor: uid, motivo: typeof data.motivo === 'string' ? data.motivo : '', ...(now ? { now } : {}) });
-  return { status: r.status, saleId: data.saleId, version: r.version };
+  const r = await repo.removePayment(store, data.saleId, data.abonoId, { actor: uid, motivo: typeof data.motivo === 'string' ? data.motivo : '', opId: data.opId, ...(now ? { now } : {}) });
+  return { status: r.status, saleId: data.saleId, version: r.version, ...saltoDe(r) };
 });
 
 // ── Fichas de cliente desde LOOPA (onCall) ───────────────────────

@@ -16,7 +16,8 @@ const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
 
 test('el build incluye los módulos de Producción antes de app.jsx', () => {
   const build = read('_fuente/build.js');
-  assert.match(build, /const MODULES = \['produccion\/nucleo\.js', 'produccion\/calendario\.jsx', 'produccion\/tablero\.jsx', 'produccion\/resumen\.jsx', 'produccion\/cliente\.jsx', 'shell\/navegacion\.jsx'\]/);
+  // Tanda 3.3: los módulos de datos de la fusión van primero.
+  assert.match(build, /const MODULES = \['datos\/fusion\.js', 'datos\/fuente\.js', 'produccion\/nucleo\.js', 'produccion\/calendario\.jsx', 'produccion\/tablero\.jsx', 'produccion\/resumen\.jsx', 'produccion\/cliente\.jsx', 'shell\/navegacion\.jsx'\]/);
   assert.match(build, /const MODULE_CSS = \['produccion\/produccion\.css', 'shell\/navegacion\.css'\]/);
   const html = read('index.html');
   const iNucleo = html.indexOf('const LoopaProduccion = (function');
