@@ -275,7 +275,8 @@ test('FRAME sigue creando y editando fichas con su forma real (createdAt incluid
 // Los patrones de escritura de FRAME, armados con las MISMAS funciones que
 // usa FRAME, contra el borrador. Sin el repo de FRAME se saltea (con
 // REQUIRE_FRAME=1, falla).
-const FRAME_REPO = process.env.FRAME_REPO || path.join('C:', 'Users', 'ANGEL M', 'Documents', 'Codex', '2026-08-10', 'realtime-voice-chat', 'work', 'frame-studio-manager');
+// Fase 4: el código de Producción (antes FRAME) vive en _fuente/estudio.
+const FRAME_REPO = process.env.FRAME_REPO || path.join(__dirname, '..', '..', '_fuente', 'estudio');
 const frameFusion = fs.existsSync(path.join(FRAME_REPO, 'loopa-fusion.js')) ? require(path.join(FRAME_REPO, 'loopa-fusion.js')) : null;
 if (!frameFusion && process.env.REQUIRE_FRAME === '1' && EMU) throw new Error(`REQUIRE_FRAME=1 y no está loopa-fusion.js en ${FRAME_REPO}`);
 const skipFrame = skip || (frameFusion ? false : 'sin el repo de FRAME (FRAME_REPO)');

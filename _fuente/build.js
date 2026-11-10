@@ -33,8 +33,76 @@ baseCss = tint(baseCss);
 const MODULES = ['datos/fusion.js', 'datos/fuente.js', 'produccion/nucleo.js', 'produccion/datos-reales.js', 'produccion/calendario.jsx', 'produccion/tablero.jsx', 'produccion/resumen.jsx', 'produccion/cliente.jsx', 'shell/navegacion.jsx'];
 const MODULE_CSS = ['produccion/produccion.css', 'shell/navegacion.css'];
 const modulesSrc = MODULES.map(f => `// ── módulo: ${f} ──\n${fs.readFileSync(path.join(here, f), 'utf8')}`).join('\n');
-let extraCss = tint([fs.readFileSync(path.join(here, 'extra.css'), 'utf8'), ...MODULE_CSS.map(f => fs.readFileSync(path.join(here, f), 'utf8'))].join('\n'));
-const app = tint(`${modulesSrc}\n// ── app.jsx ──\n${fs.readFileSync(path.join(here, 'app.jsx'), 'utf8')}`);
+
+// ── Producción (antes FRAME), Fase 4 · un solo sistema ──────────────────
+// El código de producción vive en estudio/ y se arma en UN ámbito propio
+// (LoopaEstudio): sus nombres no chocan con los de LOOPA. Lo que antes se
+// exportaba a window entre archivos ya no hace falta (comparten ámbito); los
+// ganchos de React se declaran una vez al principio.
+const ESTUDIO = ['capa.js', 'attachment-utils.js', 'loopa-fusion.js', 'icons.jsx', 'brand.jsx', 'data.jsx', 'modal.jsx', 'views.jsx', 'clients.jsx', 'team.jsx', 'analytics.jsx', 'routine.jsx', 'auth.jsx', 'portal.jsx', 'mobile.jsx', 'app.jsx'];
+const estudioSrc = ESTUDIO.map(f => `// ── estudio: ${f} ──\n${fs.readFileSync(path.join(here, 'estudio', f), 'utf8')
+  .replace(/^\s*const \{[^}]*\} = React;\s*$/gm, '// (ganchos de React: al principio del ámbito)')
+  .replace(/Object\.assign\(window, \{/g, 'Object.assign({}, {')
+  .replace(/^window\.Icon = Icon;\s*$/m, '')}`).join('\n');
+const estudio = `// ═══ Producción de LOOPA: un solo ámbito ═══
+const LoopaEstudio = (() => {
+const { useReducer, useEffect, useState, useMemo, useRef, useCallback, useContext, useLayoutEffect } = React;
+${estudioSrc}
+return { EstudioApp: App, ClientPortal, capaEstudio };
+})();
+`;
+
+// Los estilos de producción, sólo dentro de .estudio: no tocan el resto de
+// LOOPA. Las reglas de html/body/:root pasan a .estudio; el tema claro y el
+// portfolio (que no pasó a LOOPA) se descartan.
+function scopeCss(css, scope) {
+  css = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  let out = '', i = 0;
+  while (i < css.length) {
+    const open = css.indexOf('{', i);
+    if (open < 0) break;
+    const prelude = css.slice(i, open).trim();
+    let depth = 1, j = open + 1;
+    while (depth && j < css.length) { if (css[j] === '{') depth++; else if (css[j] === '}') depth--; j++; }
+    const body = css.slice(open + 1, j - 1);
+    i = j;
+    if (/^@(media|supports)/.test(prelude)) {
+      const inner = scopeCss(body, scope);
+      if (inner.trim()) out += `${prelude} {\n${inner}}\n`;
+      continue;
+    }
+    if (prelude.startsWith('@')) { out += `${prelude} {${body}}\n`; continue; }
+    const sels = prelude.split(',').map(s => s.trim()).filter(Boolean)
+      .filter(s => !/data-theme="light"|\.fp-|theme-switching/.test(s))
+      .map(s => {
+        if (/^(:root|html|body|#root)$/.test(s)) return scope;
+        if (/^html\s+/.test(s)) return s.replace(/^html\s+/, `${scope} `);
+        if (/^(::|\*)/.test(s)) return `${scope} ${s}`;
+        return `${scope} ${s}`;
+      });
+    if (sels.length) out += `${[...new Set(sels)].join(', ')} {${body}}\n`;
+  }
+  return out;
+}
+// Identidad LOOPA para producción: los tokens de FRAME con los valores de
+// LOOPA (negro cálido, blanco, Manrope, radios de LOOPA). Los colores de
+// categorías y estados quedan: informan.
+const ESTUDIO_TOKENS = `.estudio {
+  --bg: #121211; --surface: #171716; --surface-2: #1e1e1d; --surface-3: #252524;
+  --text: #f4f4f1; --text-dim: rgba(244,244,241,0.64); --text-muted: rgba(244,244,241,0.40); --text-faint: rgba(244,244,241,0.20);
+  --border: #2a2a28; --border-2: #343432; --hairline: rgba(244,244,241,0.06);
+  --accent: #f4f4f1; --accent-dim: #d6d6d1; --accent-on: #121211;
+  --accent-soft: rgba(244,244,241,0.12); --accent-soft-weak: rgba(244,244,241,0.06); --accent-border: rgba(244,244,241,0.34); --focus-ring: rgba(244,244,241,0.6);
+  --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 20px;
+  font-family: 'Manrope', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 13px; color: var(--text); background: var(--bg);
+}
+.estudio button, .estudio input, .estudio select, .estudio textarea { font-family: inherit; }
+`;
+const estudioCss = scopeCss(fs.readFileSync(path.join(here, 'estudio', 'frame.css'), 'utf8'), '.estudio') + ESTUDIO_TOKENS;
+
+let extraCss = tint([fs.readFileSync(path.join(here, 'extra.css'), 'utf8'), ...MODULE_CSS.map(f => fs.readFileSync(path.join(here, f), 'utf8')), estudioCss].join('\n'));
+const app = tint(`${modulesSrc}\n${estudio}\n// ── app.jsx ──\n${fs.readFileSync(path.join(here, 'app.jsx'), 'utf8')}`);
 
 // ── Poda: TOONED trae estilos de inventario, tallas, DTF, envíos, etc. que
 // LOOPA no usa. Se descarta toda regla cuyos selectores usen una clase que
@@ -69,8 +137,10 @@ function prune(css, opts = {}) {
   }
   return out;
 }
-// En el :root de TOONED sobran las variables que LOOPA redefine y las que nadie usa
-const loopaVars = [...extraCss.matchAll(/(--[\w-]+)\s*:/g)].map(m => m[1]);
+// En el :root de TOONED sobran las variables que LOOPA redefine y las que nadie usa.
+// Sólo cuenta lo que LOOPA redefine en su :root (extra.css): Producción usa
+// nombres iguales (--accent, --bg…) DENTRO de .estudio, y eso no las reemplaza.
+const loopaVars = [...fs.readFileSync(path.join(here, 'extra.css'), 'utf8').matchAll(/(--[\w-]+)\s*:/g)].map(m => m[1]);
 const cssBefore = baseCss.length + extraCss.length;
 baseCss = prune(baseCss, { dropVars: [...loopaVars, '--row-h', '--r-lg', '--r-xl'] });
 extraCss = prune(extraCss);
@@ -157,6 +227,21 @@ const html = `<!doctype html><!-- LOOPA OS v3.1 · base TOONED OS v2.8 -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<!-- Producción usa las utilidades de Tailwind (heredadas de FRAME), sólo
+     dentro de .estudio y sin reiniciar los estilos base de LOOPA. -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    important: '.estudio',
+    corePlugins: { preflight: false },
+    theme: { extend: { fontFamily: {
+      display: ['Manrope', 'Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
+      sans: ['Manrope', 'Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
+      mono: ['Manrope', 'Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
+    } } },
+  };
+</script>
 <script>
   // ══ CONECTAR LA NUBE ══════════════════════════════════════════
   // Proyecto Firebase de LOOPA (heredado de TOONED: id interno "tooned-os").

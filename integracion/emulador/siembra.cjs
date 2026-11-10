@@ -26,7 +26,8 @@ async function sembrarEmulador() {
   // La persona comercial es miembro del tablero de producción (requisito del
   // punto C: las reglas sólo dejan leer fichas de los tableros propios).
   const ws = (await db.doc(`frame_workspaces/${TABLERO}`).get()).data();
-  await db.doc(`frame_workspaces/${TABLERO}`).set({ ...ws, memberIds: [...new Set([...ws.memberIds, COMERCIAL.uid, OTRO.uid])] });
+  // Producción (Fase 4) usa el tablero como lo usa FRAME: con dueño y tipo.
+await db.doc(`frame_workspaces/${TABLERO}`).set({ ...ws, ownerId: ws.ownerId || COMERCIAL.uid, kind: ws.kind || 'team', memberIds: [...new Set([...ws.memberIds, COMERCIAL.uid, OTRO.uid])] });
   await db.doc(`frame_users/${OTRO.uid}`).set({ status: 'active' });
   await db.doc(`frame_users/${COMERCIAL.uid}`).set({ status: 'active', name: 'Comercial (prueba)', email: COMERCIAL.email });
   // El tablero como lo tiene FRAME: columnas con nombre y cierre, la rutina

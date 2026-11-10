@@ -30,9 +30,10 @@ test('el build incluye los módulos de Producción antes de app.jsx', () => {
 test('sin Producción (ni bandera ni FRAME), no aparece ni deja una pantalla vacía', () => {
   const app = read('_fuente/app.jsx');
   // Tanda 3.9: PROD_ON = FRAME (modo real) o la bandera de pruebas.
-  assert.match(app, /\.\.\.\(PROD_ON \? \[\{ id: 'produccion', label: 'Producción', icon: 'calendar' \}\] : \[\]\)/);
-  assert.match(app, /route === 'produccion' && PROD_ON && PROD_ON !== 'frame' && <ProduccionModulo/);
-  assert.match(app, /return r === 'produccion' && !PROD_ON \? 'nueva' : r;/);
+  assert.match(app, /: PROD_ON \? \[\{ id: 'produccion', label: 'Producción', icon: 'calendar' \}\] : \[\];/);
+  assert.match(app, /\.\.\.modProduccion,/);
+  assert.match(app, /route === 'produccion' && PROD_ON && PROD_ON !== 'estudio' && <ProduccionModulo/);
+  assert.match(app, /if \(deProduccion && !PROD_ON\) return 'nueva';/);
   const cal = read('_fuente/produccion/calendario.jsx');
   assert.match(cal, /return stored === 'demo' \|\| stored === '1' \? stored : null;/, 'sólo demo o 1 encienden el módulo');
   assert.match(cal, /\['0', 'off', 'false', 'no'\]\.includes\(v\)/, '?produccion=0/off/false/no lo apagan');

@@ -717,22 +717,28 @@ test('tanda 3.8: gastos y configuración entre FRAME y LOOPA (sólo lo que cambi
   assert.deepEqual(LoopaFuente.cambioConfig(null, { moneda: 'L' }), { moneda: 'L' });
 });
 
-test('tanda 3.9: un solo programa (Producción = FRAME dentro de LOOPA)', () => {
+test('Fase 4: un solo sistema (Producción es parte de LOOPA, sin FRAME aparte)', () => {
   const app = fs.readFileSync(path.join(ROOT, '_fuente', 'app.jsx'), 'utf8');
-  // Con datos reales, Producción es FRAME y se ve siempre (sin ?produccion=).
-  assert.match(app, /const PRODUCCION_FRAME = DATOS_FUSION === 'real';/);
-  assert.match(app, /const PROD_ON = PRODUCCION_FRAME \? 'frame' : PROD_FLAG;/);
-  assert.match(app, /\.\.\/frame-studio-manager\/' : 'https:\/\/angelmaldonadoguillen-sketch\.github\.io\/frame-studio-manager\/'\) \+ '\?embebido=1'/);
-  // Misma app de Firebase que FRAME ([DEFAULT]): una sola sesión.
+  const build = fs.readFileSync(path.join(ROOT, '_fuente', 'build.js'), 'utf8');
+  // Sin ventana embebida ni dirección de FRAME.
+  assert.doesNotMatch(app, /<iframe|frame-studio-manager|FrameEmbebido/);
+  // Con Firebase de la fusión (real o emulador), Producción es la integrada.
+  assert.match(app, /const PRODUCCION_ESTUDIO = DATOS_FUSION === 'real' \|\| DATOS_FUSION === 'emulador';/);
+  assert.match(app, /const PROD_ON = PRODUCCION_ESTUDIO \? 'estudio' : PROD_FLAG;/);
+  // Una sola app de Firebase (la de la fusión) y lo que usa Producción.
   assert.match(app, /firebase\.apps\.length \? firebase\.app\(\) : firebase\.initializeApp\(FRAME_WEB\)/);
-  assert.doesNotMatch(app, /initializeApp\(FRAME_WEB, 'loopa-fusion'\)/);
-  // FRAME queda montado (no se recarga al ir y volver).
-  assert.match(app, /\{PROD_ON === 'frame' && <FrameEmbebido visible=\{route === 'produccion'\} \/>\}/);
-  // Sin acceso comercial: sólo Producción, sin ventas ni montos.
-  assert.match(app, /if \(PRODUCCION_FRAME && n\.tipo === 'permission-denied'\) \{\s*setSoloProduccion\(true\); setRoute\('produccion'\); setReady\(true\);/);
-  assert.match(app, /const modules = soloProduccion \? \[\{ id: 'produccion'/);
-  assert.match(app, /\{!soloProduccion && <div className="ticker">/);
-  assert.match(app, /if \(!ready \|\| soloProduccion \|\| !FUSION_API/);
-  // Desde FRAME se llega con ?ruta=produccion.
-  assert.match(app, /get\('ruta'\)/);
+  assert.match(app, /window\.db = FUSION_FB\.db;/);
+  // El menú de LOOPA maneja las secciones de Producción.
+  assert.match(app, /const RUTAS_ESTUDIO = \{ produccion: 'projects', 'mis-tareas': 'projects', papelera: 'trash', equipo: 'team' \};/);
+  assert.match(app, /<LoopaEstudio\.EstudioApp seccion=\{ultima\} filtro=\{filtro\} barra=\{barra\} \/>/);
+  // Una falla de Producción no tumba el resto de LOOPA.
+  assert.match(app, /<MuroProduccion><LoopaEstudio\.EstudioApp/);
+  // Quien no vende: sólo Producción.
+  assert.match(app, /if \(PRODUCCION_ESTUDIO && n\.tipo === 'permission-denied'\) \{\s*setSoloProduccion\(true\); setRoute\('produccion'\); setReady\(true\);/);
+  // El portal del cliente es una página de LOOPA.
+  assert.match(app, /if \(PORTAL_TOKEN && PROD_ON === 'estudio'\) return \(/);
+  // Un solo ámbito para el código de Producción y estilos sólo dentro de .estudio.
+  assert.match(build, /const LoopaEstudio = \(\(\) => \{/);
+  assert.match(build, /important: '\.estudio'/);
+  assert.match(build, /corePlugins: \{ preflight: false \}/);
 });

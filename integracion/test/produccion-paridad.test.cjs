@@ -12,7 +12,8 @@ const path = require('node:path');
 const vm = require('node:vm');
 const P = require('../../_fuente/produccion/nucleo.js');
 
-const FRAME = process.env.FRAME_REPO || 'C:\\Users\\ANGEL M\\Documents\\Codex\\2026-08-10\\realtime-voice-chat\\work\\frame-studio-manager';
+// Fase 4: el código de Producción (antes FRAME) vive en _fuente/estudio.
+const FRAME = process.env.FRAME_REPO || path.join(__dirname, '..', '..', '_fuente', 'estudio');
 const hasFrame = fs.existsSync(path.join(FRAME, 'data.jsx'));
 // Sin FRAME las pruebas de paridad se SALTEAN (visible en el reporte). Con
 // REQUIRE_FRAME=1 fallan: así corre la verificación antes de aceptar un cambio.
@@ -140,7 +141,7 @@ test('paridad: candidatos de carry-over (app.jsx de FRAME)', { skip }, () => {
 });
 
 test('paridad: candidatos de carry-over del SERVIDOR (functions/index.js de FRAME)', { skip }, () => {
-  const fn = read('functions/index.js');
+  const fn = fs.readFileSync(path.join(__dirname, '..', '..', 'servidor-produccion', 'functions', 'index.js'), 'utf8');
   const cols = snippet(fn, 'const completedStatuses = new Set(', "completedStatuses.add('delivered');");
   const body = snippet(fn, 'const data = task.data();', 'continue;');
   // Se reproduce el bucle del servidor con su código literal: el fragmento

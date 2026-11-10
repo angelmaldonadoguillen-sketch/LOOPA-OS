@@ -1,0 +1,106 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function projectMember(projectId) {
+      let projectDoc = firestore.get(/databases/(default)/documents/frame_projects/$(projectId));
+      let workspaceId = projectDoc.data.workspaceId;
+      let workspaceDoc = firestore.get(/databases/(default)/documents/frame_workspaces/$(workspaceId));
+      // Las tareas compartidas se resuelven con la ACL materializada del
+      // propio documento. La segunda lectura conserva compatibilidad con
+      // archivos de tareas antiguas, todavía limitadas al tablero original.
+      return signedIn() && (
+        (projectDoc.data.keys().hasAll(['viewerIds'])
+         && request.auth.uid in projectDoc.data.viewerIds)
+        || request.auth.uid in workspaceDoc.data.memberIds
+      );
+    }
+
+    function validImage() {
+      return request.resource.size <= 10 * 1024 * 1024
+             && request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    }
+
+    function validDeliverable() {
+      return request.resource.size <= 25 * 1024 * 1024
+             && (request.resource.contentType.matches('image/.*')
+                 || request.resource.contentType == 'application/pdf'
+                 || request.resource.contentType == 'application/msword'
+                 || request.resource.contentType == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                 || request.resource.contentType == 'application/vnd.ms-excel'
+                 || request.resource.contentType == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                 || request.resource.contentType == 'application/vnd.ms-powerpoint'
+                 || request.resource.contentType == 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+                 || request.resource.contentType == 'text/plain'
+                 || request.resource.contentType == 'text/csv'
+                 || request.resource.contentType == 'application/zip'
+                 || request.resource.contentType == 'application/x-zip-compressed');
+    }
+
+    match /frame-covers/{projectId}/{fileName} {
+      allow read: if projectMember(projectId);
+      allow create, update: if projectMember(projectId) && validImage();
+      allow delete: if projectMember(projectId);
+    }
+
+    match /frame-descriptions/{projectId}/{fileName} {
+      allow read: if projectMember(projectId);
+      allow create, update: if projectMember(projectId) && validImage();
+      allow delete: if projectMember(projectId);
+    }
+
+    match /frame-deliverables/{projectId}/{fileName} {
+      allow read: if projectMember(projectId);
+      allow create, update: if projectMember(projectId) && validDeliverable();
+      allow delete: if projectMember(projectId);
+    }
+
+    // Recursos del portfolio personal. Antes de cada carga una función crea
+    // una reserva exacta; Storage no acepta un byte ni un MIME distinto. Así
+    // el límite agregado de 1 GB no depende de la interfaz del navegador.
+    match /frame-portfolios/{uid}/{assetId} {
+      function reservation() {
+        return firestore.get(/databases/(default)/documents/frame_portfolio_uploads/$(uid)/portfolio_assets/$(assetId)).data;
+      }
+      function validPortfolioAsset() {
+        return signedIn()
+               && request.auth.uid == uid
+               && reservation().status == 'reserved'
+               && reservation().assetId == assetId
+               && reservation().path == 'frame-portfolios/' + uid + '/' + assetId
+               && reservation().size == request.resource.size
+               && reservation().contentType == request.resource.contentType
+               && reservation().expiresAt > request.time
+               && request.resource.size > 0
+               && request.resource.size <= 10 * 1024 * 1024
+               && request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/svg+xml']
+               && request.resource.metadata.ownerId == uid
+               && request.resource.metadata.assetId == assetId;
+      }
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create: if validPortfolioAsset();
+      allow update: if false;
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    // El token del portal actúa como capacidad para el chat público. La ruta
+    // queda además ligada a una tarea realmente publicada en ese portal.
+    match /frame-client-comments/{token}/{projectId}/{fileName} {
+      function portal() {
+        return firestore.get(/databases/(default)/documents/frame_client_portals/$(token)).data;
+      }
+      allow read: if token.size() == 48
+                  && portal().published == true
+                  && projectId in portal().taskIds;
+      allow create: if token.size() == 48
+                    && portal().published == true
+                    && projectId in portal().taskIds
+                    && validImage();
+      allow update, delete: if false;
+    }
+  }
+}

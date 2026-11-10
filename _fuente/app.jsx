@@ -158,18 +158,20 @@ const FRAME_WEB = {
   messagingSenderId: '336293390648',
   appId: '1:336293390648:web:b2feefaf19b11ceee679cd',
 };
-// Un solo programa (tanda 3.9): en modo real, Producción ES FRAME completo,
-// dentro de LOOPA. FRAME se publica en el mismo origen (github.io), así que
-// comparte la sesión con LOOPA (misma app de Firebase: [DEFAULT]).
-const PRODUCCION_FRAME = DATOS_FUSION === 'real';
-const FRAME_APP_URL = (/\.github\.io$/.test(window.location.hostname) ? '../frame-studio-manager/' : 'https://angelmaldonadoguillen-sketch.github.io/frame-studio-manager/') + '?embebido=1';
-// Producción visible: con FRAME (real) o con la bandera de pruebas (?produccion=).
-const PROD_ON = PRODUCCION_FRAME ? 'frame' : PROD_FLAG;
-// Una app de Firebase APARTE de la colección «loopa»: en el emulador, un
-// proyecto demo-* que no existe en la nube; en real, FRAME como app por
-// defecto (la misma que usa FRAME: una sola sesión para los dos).
+// Fase 4 · un solo sistema: con Firebase de la fusión (real o emulador),
+// Producción es parte de LOOPA (estudio/: tablero, calendario, tareas,
+// clientes y portal, equipo, análisis, papelera). El menú y la barra son los
+// de LOOPA.
+const PRODUCCION_ESTUDIO = DATOS_FUSION === 'real' || DATOS_FUSION === 'emulador';
+// Producción visible: la integrada, o el módulo de pruebas (?produccion=).
+const PROD_ON = PRODUCCION_ESTUDIO ? 'estudio' : PROD_FLAG;
+// La app de Firebase POR DEFECTO es la de la fusión (Producción usa
+// firebase.auth() y window.db). Nunca convive con la de tooned-os (USE_FB es
+// false con la fusión). En el emulador: un proyecto demo-*, que no existe en
+// la nube; en real: frame-studio-3a18f.
 const FUSION_FB = DATOS_FUSION === 'emulador' ? (() => {
-  const app = firebase.initializeApp({ projectId: 'demo-loopa', apiKey: 'demo-api-key', authDomain: 'demo-loopa.firebaseapp.com' }, 'loopa-fusion');
+  const app = firebase.apps.length ? firebase.app() : firebase.initializeApp({ projectId: 'demo-loopa', apiKey: 'demo-api-key', authDomain: 'demo-loopa.firebaseapp.com', storageBucket: 'demo-loopa.appspot.com' });
+  if (app.options.projectId !== 'demo-loopa') throw new Error('La app de Firebase por defecto no es la del emulador');
   app.auth().useEmulator('http://127.0.0.1:9099');
   const db = app.firestore();
   db.useEmulator('127.0.0.1', 8085);
@@ -177,11 +179,16 @@ const FUSION_FB = DATOS_FUSION === 'emulador' ? (() => {
   functions.useEmulator('127.0.0.1', 5001);
   return { app, auth: app.auth(), db, functions };
 })() : DATOS_FUSION === 'real' ? (() => {
-  // Nunca convive con la app de tooned-os (USE_FB es false en modo real).
   const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(FRAME_WEB);
-  if (app.options.projectId !== FRAME_WEB.projectId) throw new Error('La app de Firebase por defecto no es la de FRAME');
+  if (app.options.projectId !== FRAME_WEB.projectId) throw new Error('La app de Firebase por defecto no es la de producción');
   return { app, auth: app.auth(), db: app.firestore(), functions: app.functions('us-central1') };
 })() : null;
+// Lo que usa Producción (estudio/) para leer y escribir.
+if (FUSION_FB) {
+  window.db = FUSION_FB.db;
+  window.functions = FUSION_FB.functions;
+  try { window.storage = FUSION_FB.app.storage(); } catch (e) { window.storage = null; }
+}
 const planoFb = (d) => ({ id: d.id, ...d.data() });
 const FUSION_API = FUSION_FB
   ? LoopaFuente.adaptadorFirebase({
@@ -390,6 +397,8 @@ function Icon({ name, size = 16 }) {
     case 'bell':     return <svg {...c}><path d="M6 17V11a6 6 0 0 1 12 0v6l2 2H4l2-2zM10 21h4"/></svg>;
     case 'archive':  return <svg {...c}><path d="M3 4h18v4H3zM5 8v12h14V8M10 12h4"/></svg>;
     case 'calendar': return <svg {...c}><rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>;
+    case 'board':    return <svg {...c}><rect x="3" y="4" width="5" height="16"/><rect x="10" y="4" width="5" height="10"/><rect x="17" y="4" width="4" height="13"/></svg>;
+    case 'users':    return <svg {...c}><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.9 3.1-7 7-7s7 3.1 7 7M16 4.5a3.5 3.5 0 0 1 0 7M18 13.5c2.4.9 4 3.2 4 6.5"/></svg>;
     default: return null;
   }
 }
@@ -2582,7 +2591,7 @@ function LoginScreen() {
     <div className="login">
       <div style={{ width: 380, maxWidth: '100%', textAlign: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 22, color: 'var(--accent)' }}><LoopaMark height={21} largo /></div>
-        <div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--dim)', letterSpacing: '0.22em', marginBottom: 44, textTransform: 'uppercase' }}>Acceso privado · misma cuenta que FRAME</div>
+        <div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--dim)', letterSpacing: '0.22em', marginBottom: 44, textTransform: 'uppercase' }}>Acceso privado · cuenta del equipo</div>
         <div className={shake ? 'shake' : ''} style={{ background: 'var(--card)', border: `1px solid ${errorMsg ? 'var(--danger)' : 'var(--line)'}`, borderRadius: 18, padding: '32px 28px' }}>
           <input className="input mono" type="email" autoFocus autoComplete="username" placeholder="email" value={email} onChange={e => { setEmail(e.target.value); setErrorMsg(''); }} onKeyDown={onKey} style={{ marginBottom: 10 }} />
           <input className="input mono" type="password" autoComplete="current-password" placeholder="contraseña" value={password} onChange={e => { setPassword(e.target.value); setErrorMsg(''); }} onKeyDown={onKey} />
@@ -2736,17 +2745,54 @@ function PeriodFilter({ value, onChange }) {
   );
 }
 
-// ─── Producción = FRAME completo (tanda 3.9: un solo programa) ───
-// Se monta la primera vez que se abre Producción y queda vivo: ir a Ventas y
-// volver no lo recarga. Misma sesión que LOOPA (mismo origen y misma app de
-// Firebase), así que no pide iniciar sesión otra vez.
-function FrameEmbebido({ visible }) {
-  const [montado, setMontado] = useState(visible);
-  useEffect(() => { if (visible) setMontado(true); }, [visible]);
-  if (!montado) return null;
+// ─── Producción integrada (Fase 4 · un solo sistema) ───
+// Rutas del menú de LOOPA que son de Producción, y qué sección muestran.
+const RUTAS_ESTUDIO = { produccion: 'projects', 'mis-tareas': 'projects', papelera: 'trash', equipo: 'team' };
+// Pestañas de pantallas que juntan lo comercial y lo de producción.
+const PESTANAS = {
+  clientes: [['comercial', 'Comercial'], ['produccion', 'Producción y portal']],
+  metricas: [['ventas', 'Ventas'], ['produccion', 'Producción']],
+  config: [['loopa', 'General'], ['tablero', 'Tablero y aprobaciones']],
+};
+const FILTROS_TABLERO = [['all', 'Todas'], ['favorites', 'Favoritas'], ['urgent', 'Urgentes'], ['delivered', 'Completadas']];
+
+// Si algo de Producción falla, se ve un aviso en esa sección: el resto de
+// LOOPA (ventas, clientes…) sigue funcionando.
+class MuroProduccion extends React.Component {
+  constructor(p) { super(p); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error) { console.error('Producción:', error); }
+  render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <div className="panel" style={{ margin: 24, padding: 20 }}>
+        <div className="mono" style={{ color: 'var(--danger)', fontSize: 'var(--fs-s)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Producción no se pudo mostrar</div>
+        <div className="muted" style={{ fontSize: 'var(--fs-s)', marginBottom: 12 }}>El resto de LOOPA sigue funcionando. Probá de nuevo; si se repite, avisá.</div>
+        <button className="btn sm" onClick={() => this.setState({ error: null })}>↺ Reintentar</button>
+      </div>
+    );
+  }
+}
+
+// Producción: se monta la primera vez que se abre y queda viva (ir a Ventas y
+// volver no la recarga). Usa la sesión de LOOPA.
+function EstudioIntegrado({ seccion, filtro, barra }) {
+  const [ultima, setUltima] = useState(seccion);
+  useEffect(() => { if (seccion) setUltima(seccion); }, [seccion]);
+  if (!ultima) return null;
   return (
-    <div className="frame-embebido" style={{ display: visible ? 'block' : 'none' }}>
-      <iframe title="Producción (FRAME)" src={FRAME_APP_URL} allow="clipboard-read; clipboard-write" />
+    <div className="estudio estudio-raiz" style={{ display: seccion ? 'flex' : 'none' }}>
+      <MuroProduccion><LoopaEstudio.EstudioApp seccion={ultima} filtro={filtro} barra={barra} /></MuroProduccion>
+    </div>
+  );
+}
+
+function Pestanas({ opciones, valor, onCambio }) {
+  return (
+    <div className="pestanas" role="tablist">
+      {opciones.map(([id, label]) => (
+        <button key={id} role="tab" aria-selected={valor === id} className={`pestana ${valor === id ? 'on' : ''}`} onClick={() => onCambio(id)}>{label}</button>
+      ))}
     </div>
   );
 }
@@ -2754,13 +2800,21 @@ function FrameEmbebido({ visible }) {
 function App({ onLogout, usuarioFusion = null }) {
   const [route, setRoute] = useState(() => {
     try {
-      // ?ruta=produccion: desde FRAME, que ahora abre LOOPA en Producción.
+      // ?ruta=produccion: el viejo FRAME abre LOOPA en Producción.
       const pedida = new URLSearchParams(window.location.search).get('ruta');
       const r = pedida || localStorage.getItem('loopa-route') || 'nueva';
       // Sin Producción, no se vuelve a una pantalla vacía.
-      return r === 'produccion' && !PROD_ON ? 'nueva' : r;
+      const deProduccion = r === 'produccion' || (RUTAS_ESTUDIO[r] && r !== 'produccion');
+      if (deProduccion && !PROD_ON) return 'nueva';
+      if (RUTAS_ESTUDIO[r] && r !== 'produccion' && PROD_ON !== 'estudio') return 'produccion';
+      return r;
     } catch (e) { return 'nueva'; }
   });
+  // Pestañas (comercial / producción) y filtro del tablero.
+  const [subvista, setSubvista] = useState({ clientes: 'comercial', metricas: 'ventas', config: 'loopa' });
+  const [filtroTablero, setFiltroTablero] = useState('all');
+  // La barra de LOOPA donde Producción dibuja el selector de tablero.
+  const [barraEstudio, setBarraEstudio] = useState(null);
   // Quien no es del equipo comercial (no ve ventas ni montos) usa LOOPA sólo
   // para Producción.
   const [soloProduccion, setSoloProduccion] = useState(false);
@@ -2860,7 +2914,7 @@ function App({ onLogout, usuarioFusion = null }) {
         // Sin acceso a ventas (no es del equipo comercial): con FRAME, LOOPA
         // sigue siendo su programa, sólo con Producción.
         const n = LoopaFuente.normalizarError(e);
-        if (PRODUCCION_FRAME && n.tipo === 'permission-denied') {
+        if (PRODUCCION_ESTUDIO && n.tipo === 'permission-denied') {
           setSoloProduccion(true); setRoute('produccion'); setReady(true);
           return;
         }
@@ -3195,17 +3249,39 @@ function App({ onLogout, usuarioFusion = null }) {
     showToast('✓ Respaldo restaurado');
   };
 
-  const modules = soloProduccion ? [{ id: 'produccion', label: 'Producción', icon: 'calendar' }] : [
+  // Producción integrada: sus secciones son del menú de LOOPA.
+  const modProduccion = PROD_ON === 'estudio' ? [
+    { id: 'produccion', label: 'Tablero',    icon: 'board' },
+    { id: 'mis-tareas', label: 'Mis tareas', icon: 'check' },
+    { id: 'equipo',     label: 'Equipo',     icon: 'users' },
+    { id: 'papelera',   label: 'Papelera',   icon: 'trash' },
+  ] : PROD_ON ? [{ id: 'produccion', label: 'Producción', icon: 'calendar' }] : [];
+  const modules = soloProduccion ? [
+    ...modProduccion,
+    { id: 'clientes', label: 'Clientes',      icon: 'user' },
+    { id: 'metricas', label: 'Métricas',      icon: 'chart' },
+    { id: 'config',   label: 'Configuración', icon: 'settings' },
+  ] : [
     { id: 'nueva',     label: 'Nueva Venta',   icon: 'plus' },
     { id: 'ventas',    label: 'Ventas',        icon: 'list' },
     { id: 'servicios', label: 'Servicios',     icon: 'tag' },
     { id: 'clientes',  label: 'Clientes',      icon: 'user' },
-    ...(PROD_ON ? [{ id: 'produccion', label: 'Producción', icon: 'calendar' }] : []),
+    ...modProduccion,
     { id: 'metricas',  label: 'Métricas',      icon: 'chart' },
     { id: 'gastos',    label: 'Gastos',        icon: 'money' },
     { id: 'config',    label: 'Configuración', icon: 'settings' },
   ];
   const current = modules.find(m => m.id === route) || modules[0];
+  // Quien sólo produce ve la parte de producción de Clientes, Métricas y
+  // Configuración (sin montos ni lo comercial).
+  const sub = (k) => (soloProduccion && PESTANAS[k] ? PESTANAS[k][1][0] : subvista[k]);
+  // Qué sección de Producción se ve ahora (null: ninguna).
+  const seccionEstudio = PROD_ON !== 'estudio' ? null
+    : RUTAS_ESTUDIO[route] || (route === 'clientes' && sub('clientes') === 'produccion' ? 'clients'
+      : route === 'metricas' && sub('metricas') === 'produccion' ? 'analytics'
+        : route === 'config' && sub('config') === 'tablero' ? 'settings' : null);
+  const filtroEstudio = route === 'mis-tareas' ? 'mine' : filtroTablero;
+  const conPestanas = PROD_ON === 'estudio' && !soloProduccion && PESTANAS[route];
 
   if (!ready) return (
     <div className="boot">
@@ -3294,6 +3370,8 @@ function App({ onLogout, usuarioFusion = null }) {
         <div className="topbar">
           <div className="breadcrumb"><span className="cur">{current.label}</span></div>
           <div className="topbar-mobile-title">{current.label.toUpperCase()}</div>
+          {/* Producción dibuja acá el selector de tablero (sólo en sus pantallas). */}
+          {PROD_ON === 'estudio' && <div className="topbar-estudio" ref={setBarraEstudio} style={{ display: seccionEstudio ? '' : 'none' }} />}
           <div className="topbar-right">
             {DATOS_FUSION && <ColaAviso estado={colaEstado} onReintentar={() => cola.current.reintentar()} onDescartar={descartarCambio} />}
             {saveError && <span className="chip" style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }} title="Los últimos cambios no se guardaron. Revisá la conexión.">● Error al guardar</span>}
@@ -3305,7 +3383,17 @@ function App({ onLogout, usuarioFusion = null }) {
           </div>
         </div>
 
-        <div className={`content${PROD_ON === 'frame' && route === 'produccion' ? ' content-frame' : ''}`}>
+        <div className={`content${seccionEstudio ? ' content-estudio' : ''}`}>
+          {conPestanas && <Pestanas opciones={PESTANAS[route]} valor={subvista[route]} onCambio={(v) => setSubvista(s => ({ ...s, [route]: v }))} />}
+          {route === 'produccion' && PROD_ON === 'estudio' && (
+            <div className="pestanas pestanas-filtro" role="tablist" aria-label="Qué tareas">
+              {FILTROS_TABLERO.map(([id, label]) => (
+                <button key={id} role="tab" aria-selected={filtroTablero === id} className={`pestana ${filtroTablero === id ? 'on' : ''}`} onClick={() => setFiltroTablero(id)}>{label}</button>
+              ))}
+            </div>
+          )}
+          {/* Producción: tablero, tareas, clientes/portal, equipo, análisis, papelera. */}
+          {PROD_ON === 'estudio' && <EstudioIntegrado seccion={seccionEstudio} filtro={filtroEstudio} barra={barraEstudio} />}
           {route === 'nueva' && (
             <NuevaVenta key={ventaKey} nextN={nextN} clientes={clientes} servicios={servicios} ventas={ventas} stats={stats} config={config}
               onCreate={handleCreate} onCreateServicio={handleCreateServicio} onUpdateServicio={handleUpdateServicio}
@@ -3330,7 +3418,7 @@ function App({ onLogout, usuarioFusion = null }) {
                 goNueva({ cliente: specialClient ? clientePrefill(specialClient) : undefined, items: [snapshotServicio(s)] });
               }} />
           )}
-          {route === 'clientes' && (
+          {route === 'clientes' && !seccionEstudio && (
             <Clientes clientes={clientes} ventas={ventas} config={config} onSave={handleSaveCliente}
               onDelete={(id) => {
                 if (!DATOS_FUSION) { setClientes(prev => prev.filter(c => c.id !== id)); return; }
@@ -3338,12 +3426,10 @@ function App({ onLogout, usuarioFusion = null }) {
               }}
               onNuevaVenta={(c) => goNueva({ cliente: clientePrefill(c) })} onOpenVenta={openVenta} />
           )}
-          {route === 'produccion' && PROD_ON && PROD_ON !== 'frame' && <ProduccionModulo modo={PROD_FLAG} onAbrirVenta={openVenta} conexion={conexionProduccion} />}
-          {/* FRAME completo: se monta la primera vez y queda vivo (no se recarga al ir y volver). */}
-          {PROD_ON === 'frame' && <FrameEmbebido visible={route === 'produccion'} />}
-          {route === 'metricas' && <Metricas ventas={ventas} gastos={gastos} config={config} />}
+          {route === 'produccion' && PROD_ON && PROD_ON !== 'estudio' && <ProduccionModulo modo={PROD_FLAG} onAbrirVenta={openVenta} conexion={conexionProduccion} />}
+          {route === 'metricas' && !seccionEstudio && <Metricas ventas={ventas} gastos={gastos} config={config} />}
           {route === 'gastos' && <Gastos gastos={gastos} setGastos={setGastos} config={config} setConfig={setConfig} />}
-          {route === 'config' && (
+          {route === 'config' && !seccionEstudio && (
             <Configuracion config={config} setConfig={setConfig} showToast={showToast} onImport={handleImport}
               allData={{ ventas, clientes, servicios, config, gastos }} />
           )}
@@ -3379,7 +3465,13 @@ function ColaAviso({ estado, onReintentar, onDescartar }) {
   return <span className="chip mob-hide" title={DATOS_FUSION === 'emulador' ? 'Datos de la fusión: emuladores de Firebase de este equipo (proyecto demo)' : 'Datos de la fusión: servidor local de este equipo'} style={{ color: 'var(--ok)' }}>● Fusión · {DATOS_FUSION === 'emulador' ? 'emulador' : 'local'}</span>;
 }
 
+// El portal del cliente (?portal=…): página pública de LOOPA, sin sesión.
+const PORTAL_TOKEN = (() => { try { return new URLSearchParams(window.location.search).get('portal'); } catch (e) { return null; } })();
+
 function Root() {
+  if (PORTAL_TOKEN && PROD_ON === 'estudio') return (
+    <div className="estudio estudio-portal"><LoopaEstudio.ClientPortal token={PORTAL_TOKEN} /></div>
+  );
   if (DATOS_FUSION === 'no-disponible') return (
     <div className="boot"><div className="boot-err"><span style={{ color: 'var(--danger)' }}>✕</span><div className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>
       {window.LOOPA_FUSION_REAL === true

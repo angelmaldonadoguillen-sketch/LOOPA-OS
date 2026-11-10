@@ -98,8 +98,8 @@ test('reglasParaFrame: las reglas publicadas siguen todas, salvo lo que cambia L
   ['function memberOfAnyBoard(data) {', 'function visibilityUnchanged() {', '&& memberOfAnyBoard(resource.data)'].forEach(l => assert.ok(nuevo.has(l), l));
 });
 
-test('reglasParaFrame: el archivo de FRAME es el generado (si FRAME_REPO)', { skip: process.env.FRAME_REPO ? false : 'sin FRAME_REPO' }, () => {
-  const frame = fs.readFileSync(path.join(process.env.FRAME_REPO, 'firestore.rules.v2'), 'utf8');
+test('reglasParaFrame: el archivo de reglas que se publica es el generado (servidor-produccion)', () => {
+  const frame = fs.readFileSync(path.join(RAIZ, 'servidor-produccion', 'firestore.rules.v2'), 'utf8');
   assert.ok(A.mismasReglas(frame, A.reglasParaFrame(BORRADOR)), 'correr reglas-para-frame.cjs --escribir');
 });
 

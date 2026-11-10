@@ -729,3 +729,48 @@ El detalle y el orden del corte están en `integracion/puesta-en-marcha/PUNTO-B-
 - **Después:**
   - rehacer las pantallas de FRAME con el estilo de LOOPA, una por una;
   - «Abrir venta» desde una tarea de FRAME hacia LOOPA.
+
+## 22. Fase 4 · un solo sistema: Producción es parte de LOOPA (tanda 4.1, 2026-11-10)
+
+**Pedido de Ángel:** «un programa dentro de otro no es lo que busco: una sola integración, un solo ecosistema conectado, con una experiencia unificada». FRAME deja de existir como programa.
+
+**Qué cambió:**
+- **El código de FRAME se mudó a LOOPA:**
+  - `_fuente/estudio/`: tablero, calendario, galería, lista, detalle de tarea, clientes y portal, equipo, análisis, rutina, papelera y notificaciones;
+  - viene de FRAME `0626038`, sin el portfolio (se decide antes de retirar FRAME).
+- **Un solo build y una sola página, sin iframe.**
+  - El código de producción se arma en un solo ámbito (`LoopaEstudio`), así que sus nombres no chocan con los de LOOPA.
+  - Las exportaciones a `window` entre archivos se neutralizan y los ganchos de React se declaran una vez.
+- **Una sola sesión y una sola app de Firebase:** la de la fusión, como app por defecto, en real y en el emulador. `window.db`, `storage` y `functions` son los de LOOPA.
+- **Un solo menú, el de LOOPA:**
+  - Producción: Tablero, Mis tareas, Equipo y Papelera.
+  - Pestañas «Comercial / Producción y portal» en Clientes, «Ventas / Producción» en Métricas y «General / Tablero y aprobaciones» en Configuración.
+  - Filtros del tablero (Todas / Favoritas / Urgentes / Completadas) con el estilo de LOOPA.
+  - El selector de tablero va en la barra de LOOPA.
+  - Se fueron el menú lateral, el logo, el perfil, el ingreso y el modo claro de FRAME.
+- **Un solo diseño:**
+  - `frame.css` queda limitado a `.estudio`; el tema claro y el portfolio se descartan.
+  - Los tokens de FRAME pasan a los valores de LOOPA (negro cálido, blanco, Manrope, radios).
+  - Tailwind, que ya usaba FRAME, sólo actúa dentro de `.estudio` y sin preflight.
+  - Las capas flotantes van a `#estudio-capa`.
+  - La marca que se ve es la de LOOPA.
+- **Quien no vende** entra a LOOPA sólo con Producción.
+- **El portal del cliente** es una página de LOOPA (`?portal=`). Los enlaces viejos de FRAME siguen funcionando.
+- **Una falla de Producción no tumba LOOPA** (`MuroProduccion`).
+- **El servidor de Producción se mudó a LOOPA** (`servidor-produccion/`): funciones de FRAME, `storage.rules`, `firebase.json` y `firestore.rules.v2` generado desde el borrador. Todavía no se publica desde acá: va con el retiro de FRAME.
+- **Pruebas:**
+  - las 20 de contrato de FRAME pasan a `integracion/test-produccion/` (20/20, adaptadas al índice de LOOPA);
+  - las de LOOPA apuntan a `_fuente/estudio`.
+
+**Corregido en el camino:**
+- **Variables de LOOPA borradas:** el armado borraba variables de LOOPA (`--accent`) que se llaman igual que las de producción.
+- **Tarjeta en el celular:** se rompía con un responsable desconocido.
+- **Sincronizar la ficha del tablero:** se reintentaba en cada render.
+- **Siembra del emulador:** ahora con dueño del tablero.
+
+**Verificado en el emulador:**
+- en la computadora: tablero, detalle de tarea, Mis tareas, Equipo, Papelera, Clientes (pestaña de producción), Métricas y Configuración;
+- en el celular: la barra inferior de LOOPA y el tablero;
+- la consola sin errores nuevos.
+
+**Pruebas:** 260 sin red, 20 de Producción y 34 en el emulador.
