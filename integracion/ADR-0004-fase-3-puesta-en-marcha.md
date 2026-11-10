@@ -677,3 +677,18 @@ El detalle y el orden del corte están en `integracion/puesta-en-marcha/PUNTO-B-
   - los 8 gastos y la configuración;
   - que una venta nueva tome el número #1007 y cree su tarea en «Loopa Estudio».
 - **El chequeo de pestañas viejas** (paso 8 de PUNTO-B-C.md): B0 y la corrida en seco otra vez.
+
+## 20. Cierre del corte (2026-11-10)
+
+- **Verificación con sesión (Ángel):** «Todo bien».
+- **Pestañas viejas** (paso 8):
+  - B0 otra vez: `tooned-os/loopa` sigue con 6 ventas, 3 clientes, 10 servicios y 8 gastos.
+  - Corrida en seco: `same` 29, es decir, no llegó nada tarde.
+  - La huella cambió (`45e05b4e…`) porque las 3 fichas migradas ya están en FRAME y ahora se enlazan en lugar de crearse.
+- **Estado:** la fusión está en uso. LOOPA y FRAME comparten frame-studio-3a18f.
+
+**Queda para después (no bloquea):**
+- editar la rutina y publicar el portal desde LOOPA;
+- «Eliminar» en las tarjetas de FRAME para tareas de venta (hoy archiva con aviso);
+- sumar a más gente a ventas, con `configurar-c.cjs`;
+- afinar las plantillas por servicio (subiendo la versión).
