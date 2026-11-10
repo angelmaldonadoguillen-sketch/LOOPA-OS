@@ -848,8 +848,8 @@ const TeamSection = ({ team, pending = [], projects, onUpdateMember, onDeleteMem
     <>
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="border-b border-app px-5 py-3 flex items-center gap-3">
-          <div className="flex items-center gap-2">
+        <header className="border-b border-app px-5 py-3 flex flex-wrap items-center gap-3 estudio-cabecera">
+          <div className="flex items-center gap-2 estudio-titulo">
             <Icon name="users" size={15} className="text-[var(--text-muted)]" />
             <span className="font-display font-bold text-[15px]" style={{ letterSpacing: '-0.02em' }}>Equipo</span>
             {workspaceName && <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>· {workspaceName}</span>}

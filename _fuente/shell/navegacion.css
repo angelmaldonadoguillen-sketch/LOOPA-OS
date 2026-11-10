@@ -20,18 +20,32 @@
 }
 
 /* ── Producción integrada (Fase 4 · un solo sistema) ──────────── */
-.content.content-estudio { display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0; }
-.estudio-raiz { flex: 1; min-height: 0; flex-direction: column; margin: 0 -36px; border-top: 1px solid var(--line); }
+/* Mismos márgenes y encabezado que el resto de LOOPA; el área de trabajo
+   es un panel con el borde y el radio de LOOPA (como las tablas). */
+.content.content-estudio { display: flex; flex-direction: column; overflow: hidden; padding-bottom: 24px; }
+.page-head.page-head-estudio { padding-bottom: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+.page-head-estudio .pestanas { margin-bottom: 0; }
+.estudio-raiz { flex: 1; min-height: 0; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; background: var(--bg); }
 .estudio-raiz > * { flex: 1; min-height: 0; }
 .estudio-portal { min-height: 100vh; overflow: auto; }
 .topbar-estudio { margin-left: 16px; min-width: 0; }
 .topbar-estudio .estudio-barra { background: transparent; font-size: var(--fs-m); }
 .pestanas { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
-.pestanas-filtro { margin-bottom: 12px; }
 .pestana { padding: 6px 14px; border: 1px solid var(--line); border-radius: var(--r-pill); background: transparent; color: var(--muted); font: inherit; font-size: var(--fs-s); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
 .pestana:hover { color: var(--text); border-color: var(--line-2); }
 .pestana.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+
+/* Dentro de Producción: el título es el de LOOPA (arriba), no el de cada sección. */
+.estudio-raiz .estudio-titulo { display: none !important; }
+.estudio-raiz .estudio-cabecera { background: transparent !important; }
+/* Barra del tablero con el lenguaje de LOOPA: píldoras y etiquetas en mayúscula. */
+.estudio .estudio-toolbar button { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; border-radius: var(--r-pill); }
+.estudio .estudio-toolbar .surface-2 { border-radius: var(--r-pill); }
+.estudio .estudio-toolbar input { font-size: var(--fs-m); }
+
 @media (max-width: 640px) {
-  .estudio-raiz { margin: 0 -14px; }
   .topbar-estudio { margin-left: 8px; }
+  .estudio-raiz { border-radius: var(--r-md); margin: 0 -6px; }
+  .page-head.page-head-estudio { padding-bottom: 14px; margin-bottom: 14px; }
+  .estudio .estudio-cabecera .estudio-buscador { flex: 1 1 100% !important; max-width: none !important; }
 }

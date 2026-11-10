@@ -802,3 +802,13 @@ El detalle y el orden del corte están en `integracion/puesta-en-marcha/PUNTO-B-
   - la ficha con el bloque Comercial;
   - el historial abre la venta y «Nueva venta» trae el cliente;
   - en el teléfono, sin desborde.
+
+## 24. Fase 4.3: Producción con la cara de LOOPA (2026-11-10)
+
+- **Encabezado único.** Tablero, Mis tareas, Clientes, Equipo, Papelera, Métricas y Configuración usan el `page-head` de LOOPA (sección, título y descripción, `CABECERAS_ESTUDIO`). Los títulos internos de Producción se ocultan (`estudio-titulo`); sus controles (búsqueda, filtros, botones) quedan.
+- **Tablero:** los filtros (Todas, Favoritas, Urgentes, Completadas) son píldoras en el encabezado. La barra de vistas, búsqueda y «Nueva tarea» usa letra mayúscula y botones píldora (`estudio-toolbar`).
+- **Área de trabajo:** un panel con el borde y el radio de LOOPA (`estudio-raiz`), igual que las tablas.
+- **Métricas y Configuración:** las pestañas van dentro del encabezado.
+- **Teléfono:** el buscador de Clientes ocupa todo el ancho (`estudio-buscador`). Sin desborde horizontal.
+- **Pruebas:** 263 sin red, 20 de Producción y 34 en el emulador.
+- **Verificado en el navegador (emulador):** todas las pantallas de Producción en escritorio, y Tablero y Clientes en el teléfono.

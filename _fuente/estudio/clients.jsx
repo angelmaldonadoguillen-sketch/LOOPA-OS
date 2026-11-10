@@ -913,8 +913,8 @@ const ClientsSection = ({ clients, projects, columns = [], onCreateClient, onUpd
     <>
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Section header */}
-        <header className="border-b border-app px-5 py-3 flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
+        <header className="border-b border-app px-5 py-3 flex flex-wrap items-center gap-3 estudio-cabecera">
+          <div className="flex items-center gap-2 estudio-titulo">
             <Icon name="briefcase" size={15} className="text-[var(--text-muted)]" />
             <span className="font-display font-bold text-[15px]" style={{ letterSpacing: '-0.02em' }}>
               Clientes
@@ -928,7 +928,7 @@ const ClientsSection = ({ clients, projects, columns = [], onCreateClient, onUpd
           </div>
 
           {/* Search */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md surface-2 flex-1 max-w-sm min-w-0" style={{ minWidth: 160 }}>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md surface-2 flex-1 max-w-sm min-w-0 estudio-buscador" style={{ minWidth: 160 }}>
             <Icon name="search" size={13} className="text-[var(--text-muted)]" />
             <input
               value={search}

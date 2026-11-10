@@ -106,9 +106,9 @@ const AnalyticsSection = ({ projects, clients, team, currentUserId }) => {
     <main className="flex-1 flex flex-col overflow-hidden">
 
       {/* ── Page header ── */}
-      <div className="border-b border-app px-4 md:px-6 py-4 flex items-center justify-between gap-3 flex-shrink-0" style={{ background: 'var(--surface)' }}>
+      <div className="border-b border-app px-4 md:px-6 py-4 flex items-center justify-between gap-3 flex-shrink-0 estudio-cabecera" style={{ background: 'var(--surface)' }}>
         <div>
-          <div className="font-display font-bold text-xl" style={{ letterSpacing: '-0.02em' }}>Producción</div>
+          <div className="font-display font-bold text-xl estudio-titulo" style={{ letterSpacing: '-0.02em' }}>Producción</div>
           <div className="text-[12px] text-[var(--text-muted)] mt-0.5">
             {reportable.length} tareas · {activeTeam.length} integrantes activos · {clients.length} clientes
           </div>

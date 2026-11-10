@@ -2781,6 +2781,17 @@ const PESTANAS = {
   config: [['loopa', 'General'], ['tablero', 'Tablero y aprobaciones']],
 };
 const FILTROS_TABLERO = [['all', 'Todas'], ['favorites', 'Favoritas'], ['urgent', 'Urgentes'], ['delivered', 'Completadas']];
+// Encabezado de página de LOOPA para las pantallas de Producción (como Ventas):
+// [etiqueta, título, descripción].
+const CABECERAS_ESTUDIO = {
+  produccion: ['Producción', 'Tablero', 'Todas las tareas del tablero. Arrastrá una tarjeta para cambiarla de etapa.'],
+  'mis-tareas': ['Producción', 'Mis tareas', 'Lo que tenés asignado en este tablero.'],
+  equipo: ['Producción', 'Equipo', 'Quién trabaja en este tablero, su disponibilidad y las invitaciones.'],
+  papelera: ['Producción', 'Papelera', 'Tareas eliminadas. Se borran solas a los 10 días; hasta entonces se pueden restaurar.'],
+  clientes: ['Comercial', 'Clientes', 'La ficha única de cada cliente: ventas, producción y portal.'],
+  metricas: ['Sistema', 'Métricas', 'Avance de la producción y carga del equipo.'],
+  config: ['Sistema', 'Configuración', 'Lo que muestran las tarjetas, el arrastre de tareas y la aprobación de cuentas nuevas.'],
+};
 
 // Si algo de Producción falla, se ve un aviso en esa sección: el resto de
 // LOOPA (ventas, clientes…) sigue funcionando.
@@ -3477,14 +3488,25 @@ function App({ onLogout, usuarioFusion = null }) {
         </div>
 
         <div className={`content${seccionEstudio ? ' content-estudio' : ''}`}>
-          {conPestanas && <Pestanas opciones={PESTANAS[route]} valor={subvista[route]} onCambio={(v) => setSubvista(s => ({ ...s, [route]: v }))} />}
-          {route === 'produccion' && PROD_ON === 'estudio' && (
-            <div className="pestanas pestanas-filtro" role="tablist" aria-label="Qué tareas">
-              {FILTROS_TABLERO.map(([id, label]) => (
-                <button key={id} role="tab" aria-selected={filtroTablero === id} className={`pestana ${filtroTablero === id ? 'on' : ''}`} onClick={() => setFiltroTablero(id)}>{label}</button>
-              ))}
+          {/* Producción con el encabezado de LOOPA: etiqueta, título y descripción. */}
+          {seccionEstudio && CABECERAS_ESTUDIO[route] && (
+            <div className="page-head page-head-estudio">
+              <div>
+                <div className="page-kicker">{CABECERAS_ESTUDIO[route][0]}</div>
+                <div className="page-title">{CABECERAS_ESTUDIO[route][1]}</div>
+                <div className="page-desc">{CABECERAS_ESTUDIO[route][2]}</div>
+              </div>
+              {route === 'produccion' && (
+                <div className="pestanas pestanas-filtro" role="tablist" aria-label="Qué tareas">
+                  {FILTROS_TABLERO.map(([id, label]) => (
+                    <button key={id} role="tab" aria-selected={filtroTablero === id} className={`pestana ${filtroTablero === id ? 'on' : ''}`} onClick={() => setFiltroTablero(id)}>{label}</button>
+                  ))}
+                </div>
+              )}
+              {conPestanas && <Pestanas opciones={PESTANAS[route]} valor={subvista[route]} onCambio={(v) => setSubvista(s => ({ ...s, [route]: v }))} />}
             </div>
           )}
+          {conPestanas && !seccionEstudio && <Pestanas opciones={PESTANAS[route]} valor={subvista[route]} onCambio={(v) => setSubvista(s => ({ ...s, [route]: v }))} />}
           {/* Producción: tablero, tareas, clientes/portal, equipo, análisis, papelera. */}
           {PROD_ON === 'estudio' && <EstudioIntegrado seccion={seccionEstudio} filtro={filtroEstudio} barra={barraEstudio} comercial={comercialClientes} />}
           {route === 'nueva' && (

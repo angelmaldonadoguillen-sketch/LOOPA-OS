@@ -1203,20 +1203,28 @@ button.pr-barra-label { background: none; padding: 0; text-align: left; font-siz
 .nav-agrupada .nav-secundario { display: none; }
 .nav-agrupada .nav-mas { display: flex; }
 }
-.content.content-estudio { display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0; }
-.estudio-raiz { flex: 1; min-height: 0; flex-direction: column; margin: 0 -36px; border-top: 1px solid var(--line); }
+.content.content-estudio { display: flex; flex-direction: column; overflow: hidden; padding-bottom: 24px; }
+.page-head.page-head-estudio { padding-bottom: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+.page-head-estudio .pestanas { margin-bottom: 0; }
+.estudio-raiz { flex: 1; min-height: 0; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; background: var(--bg); }
 .estudio-raiz > * { flex: 1; min-height: 0; }
 .estudio-portal { min-height: 100vh; overflow: auto; }
 .topbar-estudio { margin-left: 16px; min-width: 0; }
 .topbar-estudio .estudio-barra { background: transparent; font-size: var(--fs-m); }
 .pestanas { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
-.pestanas-filtro { margin-bottom: 12px; }
 .pestana { padding: 6px 14px; border: 1px solid var(--line); border-radius: var(--r-pill); background: transparent; color: var(--muted); font: inherit; font-size: var(--fs-s); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
 .pestana:hover { color: var(--text); border-color: var(--line-2); }
 .pestana.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.estudio-raiz .estudio-titulo { display: none !important; }
+.estudio-raiz .estudio-cabecera { background: transparent !important; }
+.estudio .estudio-toolbar button { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; border-radius: var(--r-pill); }
+.estudio .estudio-toolbar .surface-2 { border-radius: var(--r-pill); }
+.estudio .estudio-toolbar input { font-size: var(--fs-m); }
 @media (max-width: 640px) {
-.estudio-raiz { margin: 0 -14px; }
 .topbar-estudio { margin-left: 8px; }
+.estudio-raiz { border-radius: var(--r-md); margin: 0 -6px; }
+.page-head.page-head-estudio { padding-bottom: 14px; margin-bottom: 14px; }
+.estudio .estudio-cabecera .estudio-buscador { flex: 1 1 100% !important; max-width: none !important; }
 }
 .estudio {
     
@@ -9503,11 +9511,11 @@ const TrashSection = ({ trash, onRestore, onPermanentDelete, onRestoreAll, onPer
   return (
     <main className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-app flex items-center gap-3 flex-wrap">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--surface-3)' }}>
+      <div className="px-6 py-4 border-b border-app flex items-center gap-3 flex-wrap estudio-cabecera">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center estudio-titulo" style={{ background: 'var(--surface-3)' }}>
           <Icon name="trash" size={15} className="text-[var(--text-muted)]" />
         </div>
-        <div>
+        <div className="estudio-titulo">
           <h2 className="font-display font-bold text-[17px]" style={{ letterSpacing: '-0.01em' }}>Papelera de reciclaje</h2>
           <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
             Las tareas se eliminan permanentemente a los <strong className="text-[var(--text-dim)]">{TRASH_RETENTION_DAYS} días</strong>
@@ -10591,8 +10599,8 @@ const ClientsSection = ({ clients, projects, columns = [], onCreateClient, onUpd
     <>
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Section header */}
-        <header className="border-b border-app px-5 py-3 flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
+        <header className="border-b border-app px-5 py-3 flex flex-wrap items-center gap-3 estudio-cabecera">
+          <div className="flex items-center gap-2 estudio-titulo">
             <Icon name="briefcase" size={15} className="text-[var(--text-muted)]" />
             <span className="font-display font-bold text-[15px]" style={{ letterSpacing: '-0.02em' }}>
               Clientes
@@ -10606,7 +10614,7 @@ const ClientsSection = ({ clients, projects, columns = [], onCreateClient, onUpd
           </div>
 
           {/* Search */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md surface-2 flex-1 max-w-sm min-w-0" style={{ minWidth: 160 }}>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md surface-2 flex-1 max-w-sm min-w-0 estudio-buscador" style={{ minWidth: 160 }}>
             <Icon name="search" size={13} className="text-[var(--text-muted)]" />
             <input
               value={search}
@@ -11562,8 +11570,8 @@ const TeamSection = ({ team, pending = [], projects, onUpdateMember, onDeleteMem
     <>
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="border-b border-app px-5 py-3 flex items-center gap-3">
-          <div className="flex items-center gap-2">
+        <header className="border-b border-app px-5 py-3 flex flex-wrap items-center gap-3 estudio-cabecera">
+          <div className="flex items-center gap-2 estudio-titulo">
             <Icon name="users" size={15} className="text-[var(--text-muted)]" />
             <span className="font-display font-bold text-[15px]" style={{ letterSpacing: '-0.02em' }}>Equipo</span>
             {workspaceName && <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>· {workspaceName}</span>}
@@ -11798,9 +11806,9 @@ const AnalyticsSection = ({ projects, clients, team, currentUserId }) => {
     <main className="flex-1 flex flex-col overflow-hidden">
 
       {/* ── Page header ── */}
-      <div className="border-b border-app px-4 md:px-6 py-4 flex items-center justify-between gap-3 flex-shrink-0" style={{ background: 'var(--surface)' }}>
+      <div className="border-b border-app px-4 md:px-6 py-4 flex items-center justify-between gap-3 flex-shrink-0 estudio-cabecera" style={{ background: 'var(--surface)' }}>
         <div>
-          <div className="font-display font-bold text-xl" style={{ letterSpacing: '-0.02em' }}>Producción</div>
+          <div className="font-display font-bold text-xl estudio-titulo" style={{ letterSpacing: '-0.02em' }}>Producción</div>
           <div className="text-[12px] text-[var(--text-muted)] mt-0.5">
             {reportable.length} tareas · {activeTeam.length} integrantes activos · {clients.length} clientes
           </div>
@@ -15218,9 +15226,9 @@ const Header = ({ columns = [], state, dispatch, filteredCount, notifications, o
   ];
 
   return (
-    <header className="border-b border-app">
+    <header className="border-b border-app estudio-toolbar">
       {/* Top row */}
-      <div className="flex items-center gap-3 px-5 py-3">
+      <div className="flex items-center gap-3 px-5 py-3 flex-wrap">
         {/* View switcher */}
         <div className="flex items-center gap-0.5 p-0.5 rounded-md surface-2">
           {[
@@ -15832,7 +15840,7 @@ const SettingsSection = ({ previewFields, onToggle, carryOverProjects, onToggleC
   return (
     <div className="flex-1 overflow-y-auto p-8">
       <div className="max-w-2xl mx-auto space-y-8">
-        <div>
+        <div className="estudio-titulo">
           <h1 className="font-display text-2xl font-bold mb-1" style={{ letterSpacing: '-0.02em' }}>Tablero y aprobaciones</h1>
           <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Lo que se ve en las tarjetas, el arrastre de tareas y quién entra al equipo</p>
         </div>
@@ -20271,6 +20279,17 @@ const PESTANAS = {
   config: [['loopa', 'General'], ['tablero', 'Tablero y aprobaciones']],
 };
 const FILTROS_TABLERO = [['all', 'Todas'], ['favorites', 'Favoritas'], ['urgent', 'Urgentes'], ['delivered', 'Completadas']];
+// Encabezado de página de LOOPA para las pantallas de Producción (como Ventas):
+// [etiqueta, título, descripción].
+const CABECERAS_ESTUDIO = {
+  produccion: ['Producción', 'Tablero', 'Todas las tareas del tablero. Arrastrá una tarjeta para cambiarla de etapa.'],
+  'mis-tareas': ['Producción', 'Mis tareas', 'Lo que tenés asignado en este tablero.'],
+  equipo: ['Producción', 'Equipo', 'Quién trabaja en este tablero, su disponibilidad y las invitaciones.'],
+  papelera: ['Producción', 'Papelera', 'Tareas eliminadas. Se borran solas a los 10 días; hasta entonces se pueden restaurar.'],
+  clientes: ['Comercial', 'Clientes', 'La ficha única de cada cliente: ventas, producción y portal.'],
+  metricas: ['Sistema', 'Métricas', 'Avance de la producción y carga del equipo.'],
+  config: ['Sistema', 'Configuración', 'Lo que muestran las tarjetas, el arrastre de tareas y la aprobación de cuentas nuevas.'],
+};
 
 // Si algo de Producción falla, se ve un aviso en esa sección: el resto de
 // LOOPA (ventas, clientes…) sigue funcionando.
@@ -20967,14 +20986,25 @@ function App({ onLogout, usuarioFusion = null }) {
         </div>
 
         <div className={`content${seccionEstudio ? ' content-estudio' : ''}`}>
-          {conPestanas && <Pestanas opciones={PESTANAS[route]} valor={subvista[route]} onCambio={(v) => setSubvista(s => ({ ...s, [route]: v }))} />}
-          {route === 'produccion' && PROD_ON === 'estudio' && (
-            <div className="pestanas pestanas-filtro" role="tablist" aria-label="Qué tareas">
-              {FILTROS_TABLERO.map(([id, label]) => (
-                <button key={id} role="tab" aria-selected={filtroTablero === id} className={`pestana ${filtroTablero === id ? 'on' : ''}`} onClick={() => setFiltroTablero(id)}>{label}</button>
-              ))}
+          {/* Producción con el encabezado de LOOPA: etiqueta, título y descripción. */}
+          {seccionEstudio && CABECERAS_ESTUDIO[route] && (
+            <div className="page-head page-head-estudio">
+              <div>
+                <div className="page-kicker">{CABECERAS_ESTUDIO[route][0]}</div>
+                <div className="page-title">{CABECERAS_ESTUDIO[route][1]}</div>
+                <div className="page-desc">{CABECERAS_ESTUDIO[route][2]}</div>
+              </div>
+              {route === 'produccion' && (
+                <div className="pestanas pestanas-filtro" role="tablist" aria-label="Qué tareas">
+                  {FILTROS_TABLERO.map(([id, label]) => (
+                    <button key={id} role="tab" aria-selected={filtroTablero === id} className={`pestana ${filtroTablero === id ? 'on' : ''}`} onClick={() => setFiltroTablero(id)}>{label}</button>
+                  ))}
+                </div>
+              )}
+              {conPestanas && <Pestanas opciones={PESTANAS[route]} valor={subvista[route]} onCambio={(v) => setSubvista(s => ({ ...s, [route]: v }))} />}
             </div>
           )}
+          {conPestanas && !seccionEstudio && <Pestanas opciones={PESTANAS[route]} valor={subvista[route]} onCambio={(v) => setSubvista(s => ({ ...s, [route]: v }))} />}
           {/* Producción: tablero, tareas, clientes/portal, equipo, análisis, papelera. */}
           {PROD_ON === 'estudio' && <EstudioIntegrado seccion={seccionEstudio} filtro={filtroEstudio} barra={barraEstudio} comercial={comercialClientes} />}
           {route === 'nueva' && (

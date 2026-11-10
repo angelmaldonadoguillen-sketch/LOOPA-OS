@@ -1753,11 +1753,11 @@ const TrashSection = ({ trash, onRestore, onPermanentDelete, onRestoreAll, onPer
   return (
     <main className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-app flex items-center gap-3 flex-wrap">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--surface-3)' }}>
+      <div className="px-6 py-4 border-b border-app flex items-center gap-3 flex-wrap estudio-cabecera">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center estudio-titulo" style={{ background: 'var(--surface-3)' }}>
           <Icon name="trash" size={15} className="text-[var(--text-muted)]" />
         </div>
-        <div>
+        <div className="estudio-titulo">
           <h2 className="font-display font-bold text-[17px]" style={{ letterSpacing: '-0.01em' }}>Papelera de reciclaje</h2>
           <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
             Las tareas se eliminan permanentemente a los <strong className="text-[var(--text-dim)]">{TRASH_RETENTION_DAYS} días</strong>

@@ -1037,9 +1037,9 @@ const Header = ({ columns = [], state, dispatch, filteredCount, notifications, o
   ];
 
   return (
-    <header className="border-b border-app">
+    <header className="border-b border-app estudio-toolbar">
       {/* Top row */}
-      <div className="flex items-center gap-3 px-5 py-3">
+      <div className="flex items-center gap-3 px-5 py-3 flex-wrap">
         {/* View switcher */}
         <div className="flex items-center gap-0.5 p-0.5 rounded-md surface-2">
           {[
@@ -1651,7 +1651,7 @@ const SettingsSection = ({ previewFields, onToggle, carryOverProjects, onToggleC
   return (
     <div className="flex-1 overflow-y-auto p-8">
       <div className="max-w-2xl mx-auto space-y-8">
-        <div>
+        <div className="estudio-titulo">
           <h1 className="font-display text-2xl font-bold mb-1" style={{ letterSpacing: '-0.02em' }}>Tablero y aprobaciones</h1>
           <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Lo que se ve en las tarjetas, el arrastre de tareas y quién entra al equipo</p>
         </div>
