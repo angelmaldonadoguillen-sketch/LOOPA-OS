@@ -433,3 +433,71 @@ También se corrigió:
 - pruebas más fieles a FRAME.
 
 **Queda para después:** las tarjetas de las vistas todavía muestran «Eliminar» en tareas de venta (al confirmar, se archiva con aviso).
+
+## 13. Punto A preparado (nada ejecutado)
+
+El paso a paso está en `integracion/puesta-en-marcha/PUNTO-A.md`. Cada paso 🔒 lleva su propio «sí».
+
+**Orden:**
+1. A0: chequeos de sólo lectura y respaldo.
+2. A1: publicar FRAME.
+3. A2: funciones `loopa`.
+4. A3: invocación de las callables, si hace falta.
+5. A4: reglas, cuando el equipo ya recargó FRAME.
+
+**Hallazgo: el archivo de reglas tiene que ser uno solo.** Las reglas activas se publican desde el repo de FRAME (`firebase.json` → `firestore.rules.v2`). Si las de la fusión se publicaran desde LOOPA, el próximo deploy de reglas de FRAME las revertiría sin aviso. Por eso:
+- `integracion/puesta-en-marcha/reglas-para-frame.cjs` genera `firestore.rules.v2` de FRAME desde el borrador probado. Vuelve el encabezado de FRAME («Se publican con…») y se agrega de dónde sale lo de LOOPA. Las reglas no cambian.
+- El archivo queda en la rama `fusion/reglas-loopa` de FRAME y se publica desde allí (A4).
+- `firebase.json` de LOOPA sigue publicando sólo `functions:loopa`.
+- `loopa-fusion.test.js` de FRAME verifica que su archivo de reglas tiene lo de LOOPA. Las 22 pruebas de FRAME pasan con las reglas nuevas.
+
+**Chequeos** (`chequeo-a.cjs`, lógica pura en `punto-a.cjs`):
+- **Sin flags, sólo esta PC:**
+  - `firebase.json` publica sólo el codebase `loopa`;
+  - no hay `.firebaserc`;
+  - las dependencias están instaladas;
+  - las reglas de FRAME son el borrador;
+  - la rama y git están limpios.
+- **Con `--leer-proyecto`** (A0, con aprobación), lee el proyecto:
+  - la ubicación de la base;
+  - las releases y los rulesets activos, como respaldo;
+  - las funciones v2 con su codebase;
+  - el IAM de Cloud Run de la callable de FRAME y de las de LOOPA;
+  - el proyecto y la política de dominios, si hay organización.
+  - Lo evalúa contra §7 y guarda todo en `respaldo/` (fuera de git).
+- **La red pasa por una sola puerta** (`permitido`): sólo GET, https a `*.googleapis.com` y la ruta de `projects/frame-studio-3a18f`.
+- Usa el token de la sesión del Firebase CLI. No lo imprime ni lo guarda.
+
+**§7.3 en el emulador:** `integracion/emulador/reglas-activas.test.cjs`.
+- Comprueba que el navegador no puede escribir `loopa_config` ni aprobarse o hacerse admin. Lo hace contra el borrador y, con `LOOPA_REGLAS_ACTIVAS`, contra las reglas respaldadas.
+- Se validó en las dos direcciones: pasa con `firestore.rules.v2` de FRAME `main` y falla con reglas abiertas.
+
+**Pruebas:** `integracion/test/puesta-en-marcha.test.cjs`, 17 pruebas sin red.
+
+**Revisión independiente del punto A:** 3 problemas graves y 4 medios. Todo está corregido, con prueba:
+1. **El chequeo de A3 y A4 bloqueaba siempre.** Después de A1, `main` ya tiene la fusión, así que comparar las reglas activas con `main` daba ✖. Ahora se comparan con la historia del archivo en FRAME: tienen que ser la última versión anterior a la fusión.
+2. **Las reglas nuevas de FRAME no estaban en un commit** y el chequeo leía el árbol de trabajo. Ahora:
+   - el chequeo lee las reglas de `HEAD`;
+   - un repo con cambios sin commit da ✖, porque se publica desde el árbol de trabajo;
+   - las reglas ya están en un commit de la rama de FRAME.
+3. **A1 hacía push aunque fallaran las pruebas**, y fusionaba un `main` local quizás viejo. Ahora:
+   - el push va después de `&&` sobre las pruebas, que también incluyen la `.cjs` de contrato;
+   - antes se verifica `origin/main` con `merge-base --is-ancestor`.
+4. **Prueba de reglas activas:** además verifica que el navegador no crea eventos, ventas ni el correlativo (rigen entre A2 y A4, con el worker ya publicado), y que nadie se registra con `platformAdmin`.
+5. **Una lectura fallida** de la política o del proyecto ya no cuenta como «sin restricción»: da aviso.
+6. **`permitido` está anclado a la ruta cruda:**
+   - `^/vN/projects/frame-studio-3a18f`;
+   - sin `%`;
+   - sólo las 6 APIs que se leen;
+   - en la consulta, sólo `pageSize` y `pageToken`.
+7. **Robustez:**
+   - cada lectura falla por separado;
+   - las releases y las funciones se leen con todas sus páginas;
+   - una región sin respuesta da ✖;
+   - el respaldo lleva segundos en el nombre y nunca se pisa.
+
+La revisión también confirmó:
+- `--only functions:loopa` no toca las funciones de FRAME;
+- las formas de las APIs son correctas;
+- el token no se imprime;
+- no hacen falta índices.
