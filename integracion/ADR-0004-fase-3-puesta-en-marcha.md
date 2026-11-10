@@ -24,7 +24,7 @@ Hasta la Fase 2 todo corre en memoria o en el emulador local. La Fase 3 conecta 
 | 3.2 | Capa de datos de LOOPA: leer ventas de `loopa_sales` (lector compatible) y escribir por las funciones, detrás de una bandera. | No |
 | 3.3 | Pantallas de LOOPA conectadas al modelo nuevo detrás de `?datos=fusion`, con cola persistente de cambios; probadas con un servidor local (§9). | No |
 | 3.4 | Conexión al proyecto: lecturas con el SDK (bajo las reglas) y llamadas `httpsCallable`, probadas con los emuladores de Firestore + Functions + Auth. | No |
-| 3.5 | Producción con datos reales: `frame_projects` del tablero, con los cambios de interfaz que piden las reglas. | No |
+| 3.5 | Producción con datos reales: `frame_projects` del tablero, en vivo y bajo las reglas (§11). | No |
 | 3.6 | Ajustes en la app de FRAME (duplicar, borrar, papelera), si sigue en uso durante la transición. | No |
 
 ## 4. Puntos de aprobación (cada uno con un «sí» explícito)
@@ -306,3 +306,76 @@ Riesgos corregidos:
 - Pruebas de la tanda: 26 en `fuente.test.cjs`.
 - Suites generales: 208 sin red, 22 en el emulador de siempre y LOOPA 6/6.
 - Navegador: sólo existe la app de Firebase de la fusión (la de siempre no se inició). Cambio de estado guardado, con la cola por persona.
+
+
+## 11. Tanda 3.5 · Producción con las tareas del tablero (hecha)
+
+Con `?datos=fusion&servidor=emulador&produccion=1`, el módulo Producción muestra y edita las **tareas reales del tablero de producción** (`frame_projects`), las mismas que usa FRAME, bajo las reglas en borrador. Por ahora sólo en los emuladores. Con `?produccion=demo` sigue mostrando los datos de ejemplo, sin guardar.
+
+**Piezas:**
+- `_fuente/produccion/datos-reales.js` (puro, probado con Node):
+  - arma los datos del módulo desde los documentos de FRAME: tablero, columnas (`config/kanban_columns`), rutina (`config/daily_routine`), equipo y fichas;
+  - junta las tareas del tablero con las compartidas que lo incluyen, como FRAME;
+  - `parcheTarea`: al cambiar una tarea viajan sólo los campos editables que cambiaron (como `handleUpdateProject` de FRAME), nunca procedencia ni ids;
+  - `parcheEnlace`: pone el `clientId` una sola vez;
+  - «hoy» es la fecha local de America/Tegucigalpa.
+- `calendario.jsx` → `useFuenteTablero`:
+  - escucha las tareas en vivo (por tablero y compartidas);
+  - valida cada cambio con el núcleo (`applyTaskPatch`: checklist para cerrar, entrega fija en tareas de venta, campos conocidos) y escribe `update` ya;
+  - Firestore muestra el cambio al instante y, si las reglas lo rechazan, lo revierte y se avisa.
+  - Es el único lugar del módulo que habla con Firestore, y sólo con `update` de una tarea (lo vigila `produccion-modulo.test.cjs`).
+- Las tareas de venta enlazan a su venta por id: `#n` abre esa venta aunque dos compartan número.
+- Al vender, cada servicio sin plantilla de producción muestra «sin producción».
+
+**Por ahora desde FRAME** (en LOOPA se ven, con aviso):
+- editar la rutina del día;
+- publicar el portal del cliente.
+
+**Observación sobre las reglas de FRAME (v2, también en el borrador):** la consulta de tareas compartidas (`viewerIds array-contains`) se rechaza. FRAME ya la ignora («lo normal mientras las reglas nuevas no estén publicadas») y LOOPA hace lo mismo: las tareas entran por el tablero.
+
+**Probado:**
+- `produccion-real.test.cjs` (7 pruebas): hoy en Tegucigalpa, mezcla de tareas, columnas, equipo, parches.
+- `funciones.test.cjs`, 2 pruebas nuevas en el emulador (9 en total):
+  - leer el tablero bajo las reglas;
+  - mover, checklist y enlazar se guardan;
+  - la entrega y la procedencia de una tarea de venta no se cambian, y la tarea no se borra.
+- Navegador (emulador):
+  - el tablero real con su nombre y la fecha de hoy;
+  - mover una tarjeta queda guardado al recargar;
+  - una venta nueva (#1007) aparece sola en Producción, con su entrega;
+  - `#1007` abre esa venta.
+
+**Revisión independiente de la tanda 3.5:** 4 problemas confirmados y varios riesgos. Todo está corregido, con prueba:
+
+1. **Columnas con indicadores en `false`.** FRAME guarda `isDone: false` y `requiresChecklist: false` explícitos, y LOOPA los descartaba. El núcleo caía entonces al valor por omisión de «delivered»: LOOPA pedía checklist completo donde FRAME no, y contaba como cerradas tareas que FRAME ve abiertas. Ahora los indicadores se copian tal cual.
+2. **Fechas a medio escribir.** El campo de fecha manda cada tecla del año (0002, 0020…) y eso se guardaba en el tablero compartido. Ahora sólo viaja una fecha completa entre 2000 y 2100.
+3. **Si se caía la escucha del tablero,** el aviso decía «no aceptó el cambio» y la pantalla quedaba congelada con datos viejos, desde los que se podía seguir editando. Ahora se avisa que se perdió la conexión y la edición se frena hasta recargar.
+4. **Los errores de acceso salían en inglés** («Missing or insufficient permissions»). Ahora cada lectura tiene su motivo: sin acceso a Producción, no es miembro del tablero, falta configuración.
+
+Riesgos corregidos:
+- **Enlazar:** sólo se ofrece si las reglas lo aceptarían, es decir, si la tarea nunca tuvo el campo de ficha y es del tablero.
+- **Historial:** cada cambio deja su evento en `activity` con el mismo texto que FRAME.
+- **Datos en vivo:** las fichas se escuchan en vivo, «hoy» cambia a medianoche (Tegucigalpa) y el tablero no se muestra vacío antes de la primera lectura.
+- **Columnas:** si no se pueden leer, se avisa; ya no se usan las de FRAME en silencio.
+- **«Hoy»** se arma pieza por pieza: no depende de cómo formatee el navegador.
+- **Equipo:** se toma de las tarjetas de miembro del tablero, como FRAME.
+- **Personas de producción que no son del equipo comercial** ahora pueden usar Producción: las reglas en borrador les dejan leer qué tablero es el de producción. Las ventas siguen siendo del equipo comercial (probado).
+- **Prueba de pureza más estricta:** abarca todos los archivos del módulo, prohíbe lotes, transacciones y borrados, y fija las colecciones que se leen. Se escriben exactamente dos cosas: la tarea y su evento.
+
+**Encontrado al probar en el navegador (corregido):**
+- Las tareas compartidas llegaban primero desde la caché del SDK y después las rechazaban las reglas. Esa foto vieja quedaba y, al mezclar, pisaba las tareas en vivo: un movimiento se guardaba pero la pantalla no lo mostraba. Ahora, al rechazarse, se vacían.
+- **FRAME tiene el mismo patrón** (`app.jsx`, consulta `viewerIds`): conviene revisarlo cuando se publiquen las reglas.
+
+**Pruebas:**
+- `produccion-real.test.cjs`: 12 pruebas. De 11 mutaciones, las 11 hacen fallar la suite.
+- `funciones.test.cjs`: 11 pruebas con Firebase emulado.
+- Suites generales: 220 sin red, 22 en el emulador de siempre y LOOPA 6/6.
+- Navegador:
+  - el cambio se ve al instante;
+  - la fecha «0002» no se guarda y se avisa;
+  - una venta aparece sola en Producción;
+  - `#n` abre la venta.
+
+**Queda para después:**
+- Editar la rutina y publicar el portal desde LOOPA.
+- Dos marcas seguidas del checklist, más rápidas que la respuesta, se pisan entre sí: es el mismo comportamiento de FRAME.

@@ -26,7 +26,7 @@ baseCss = tint(baseCss);
 // Módulos de la fusión (Fase 2): se arman ANTES de app.jsx en el mismo
 // script de Babel, en este orden fijo. Producción sólo aparece en el menú con
 // la bandera ?produccion (ver produccion/calendario.jsx).
-const MODULES = ['datos/fusion.js', 'datos/fuente.js', 'produccion/nucleo.js', 'produccion/calendario.jsx', 'produccion/tablero.jsx', 'produccion/resumen.jsx', 'produccion/cliente.jsx', 'shell/navegacion.jsx'];
+const MODULES = ['datos/fusion.js', 'datos/fuente.js', 'produccion/nucleo.js', 'produccion/datos-reales.js', 'produccion/calendario.jsx', 'produccion/tablero.jsx', 'produccion/resumen.jsx', 'produccion/cliente.jsx', 'shell/navegacion.jsx'];
 const MODULE_CSS = ['produccion/produccion.css', 'shell/navegacion.css'];
 const modulesSrc = MODULES.map(f => `// ── módulo: ${f} ──\n${fs.readFileSync(path.join(here, f), 'utf8')}`).join('\n');
 let extraCss = tint([fs.readFileSync(path.join(here, 'extra.css'), 'utf8'), ...MODULE_CSS.map(f => fs.readFileSync(path.join(here, f), 'utf8'))].join('\n'));

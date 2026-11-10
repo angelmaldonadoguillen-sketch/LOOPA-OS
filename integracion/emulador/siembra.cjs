@@ -28,6 +28,23 @@ async function sembrarEmulador() {
   const ws = (await db.doc(`frame_workspaces/${TABLERO}`).get()).data();
   await db.doc(`frame_workspaces/${TABLERO}`).set({ ...ws, memberIds: [...new Set([...ws.memberIds, COMERCIAL.uid, OTRO.uid])] });
   await db.doc(`frame_users/${OTRO.uid}`).set({ status: 'active' });
+  await db.doc(`frame_users/${COMERCIAL.uid}`).set({ status: 'active', name: 'Comercial (prueba)', email: COMERCIAL.email });
+  // El tablero como lo tiene FRAME: columnas con nombre y cierre, la rutina
+  // del día y dos tareas MANUALES (sin venta): una con ficha y otra vieja,
+  // sin ficha, para enlazar.
+  const demo = require('../preview/produccion-demo.json');
+  await db.doc(`frame_workspaces/${TABLERO}/config/kanban_columns`).set({ columns: demo.columnas });
+  await db.doc(`frame_workspaces/${TABLERO}/config/daily_routine`).set(demo.rutina);
+  const miembros = [...new Set([...ws.memberIds, COMERCIAL.uid, OTRO.uid])];
+  const manual = (id, over) => db.doc(`frame_projects/${id}`).set({
+    id, title: 'Sesión de fotos', client: 'Café Aurora', type: 'photo', status: 'briefing', priority: 'medium',
+    assignees: [COMERCIAL.uid], startDate: '2026-11-10', sessionDate: '2026-11-12', deadline: '2026-11-20', tags: [],
+    cover: { type: 'color', value: 'var(--surface-2)' }, description: [], checklist: [{ id: 'k1', text: 'Grabar', done: false }],
+    deliverables: [], timeline: [], comments: [], clientVisible: true,
+    workspaceId: TABLERO, workspaceIds: [TABLERO], viewerIds: miembros, ...over,
+  });
+  await manual('manual-con-ficha', { clientId: 'fc-mig-aurora' });
+  await manual('manual-sin-ficha', { title: 'Video viejo', type: 'reel' });
   const auth = getAuth(app);
   for (const u of [COMERCIAL, OTRO]) await auth.createUser(u).catch(e => { if (!/exists/.test(e.code || '')) throw e; });
   return { app, db };

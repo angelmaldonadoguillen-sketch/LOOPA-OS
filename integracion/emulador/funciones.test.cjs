@@ -36,8 +36,23 @@ const esperar = async (cond, ms = 60000, cada = 250) => {
   }
 };
 
+// Las funciones del emulador tardan en cargar la primera vez: se espera a
+// que respondan (sin sesión: «unauthenticated») antes de empezar.
+async function funcionesListas(ms = 120000) {
+  const fin = Date.now() + ms;
+  while (Date.now() < fin) {
+    try {
+      const r = await fetch('http://127.0.0.1:5001/demo-loopa/us-central1/loopaSaveClient', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"data":{}}' });
+      if (r.status !== 404) return;
+    } catch (e) { /* todavía no */ }
+    await new Promise(res => setTimeout(res, 500));
+  }
+  throw new Error('Las funciones del emulador no cargaron');
+}
+
 async function preparar() {
   if (admin) return;
+  await funcionesListas();
   const { app, db } = await sembrarEmulador();
   adb = db;
   admin = app;
@@ -194,4 +209,102 @@ test('quien no es comercial tampoco lee ventas ni catálogo directo (reglas de c
   const intento = (p) => p.then(() => 'ok', e => e.code);
   assert.equal(await intento(fb.fs.getDocs(fb.fs.collection(s.db, 'loopa_sales'))), 'permission-denied');
   assert.equal(await intento(fb.fs.getDocs(fb.fs.collection(s.db, 'loopa_services'))), 'permission-denied');
+});
+
+// ── Tanda 3.5: Producción con las tareas del tablero ─────────────
+const LoopaProduccion = require('../../_fuente/produccion/nucleo.js');
+const LoopaProduccionReal = require('../../_fuente/produccion/datos-reales.js');
+const TABLERO = 'ws-loopa-produccion';
+
+// Lo mismo que useFuenteTablero (calendario.jsx), con el SDK modular.
+async function leerTablero(s, uid) {
+  const g = async (...p) => { const d = await fb.fs.getDoc(fb.fs.doc(s.db, ...p)); return d.exists() ? { id: d.id, ...d.data() } : null; };
+  const lista = async (q) => (await fb.fs.getDocs(q)).docs.map(d => ({ ...d.data(), id: d.id }));
+  const col = fb.fs.collection(s.db, 'frame_projects');
+  return LoopaProduccionReal.armarProduccion({
+    workspace: await g('frame_workspaces', TABLERO),
+    columnas: await g('frame_workspaces', TABLERO, 'config', 'kanban_columns'),
+    rutina: await g('frame_workspaces', TABLERO, 'config', 'daily_routine'),
+    yo: { ...(await g('frame_users', uid)), uid },
+    clientes: await lista(fb.fs.query(fb.fs.collection(s.db, 'frame_clients'), fb.fs.where('workspaceId', '==', TABLERO))),
+    porTablero: await lista(fb.fs.query(col, fb.fs.where('workspaceId', '==', TABLERO))),
+    // Como FRAME y el hook: con las reglas v2 esta consulta se rechaza
+    // (permission-denied) y se ignora; las tareas entran por el tablero.
+    compartidas: await lista(fb.fs.query(col, fb.fs.where('viewerIds', 'array-contains', uid))).catch(e => { if (e.code !== 'permission-denied') throw e; return []; }),
+    hoy: LoopaProduccionReal.hoyEnTegucigalpa(),
+  });
+}
+const actualizar = (s, id, p) => fb.fs.updateDoc(fb.fs.doc(s.db, 'frame_projects', id), p).then(() => 'ok', e => e.code);
+
+test('Producción: leer el tablero real bajo las reglas', { skip }, async (t) => {
+  await preparar();
+  const s = await sesion(COMERCIAL);
+  t.after(s.cerrar);
+  const d = await leerTablero(s, COMERCIAL.uid);
+  assert.equal(d.workspace.name, 'LOOPA · Producción');
+  assert.ok(d.columnas.some(c => c.isDone && c.requiresChecklist), 'columnas de FRAME con cierre');
+  assert.ok(d.tareas.some(x => x.id === 'manual-con-ficha'));
+  assert.ok(d.equipo.some(m => m.id === COMERCIAL.uid && m.name === 'Comercial (prueba)'));
+  assert.ok(Array.isArray(d.rutina.tasks));
+});
+
+test('Producción: mover, checklist y enlazar se guardan; procedencia y entrega de venta no', { skip }, async (t) => {
+  await preparar();
+  const s = await sesion(COMERCIAL);
+  t.after(s.cerrar);
+  let d = await leerTablero(s, COMERCIAL.uid);
+  const cambiar = (id, patch) => {
+    const antes = LoopaProduccion.normalizeTask(d.tareas.find(x => x.id === id), d.hoy);
+    const r = LoopaProduccion.applyTaskPatch(antes, patch, d.columnas);
+    assert.equal(r.ok, true, r.error && r.error.message);
+    return actualizar(s, id, LoopaProduccionReal.parcheTarea(antes, r.task));
+  };
+  assert.equal(await cambiar('manual-con-ficha', { status: 'producing' }), 'ok');
+  assert.equal(await cambiar('manual-con-ficha', { checklist: [{ id: 'k1', text: 'Grabar', done: true }] }), 'ok');
+  // Enlazar la tarea vieja a su ficha: una vez.
+  const vieja = LoopaProduccion.normalizeTask(d.tareas.find(x => x.id === 'manual-sin-ficha'), d.hoy);
+  const enl = LoopaProduccion.linkTaskToClient(vieja, d.clientes.find(c => c.id === 'fc-mig-aurora'), d.clientes);
+  assert.equal(enl.ok, true, enl.error && enl.error.message);
+  assert.equal(await actualizar(s, 'manual-sin-ficha', LoopaProduccionReal.parcheEnlace(vieja, enl.task)), 'ok');
+  assert.equal(await actualizar(s, 'manual-sin-ficha', { clientId: 'cli_0ba8b10a3885e85e293f72f0' }), 'permission-denied', 'no se re-enlaza');
+  d = await leerTablero(s, COMERCIAL.uid);
+  assert.equal(d.tareas.find(x => x.id === 'manual-con-ficha').status, 'producing');
+  assert.equal(d.tareas.find(x => x.id === 'manual-sin-ficha').clientId, 'fc-mig-aurora');
+  // Una tarea de venta: si todavía no hay, se vende una (prueba independiente).
+  if (!d.tareas.some(x => x.sourceSystem === 'loopa')) {
+    const cli = (await s.api.leer()).clients.find(c => c.id === 'fc-mig-aurora');
+    const nv = LoopaFusion.operacionesNuevaVenta({ fecha: '2026-11-10', entrega: '2026-11-25', estado: 'pendiente', items: [{ tipoId: 'SRV-DEMO-REEL', precio: 1800, costo: 0, q: 1 }], subtotal: 1800, total: 1800, abonos: [] }, { nombre: cli.name }, cli.id, uuid);
+    for (const op of nv.ops) await s.api.llamar(op);
+    await esperar(async () => (await adb.collection('frame_projects').where('sourceSaleId', '==', nv.ventaId).get()).size > 0);
+    d = await leerTablero(s, COMERCIAL.uid);
+  }
+  const deVenta = d.tareas.find(x => x.sourceSystem === 'loopa');
+  assert.ok(deVenta, 'hay tareas generadas por ventas');
+  assert.equal(await cambiar(deVenta.id, { status: 'producing' }), 'ok', 'el estado sí se mueve');
+  assert.equal(await actualizar(s, deVenta.id, { deadline: '2027-01-01' }), 'permission-denied', 'la entrega la fija la venta');
+  assert.equal(await actualizar(s, deVenta.id, { sourceSaleId: 'otra' }), 'permission-denied', 'procedencia');
+  assert.equal(await fb.fs.deleteDoc(fb.fs.doc(s.db, 'frame_projects', deVenta.id)).then(() => 'ok', e => e.code), 'permission-denied', 'no se borra (se archiva)');
+});
+
+test('Producción: el historial de la tarea acepta el evento de quien edita (como FRAME)', { skip }, async (t) => {
+  await preparar();
+  const s = await sesion(COMERCIAL);
+  t.after(s.cerrar);
+  const ev = { id: 'a-prueba-1', actorId: COMERCIAL.uid, actorName: 'Comercial (prueba)', summary: 'cambió el estado a En producción', at: new Date().toISOString() };
+  const ok = await fb.fs.setDoc(fb.fs.doc(s.db, 'frame_projects', 'manual-con-ficha', 'activity', ev.id), ev).then(() => 'ok', e => e.code);
+  assert.equal(ok, 'ok');
+  const falso = await fb.fs.setDoc(fb.fs.doc(s.db, 'frame_projects', 'manual-con-ficha', 'activity', 'a-prueba-2'), { ...ev, id: 'a-prueba-2', actorId: OTRO.uid }).then(() => 'ok', e => e.code);
+  assert.equal(falso, 'permission-denied', 'no a nombre de otra persona');
+});
+
+test('Producción: alguien del tablero que NO es comercial usa Producción, pero no ve ventas', { skip }, async (t) => {
+  await preparar();
+  const s = await sesion(OTRO);
+  t.after(s.cerrar);
+  const d = await leerTablero(s, OTRO.uid);
+  assert.ok(d.tareas.length > 0, 've las tareas del tablero');
+  const cfg = await fb.fs.getDoc(fb.fs.doc(s.db, 'loopa_config', 'production')).then(x => x.exists(), e => e.code);
+  assert.equal(cfg, true, 'lee qué tablero es el de producción');
+  const ventas = await fb.fs.getDocs(fb.fs.collection(s.db, 'loopa_sales')).then(() => 'ok', e => e.code);
+  assert.equal(ventas, 'permission-denied', 'las ventas siguen siendo del equipo comercial');
 });

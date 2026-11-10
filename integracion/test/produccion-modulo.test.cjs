@@ -17,7 +17,7 @@ const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
 test('el build incluye los módulos de Producción antes de app.jsx', () => {
   const build = read('_fuente/build.js');
   // Tanda 3.3: los módulos de datos de la fusión van primero.
-  assert.match(build, /const MODULES = \['datos\/fusion\.js', 'datos\/fuente\.js', 'produccion\/nucleo\.js', 'produccion\/calendario\.jsx', 'produccion\/tablero\.jsx', 'produccion\/resumen\.jsx', 'produccion\/cliente\.jsx', 'shell\/navegacion\.jsx'\]/);
+  assert.match(build, /const MODULES = \['datos\/fusion\.js', 'datos\/fuente\.js', 'produccion\/nucleo\.js', 'produccion\/datos-reales\.js', 'produccion\/calendario\.jsx', 'produccion\/tablero\.jsx', 'produccion\/resumen\.jsx', 'produccion\/cliente\.jsx', 'shell\/navegacion\.jsx'\]/);
   assert.match(build, /const MODULE_CSS = \['produccion\/produccion\.css', 'shell\/navegacion\.css'\]/);
   const html = read('index.html');
   const iNucleo = html.indexOf('const LoopaProduccion = (function');
@@ -46,11 +46,32 @@ test('sin bandera, el menú es el original (la navegación agrupada sólo con ba
 });
 
 test('el módulo no depende de globales de FRAME ni escribe datos', () => {
-  const src = ['_fuente/produccion/calendario.jsx', '_fuente/produccion/nucleo.js', '_fuente/produccion/tablero.jsx', '_fuente/shell/navegacion.jsx'].map(read).join('\n');
+  // TODOS los archivos del módulo (y la navegación).
+  const archivos = ['_fuente/produccion/calendario.jsx', '_fuente/produccion/nucleo.js', '_fuente/produccion/datos-reales.js', '_fuente/produccion/tablero.jsx', '_fuente/produccion/resumen.jsx', '_fuente/produccion/cliente.jsx', '_fuente/shell/navegacion.jsx'];
+  const src = archivos.map(read).join('\n');
   assert.doesNotMatch(src, /FRAME_KANBAN_COLUMNS|__liveTeam|FRAME_CUSTOM_TYPES|window\.db|firebase/);
-  // Sin escrituras de datos: ni Firestore (db/collection/set/update/delete)
-  // ni otra cosa que localStorage para la bandera.
-  assert.doesNotMatch(src, /\b(db|collection)\b\s*[.(]|\.(set|update|delete)\(/, 'tanda 1 es de sólo lectura');
+  // Tanda 3.5: el ÚNICO lugar que habla con Firestore es useFuenteTablero,
+  // con la conexión que le pasan (nunca un global). Escribe exactamente dos
+  // cosas: update() de la tarea y set() de su evento en el historial (como
+  // FRAME). Nada de lotes, transacciones, borrados ni otras colecciones.
+  const ini = src.indexOf('function useFuenteTablero(');
+  const fin = ini < 0 ? -1 : ini + src.slice(ini).search(/\r?\n\}\r?\n/);
+  assert.ok(ini > 0 && fin > ini, 'useFuenteTablero existe');
+  const hook = src.slice(ini, fin);
+  const resto = src.slice(0, ini) + src.slice(fin);
+  // (.add( de un Set es legítimo; en una colección exige «collection», ya prohibido)
+  const escrituras = /\b(db|collection|batch|runTransaction|onSnapshot)\b\s*[.(]|\.(set|update|delete)\s*\(|\[\s*['"`](set|update|delete|add)['"`]\s*\]/;
+  assert.doesNotMatch(resto, escrituras, 'fuera del hook, nada de Firestore');
+  assert.doesNotMatch(hook, /\b(batch|runTransaction)\b|\.(delete|add)\s*\(|\[\s*['"`](set|update|delete|add)['"`]\s*\]/, 'ni lotes, ni transacciones, ni borrados');
+  assert.deepEqual(hook.match(/\.(set|update)\s*\(/g), ['.update(', '.set('], 'dos escrituras, nada más');
+  assert.match(hook, /const tarea = conexion\.db\.collection\('frame_projects'\)\.doc\(id\);\s*tarea\.update\(p\)/, 'la tarea');
+  assert.match(hook, /tarea\.collection\('activity'\)\.doc\(ev\.id\)\.set\(ev\)/, 'y su evento del historial');
+  // Si las reglas rechazan las compartidas DESPUÉS de una foto de caché, esa
+  // foto vieja no puede quedarse pisando las tareas en vivo.
+  assert.match(hook, /e => \{ setCompartidas\(\[\]\);/, 'al rechazarse, las compartidas se vacían');
+  // Lee sólo lo del tablero de producción.
+  const colecciones = [...new Set([...hook.matchAll(/collection\('([^']+)'\)/g)].map(m => m[1]))].sort();
+  assert.deepEqual(colecciones, ['activity', 'config', 'frame_clients', 'frame_projects', 'frame_users', 'frame_workspaces', 'loopa_config'].sort());
   // localStorage sólo para la bandera (2) y la preferencia de vista (1).
   assert.equal((src.match(/localStorage\.setItem\(/g) || []).length, 3, 'sólo bandera y vista preferida');
   assert.match(src, /los cambios no se guardan/, 'la edición de ejemplo avisa que no persiste');

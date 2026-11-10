@@ -136,7 +136,10 @@ test('quién es comercial lo decide sólo el admin de plataforma', { skip }, asy
   await no(fsMod.deleteDoc(ref(as('adm'), 'loopa_config', 'access')), 'no se borra');
   await no(fsMod.getDoc(ref(as('u1'), 'loopa_config', 'otro')), 'un comercial sólo ve la lista, no otra configuración');
   await ok(fsMod.getDoc(ref(as('u1'), 'loopa_config', 'production')), 'comercial ve qué tableros son de producción');
-  await no(fsMod.getDoc(ref(as('u3'), 'loopa_config', 'production')), 'no comercial: no');
+  await no(fsMod.getDoc(ref(as('u3'), 'loopa_config', 'production')), 'ni comercial ni del tablero: no');
+  await ok(fsMod.getDoc(ref(as('u5'), 'loopa_config', 'production')), 'miembro del tablero de producción (no comercial): sí, para Producción');
+  await no(fsMod.getDoc(ref(as('u5'), 'loopa_config', 'access')), 'pero no la lista comercial');
+  await no(fsMod.getDoc(ref(as('pend'), 'loopa_config', 'production')), 'miembro pendiente: no');
   await ok(fsMod.setDoc(ref(as('adm'), 'loopa_config', 'production'), { defaultWorkspaceId: 'ws1', allowedWorkspaceIds: ['ws1'] }), 'admin configura tableros');
   await no(fsMod.setDoc(ref(as('adm'), 'loopa_config', 'production'), { defaultWorkspaceId: 'ws1', allowedWorkspaceIds: ['ws1'], secreto: 'x' }), 'production no lleva otros campos (lo lee el equipo comercial)');
   await no(fsMod.setDoc(ref(as('u1'), 'loopa_config', 'production'), { defaultWorkspaceId: 'ws1', allowedWorkspaceIds: ['ws1', 'ws9'] }), 'un comercial no cambia tableros');

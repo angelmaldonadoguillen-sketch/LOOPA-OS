@@ -70,7 +70,7 @@ function ProdVenta({ venta, enlazar, onAbrirVenta, conEstado }) {
   return (
     <>
       {enlazar
-        ? <button className="pr-link" onClick={() => onAbrirVenta(venta.n)}>#{venta.n}</button>
+        ? <button className="pr-link" onClick={() => onAbrirVenta(venta.saleId || venta.n)}>#{venta.n}</button>
         : <span className="pr-venta">#{venta.n} · venta de ejemplo</span>}
       {conEstado && venta.cancelled && <span className="pr-venta cancelada" style={{ marginLeft: 8 }}>Venta cancelada · revisar</span>}
     </>
@@ -324,8 +324,140 @@ function useFuenteDemo(datos) {
   return { tareas, cambiar, enlazar };
 }
 
+// Datos REALES del tablero de producción (tanda 3.5): las tareas y las
+// fichas en vivo, como FRAME (tareas por tablero + compartidas), y cada
+// cambio se escribe YA con sólo los campos que cambiaron, bajo las reglas,
+// más su evento en el historial (como handleUpdateProject de FRAME).
+// Firestore muestra el cambio al instante (compensación de latencia) y, si
+// las reglas lo rechazan, lo revierte solo: el aviso sale por onError.
+// Si una escucha se cae, la edición se frena (los datos dejaron de ser los
+// del tablero) hasta recargar.
+// `conexion` = { db: Firestore compat, uid } o null.
+function useFuenteTablero(conexion, onError) {
+  const [estado, setEstado] = useState({ cargando: !!conexion, base: null, error: null });
+  const [porTablero, setPorTablero] = useState(null);
+  const [compartidas, setCompartidas] = useState([]);
+  const [clientesVivos, setClientesVivos] = useState([]);
+  const [caida, setCaida] = useState(null);
+  const [hoy, setHoy] = useState(() => LoopaProduccionReal.hoyEnTegucigalpa());
+  const alError = useRef(onError);
+  alError.current = onError;
+  const uid = conexion ? conexion.uid : null;
+  // «Hoy» cambia a medianoche (Tegucigalpa) aunque la página siga abierta.
+  useEffect(() => {
+    if (!conexion) return undefined;
+    const t = setInterval(() => setHoy(h => { const n = LoopaProduccionReal.hoyEnTegucigalpa(); return n === h ? h : n; }), 60000);
+    return () => clearInterval(t);
+  }, [uid]);
+  useEffect(() => {
+    if (!conexion) return undefined;
+    const { db } = conexion;
+    let vivo = true;
+    const dejar = [];
+    // Cada lectura con su motivo, en palabras de la pantalla.
+    const leer = async (ref, sinPermiso) => {
+      try { const d = await ref.get(); return d.exists ? { id: d.id, ...d.data() } : null; }
+      catch (e) { throw new Error(e && e.code === 'permission-denied' ? sinPermiso : 'No se pudo leer el tablero. Revisá la conexión.'); }
+    };
+    const caer = (e) => {
+      if (!vivo) return;
+      setCaida(e && e.code === 'permission-denied'
+        ? 'Perdiste el acceso al tablero de producción. Recargá la página.'
+        : 'Se perdió la conexión con el tablero: lo que ves puede estar desactualizado. Recargá la página antes de editar.');
+    };
+    (async () => {
+      const cfg = await leer(db.collection('loopa_config').doc('production'), 'Tu cuenta no tiene acceso a Producción: pedile al admin que te agregue al tablero de producción.');
+      const wsId = cfg && typeof cfg.defaultWorkspaceId === 'string' ? cfg.defaultWorkspaceId : null;
+      if (!wsId) throw new Error('Falta la configuración de producción (loopa_config/production).');
+      const wsRef = db.collection('frame_workspaces').doc(wsId);
+      const sinTablero = 'No sos miembro del tablero de producción: pedile al admin que te agregue.';
+      const [workspace, columnas, rutina, yo] = await Promise.all([
+        leer(wsRef, sinTablero),
+        leer(wsRef.collection('config').doc('kanban_columns'), sinTablero),
+        leer(wsRef.collection('config').doc('daily_routine'), sinTablero).catch(() => null), // sólo se muestra
+        leer(db.collection('frame_users').doc(uid), '').catch(() => null),
+      ]);
+      if (!workspace) throw new Error('El tablero de producción no existe.');
+      if (!vivo) return;
+      setEstado(s => ({ ...s, base: { workspace, columnas, rutina, yo: { ...(yo || {}), uid } }, error: null }));
+      const plano = (q) => q.docs.map(d => ({ ...d.data(), id: d.id }));
+      dejar.push(db.collection('frame_projects').where('workspaceId', '==', wsId)
+        .onSnapshot(q => { setPorTablero(plano(q)); setEstado(s => (s.cargando ? { ...s, cargando: false } : s)); }, caer));
+      // Las compartidas son un extra (como en FRAME): sin permiso, se ignoran.
+      // OJO: el SDK puede entregar primero una foto de su caché y DESPUÉS el
+      // rechazo; esa foto vieja pisaría a las tareas en vivo (en la mezcla
+      // gana la compartida). Al rechazarse, se vacía.
+      dejar.push(db.collection('frame_projects').where('viewerIds', 'array-contains', uid)
+        .onSnapshot(q => setCompartidas(plano(q)), e => { setCompartidas([]); if (!e || e.code !== 'permission-denied') caer(e); }));
+      dejar.push(db.collection('frame_clients').where('workspaceId', '==', wsId)
+        .onSnapshot(q => setClientesVivos(plano(q)), caer));
+    })().catch(err => { if (vivo) setEstado({ cargando: false, base: null, error: (err && err.message) || 'No se pudo leer el tablero.' }); });
+    return () => { vivo = false; dejar.forEach(f => f()); };
+  }, [uid]);
+  const datos = useMemo(() => (estado.base && porTablero
+    ? LoopaProduccionReal.armarProduccion({ ...estado.base, clientes: clientesVivos, porTablero, compartidas, hoy })
+    : null), [estado.base, porTablero, compartidas, clientesVivos, hoy]);
+  // La última versión conocida (incluye lo que esta pantalla acaba de
+  // escribir): dos cambios seguidos no se pisan entre sí.
+  const ref = useRef(datos);
+  ref.current = datos;
+  const frenado = () => (caida ? { ok: false, error: { code: 'stale', message: caida } } : null);
+  const escribir = (id, antes, despues, p) => {
+    if (!Object.keys(p).length) return;
+    const d = ref.current;
+    ref.current = { ...d, tareas: d.tareas.map(t => (t.id === id ? { ...t, ...p } : t)) };
+    const tarea = conexion.db.collection('frame_projects').doc(id);
+    tarea.update(p).catch(e => alError.current(e));
+    const resumen = LoopaProduccionReal.resumenActividad(antes, despues, d.columnas);
+    const yo = estado.base && estado.base.yo;
+    if (resumen) {
+      const ev = { id: `a${Date.now()}${Math.random().toString(36).slice(2, 6)}`, actorId: uid, actorName: (yo && (yo.name || yo.email)) || 'Alguien', summary: resumen, at: new Date().toISOString() };
+      tarea.collection('activity').doc(ev.id).set(ev).catch(() => { /* el historial no frena el cambio */ });
+    }
+  };
+  const cambiar = useCallback((id, patch) => {
+    const f = frenado();
+    if (f) return f;
+    const d = ref.current;
+    const actual = d && d.tareas.find(t => t.id === id);
+    if (!actual) return { ok: false, error: { code: 'not_found', message: 'La tarea ya no existe' } };
+    for (const k of ['sessionDate', 'deadline']) {
+      if (patch && Object.prototype.hasOwnProperty.call(patch, k) && patch[k] !== '' && !LoopaProduccionReal.fechaEnRango(patch[k])) {
+        return { ok: false, error: { code: 'date_incomplete', message: 'Completá la fecha (entre 2000 y 2100).' } };
+      }
+    }
+    const antes = LoopaProduccion.normalizeTask(actual, d.hoy);
+    const r = LoopaProduccion.applyTaskPatch(antes, patch, d.columnas);
+    if (r.ok) escribir(id, antes, r.task, LoopaProduccionReal.parcheTarea(antes, r.task));
+    return r;
+  }, [uid, caida, estado.base]);
+  const enlazar = useCallback((id, cliente, clientes) => {
+    const f = frenado();
+    if (f) return f;
+    const d = ref.current;
+    const actual = d && d.tareas.find(t => t.id === id);
+    if (!actual) return { ok: false, error: { code: 'not_found', message: 'La tarea ya no existe' } };
+    if (!LoopaProduccionReal.puedeEnlazar(actual, d.workspace.id)) {
+      return { ok: false, error: { code: 'link_locked', message: 'Esta tarea no se puede enlazar desde acá (ya tuvo ficha o es de otro tablero).' } };
+    }
+    const antes = LoopaProduccion.normalizeTask(actual, d.hoy);
+    const r = LoopaProduccion.linkTaskToClient(antes, cliente, clientes);
+    if (r.ok) escribir(id, antes, r.task, LoopaProduccionReal.parcheEnlace(antes, r.task));
+    return r;
+  }, [uid, caida, estado.base]);
+  return { datos, base: datos ? estado.base : null, cargando: estado.cargando, error: estado.error || caida, tareas: datos ? datos.tareas : [], cambiar, enlazar };
+}
+
+// Un error de Firestore al guardar, en palabras de la pantalla.
+const prodErrorEscritura = (e) => (e && e.code === 'permission-denied'
+  ? 'El tablero no aceptó el cambio (permisos o una regla del tablero): se deshizo.'
+  : e && e.code === 'not-found'
+    ? 'La tarea ya no existe en el tablero (¿se movió a la papelera en FRAME?).'
+    : 'No se pudo guardar el cambio en el tablero. Revisá la conexión.');
+
 // Módulo completo: decide de dónde salen los datos y qué vista se muestra.
-function ProduccionModulo({ modo, onAbrirVenta }) {
+// conexion: datos reales del tablero (Firebase) o null (ejemplo / aviso).
+function ProduccionModulo({ modo, onAbrirVenta, conexion = null }) {
   const [estado, setEstado] = useState({ cargando: modo === 'demo', datos: null, error: null });
   const [vista, setVista] = useState(() => {
     try { const v = localStorage.getItem('loopa-produccion-vista'); return ['tablero', 'resumen'].includes(v) ? v : 'calendario'; } catch (e) { return 'calendario'; }
@@ -334,7 +466,7 @@ function ProduccionModulo({ modo, onAbrirVenta }) {
   // núcleo (historial + deuda), igual que FRAME al abrir el tablero.
   const [rutina, setRutina] = useState(null);
   // Fichas de cliente de ejemplo (portal publicado o no) y la que está abierta.
-  const [clientes, setClientes] = useState([]);
+  const [clientesDemo, setClientes] = useState([]);
   const [clienteAbierto, setClienteAbierto] = useState(null);
   const [abierta, setAbierta] = useState(null); // { id, el }
   const [aviso, setAviso] = useState(null);
@@ -348,14 +480,22 @@ function ProduccionModulo({ modo, onAbrirVenta }) {
     return () => { vivo = false; };
   }, [modo]);
   useEffect(() => { try { localStorage.setItem('loopa-produccion-vista', vista); } catch (e) { /* sólo preferencia de vista */ } }, [vista]);
-  const fuente = useFuenteDemo(estado.datos);
+  // Datos reales: con ?produccion=1 y una conexión (Firebase de la fusión).
+  const real = modo === '1' && !!conexion;
+  const fuenteDemo = useFuenteDemo(estado.datos);
+  const fuenteReal = useFuenteTablero(real ? conexion : null, (e) => setAviso(prodErrorEscritura(e)));
+  const fuente = real ? fuenteReal : fuenteDemo;
+  const base = real ? fuenteReal.datos && fuenteReal.base : estado.datos;
   useEffect(() => {
-    if (estado.datos) {
-      setRutina(LoopaProduccion.routineRollover(estado.datos.rutina || {}, estado.datos.hoy).doc);
-      setClientes(estado.datos.clientes || []);
+    const d = real ? fuenteReal.datos : estado.datos;
+    if (d) {
+      setRutina(LoopaProduccion.routineRollover(d.rutina || {}, d.hoy).doc);
+      setClientes(d.clientes || []);
     }
-  }, [estado.datos]);
-  const datos = estado.datos;
+  }, [base]);
+  const datos = real ? fuenteReal.datos : estado.datos;
+  // Con el tablero real, las fichas llegan en vivo.
+  const clientes = real ? (datos ? datos.clientes : []) : clientesDemo;
   const abrir = useCallback((t, el) => { setAviso(null); setAbierta({ id: t.id, el }); }, []);
   // Todo cambio pasa por acá: uno exitoso limpia el aviso de la página.
   const cambiar = useCallback((id, patch) => {
@@ -406,24 +546,29 @@ function ProduccionModulo({ modo, onAbrirVenta }) {
           </div>
         )}
       </div>
-      {modo !== 'demo' && (
-        <div className="panel pr-aviso">Producción todavía no está conectada a los datos del equipo: se conecta en la Fase 3. Para ver el módulo con datos de ejemplo, abrí LOOPA con <span className="mono">?produccion=demo</span>.</div>
+      {modo !== 'demo' && !real && (
+        <div className="panel pr-aviso">Producción con los datos del equipo funciona, por ahora, con Firebase emulado en este equipo (<span className="mono">?datos=fusion&amp;servidor=emulador&amp;produccion=1</span>). Para ver el módulo con datos de ejemplo, abrí LOOPA con <span className="mono">?produccion=demo</span>.</div>
       )}
+      {real && fuenteReal.cargando && <div className="panel pr-aviso">Cargando el tablero de producción…</div>}
+      {real && fuenteReal.error && <div className="panel pr-aviso" role="alert">{fuenteReal.error}</div>}
       {modo === 'demo' && estado.cargando && <div className="panel pr-aviso">Cargando datos de ejemplo…</div>}
       {modo === 'demo' && estado.error && <div className="panel pr-aviso">No se pudieron cargar los datos de ejemplo ({estado.error}). Generalos con <span className="mono">node integracion/preview/generar-demo.cjs</span>.</div>}
       {datos && (
         <>
-          <div className="pr-demo">Datos de ejemplo generados por el planificador desde ventas ficticias · hoy = {datos.hoy} · los cambios no se guardan</div>
+          {real
+            ? <div className="pr-demo">Tablero «{datos.workspace.name}» · hoy = {datos.hoy} · los cambios se guardan en el tablero</div>
+            : <div className="pr-demo">Datos de ejemplo generados por el planificador desde ventas ficticias · hoy = {datos.hoy} · los cambios no se guardan</div>}
           {aviso && <div className="pr-error" role="alert">{aviso}</div>}
           {vista === 'calendario' && <ProduccionCalendario tareas={fuente.tareas} columnas={datos.columnas} hoy={datos.hoy} onAbrir={abrir} />}
           {vista === 'tablero' && <ProduccionTablero tareas={fuente.tareas} columnas={datos.columnas} hoy={datos.hoy} onAbrir={abrir} onMover={mover} />}
           {vista === 'resumen' && rutina && (
             <ProduccionResumen tareas={fuente.tareas} columnas={datos.columnas} hoy={datos.hoy} equipo={datos.equipo || []} clientes={clientes} onAbrirCliente={abrirCliente}
-              rutina={rutina} onCambiarRutina={(fn) => setRutina(d => fn(d))} onAbrir={abrir} />
+              rutina={rutina} onAbrir={abrir}
+              onCambiarRutina={real ? () => setAviso('La rutina del día se edita desde FRAME por ahora.') : (fn) => setRutina(d => fn(d))} />
           )}
           {tareaAbierta && (
             <ProdDetalle t={LoopaProduccion.normalizeTask(tareaAbierta, datos.hoy)} origen={abierta.el} hoy={datos.hoy} columnas={datos.columnas}
-              enlazarVentas={false} onCerrar={cerrar} onAbrirVenta={(n) => { setAbierta(null); onAbrirVenta(n); }}
+              enlazarVentas={real} onCerrar={cerrar} onAbrirVenta={(n) => { setAbierta(null); onAbrirVenta(n); }}
               onCambiar={(patch) => cambiar(tareaAbierta.id, patch)}
               onAbrirCliente={clientes.some(c => c.id === tareaAbierta.clientId) ? abrirCliente : null} />
           )}
@@ -432,7 +577,7 @@ function ProduccionModulo({ modo, onAbrirVenta }) {
               workspace={datos.workspace} onCerrar={cerrarCliente} origen={origenFicha.current}
               onCambiarTarea={cambiar}
               onEnlazarTarea={(id) => fuente.enlazar(id, fichaAbierta, clientes)}
-              onPublicar={(id, on) => setClientes(cs => cs.map(c => (c.id === id ? { ...c, portalPublished: on } : c)))}
+              onPublicar={real ? () => setAviso('Publicar el portal del cliente se hace desde FRAME por ahora.') : (id, on) => setClientes(cs => cs.map(c => (c.id === id ? { ...c, portalPublished: on } : c)))}
               onAbrirTarea={(t) => { setClienteAbierto(null); abrir(t, origenFicha.current); }} />
           )}
         </>

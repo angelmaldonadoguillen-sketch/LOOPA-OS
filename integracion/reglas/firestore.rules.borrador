@@ -447,7 +447,10 @@ service cloud.firestore {
     match /loopa_config/{doc} {
       // El equipo comercial lee la lista y qué tableros son de producción
       // (sólo ids: la app los necesita para pedir las fichas de cliente).
-      allow read: if isPlatformAdmin() || ((doc == 'access' || doc == 'production') && isCommercial());
+      // Producción en LOOPA (tanda 3.5): un miembro del tablero de producción
+      // también lee cuál es (no ve ventas: eso sigue siendo del equipo comercial).
+      allow read: if isPlatformAdmin() || ((doc == 'access' || doc == 'production') && isCommercial())
+                  || (doc == 'production' && resource.data.defaultWorkspaceId is string && isMember(resource.data.defaultWorkspaceId));
       allow create, update: if isPlatformAdmin()
                             && (doc != 'access'
                                 || (request.resource.data.keys().hasOnly(['commercialUids'])

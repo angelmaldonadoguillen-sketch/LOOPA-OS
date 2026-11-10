@@ -719,7 +719,8 @@ function PasoServicios({ cliente, servicios, stats, categorias, items, addItem, 
                       <span className={`service-model ${modeloServicio(s)}`}>{modeloLabel(s)}</span>
                       {s.recomendado === true && <span className="service-recommended">Recomendado</span>}
                     </div>
-                    <div className="srv-cat">{s.categoria}</div>
+                    {/* Con la fusión: un servicio sin plantilla no genera trabajo en Producción. */}
+                    <div className="srv-cat">{s.categoria}{DATOS_FUSION && s.generaProduccion === false && <span className="dim"> · sin producción</span>}</div>
                     <div className="srv-name">{s.nombre}</div>
                     <div className="srv-meta">
                       <span>{L(s.precio)}<span className="dim"> / {s.unidad}</span></span>
@@ -3060,6 +3061,8 @@ function App({ onLogout, usuarioFusion = null }) {
     const items = v.items.map(i => { const s = servicios.find(x => x.id === i.tipoId); return { ...i, precio: String(i.precio), costo: String(s ? s.costo : i.costo) }; });
     goNueva({ cliente: clientePrefill(c), items, pay: v.pay });
   };
+  // Producción con los datos del tablero: sólo con Firebase (emulador) y sesión.
+  const conexionProduccion = useMemo(() => (DATOS_FUSION === 'emulador' && usuarioFusion ? { db: FUSION_FB.db, uid: usuarioFusion } : null), [usuarioFusion]);
   const openVenta = (k) => {
     const porNumero = ventas.filter(x => x.n === k);
     const v = ventas.find(x => claveVenta(x) === k) || (porNumero.length === 1 ? porNumero[0] : null);
@@ -3215,7 +3218,7 @@ function App({ onLogout, usuarioFusion = null }) {
               }}
               onNuevaVenta={(c) => goNueva({ cliente: clientePrefill(c) })} onOpenVenta={openVenta} />
           )}
-          {route === 'produccion' && PROD_FLAG && <ProduccionModulo modo={PROD_FLAG} onAbrirVenta={openVenta} />}
+          {route === 'produccion' && PROD_FLAG && <ProduccionModulo modo={PROD_FLAG} onAbrirVenta={openVenta} conexion={conexionProduccion} />}
           {route === 'metricas' && <Metricas ventas={ventas} gastos={gastos} config={config} />}
           {route === 'gastos' && <Gastos gastos={gastos} setGastos={setGastos} config={config} setConfig={setConfig} />}
           {route === 'config' && (
