@@ -223,7 +223,16 @@ const saveClient = asCall(async (store, auth, data, { now = () => new Date().toI
     if (existing) {
       if (!cfg.allowedWorkspaceIds.includes(existing.workspaceId)) throw unknown();
       const commercial = { ...(existing.commercial || {}), ...commercialPatch(c), creadoEnLoopa: (existing.commercial && existing.commercial.creadoEnLoopa) || '' };
-      tx.update('frame_clients', c.id, { commercial, updatedBy: uid });
+      // Un solo sistema (Fase 4): teléfono, email y notas son de la ficha única
+      // (contact.*, notes), la misma que edita Producción. Sólo se escriben si
+      // vienen con valor (vender sin cargar el email no lo borra). El nombre
+      // no: se edita sólo desde la ficha, así una venta no renombra al cliente.
+      const patch = { commercial, updatedBy: uid };
+      const tel = texto(c.telefono, 40);
+      const mail = texto(c.email, 120);
+      if (tel || mail) patch.contact = { ...(existing.contact || {}), ...(tel ? { phone: tel } : {}), ...(mail ? { email: mail } : {}) };
+      if (Object.prototype.hasOwnProperty.call(c, 'notas')) patch.notes = texto(c.notas, 2000);
+      tx.update('frame_clients', c.id, patch);
       return { status: 'updated', clientId: c.id };
     }
     // Sólo el alta exige UUID (los ids viejos ya existen). Un id viejo que no
@@ -234,7 +243,7 @@ const saveClient = asCall(async (store, auth, data, { now = () => new Date().toI
       id: c.id, name: texto(c.nombre), workspaceId: cfg.defaultWorkspaceId,
       industry: 'Sin categoría', color: 'var(--resource-neutral)', initials: initialsOf(c.nombre),
       contact: { name: '—', email: texto(c.email, 120) || '—', phone: texto(c.telefono, 40) || '—' },
-      tags: [], notes: '', portalToken: '', portalPublished: false,
+      tags: [], notes: texto(c.notas, 2000), portalToken: '', portalPublished: false,
       commercial: { ...commercialFrom(c), creadoEnLoopa: at.slice(0, 10) },
       createdBy: uid, createdAt: at,
     });

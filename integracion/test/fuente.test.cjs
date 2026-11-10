@@ -730,7 +730,7 @@ test('Fase 4: un solo sistema (Producción es parte de LOOPA, sin FRAME aparte)'
   assert.match(app, /window\.db = FUSION_FB\.db;/);
   // El menú de LOOPA maneja las secciones de Producción.
   assert.match(app, /const RUTAS_ESTUDIO = \{ produccion: 'projects', 'mis-tareas': 'projects', papelera: 'trash', equipo: 'team' \};/);
-  assert.match(app, /<LoopaEstudio\.EstudioApp seccion=\{ultima\} filtro=\{filtro\} barra=\{barra\} \/>/);
+  assert.match(app, /<LoopaEstudio\.EstudioApp seccion=\{ultima\} filtro=\{filtro\} barra=\{barra\} comercial=\{comercial\} \/>/);
   // Una falla de Producción no tumba el resto de LOOPA.
   assert.match(app, /<MuroProduccion><LoopaEstudio\.EstudioApp/);
   // Quien no vende: sólo Producción.
@@ -759,4 +759,23 @@ test('Fase 4: crear cuenta desde LOOPA (queda pendiente hasta que un admin aprue
   // Una cuenta sin aprobar sólo ve el aviso (sin menú).
   assert.match(app, /if \(!p \|\| p\.status !== 'active'\) setCuentaEnEspera\(p \? p\.status : 'pending'\);/);
   assert.match(app, /if \(cuentaEnEspera\) return \(/);
+});
+
+test('Fase 4.2: un solo Clientes (ficha única con su parte comercial)', () => {
+  const app = fs.readFileSync(path.join(ROOT, '_fuente', 'app.jsx'), 'utf8');
+  const cli = fs.readFileSync(path.join(ROOT, '_fuente', 'estudio', 'clients.jsx'), 'utf8');
+  const est = fs.readFileSync(path.join(ROOT, '_fuente', 'estudio', 'app.jsx'), 'utf8');
+  // Clientes es siempre la ficha única (sin pestañas comercial/producción).
+  assert.doesNotMatch(app, /clientes: \[\['comercial'/);
+  assert.match(app, /RUTAS_ESTUDIO\[route\] \|\| \(route === 'clientes' \? 'clients'/);
+  // La parte comercial, sólo para quien vende.
+  assert.match(app, /const comercialClientes = useMemo\(\(\) => \{\s*if \(PROD_ON !== 'estudio' \|\| soloProduccion\) return null;/);
+  assert.match(app, /comercial=\{comercialClientes\}/);
+  assert.match(est, /const App = \(\{ seccion = 'projects', filtro = 'all', barra = null, comercial = null \} = \{\}\) => \{/);
+  assert.match(est, /comercial=\{comercial\}/);
+  assert.match(cli, /\{comercial && <ComercialFicha client=\{client\} comercial=\{comercial\} onClose=\{onClose\} \/>\}/);
+  assert.match(cli, /comercial\.onNuevaVenta\(client\.id, client\.name\)/);
+  assert.match(cli, /comercial\.onAbrirVenta\(h\.clave\)/);
+  // En el teléfono, cada sección muestra su pantalla (el tablero rápido sólo en Tablero).
+  assert.match(est, /if \(isMobile && state\.section === 'projects'\) \{/);
 });

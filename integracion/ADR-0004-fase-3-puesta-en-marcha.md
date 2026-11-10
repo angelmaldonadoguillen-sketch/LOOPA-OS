@@ -774,3 +774,31 @@ El detalle y el orden del corte están en `integracion/puesta-en-marcha/PUNTO-B-
 - la consola sin errores nuevos.
 
 **Pruebas:** 260 sin red, 20 de Producción y 34 en el emulador.
+
+## 23. Fase 4.2: crear cuenta y un solo Clientes (2026-11-10)
+
+**Crear cuenta desde LOOPA** (publicado en `f9bcfc9`):
+- El ingreso ofrece «Crear cuenta». Usa `LoopaEstudio.crearCuentaEquipo`, la misma alta de FRAME: perfil `pending` en `frame_users`.
+- Una cuenta sin aprobar (o rechazada) sólo ve el aviso de espera, sin menú. La aprueba un admin en Configuración › Tablero y aprobaciones.
+- Probado en el emulador: alta, aviso y recarga.
+
+**Un solo Clientes:**
+- **Cada pantalla perdía lo que editaba la otra.** Producción leía y escribía `name`, `contact.*` y `notes`; LOOPA leía primero `commercial.*` y escribía sólo ahí.
+- **Regla nueva: nombre, teléfono, email y notas viven en la ficha única.**
+  - `clienteDesdeDoc` lee primero `name`, `contact.*` y `notes`; `commercial.*` queda de respaldo, y `—` no cuenta.
+  - El servidor (`saveClient`) también escribe `contact.phone`, `contact.email` y `notes` cuando vienen con valor. **Hay que volver a publicar las funciones.**
+  - El nombre se edita sólo desde la ficha: una venta no renombra al cliente.
+  - Empresa y canal siguen siendo comerciales.
+- **Pantalla:**
+  - Clientes es la ficha única, en vivo, con su portal.
+  - La lista suma ventas y saldo, el filtro «Con saldo» y la búsqueda por empresa, email o teléfono.
+  - El detalle suma el bloque **Comercial**: ventas, total, ticket, saldo, empresa, canal, historial (abre la venta) y «Nueva venta» (con el cliente cargado).
+  - Todo esto sólo para quien vende (`comercial` es null para quien sólo produce).
+  - Al ir a Nueva venta se releen los clientes, así una ficha creada en Producción se puede elegir.
+- **Teléfono:** Clientes, Equipo, análisis, ajustes y papelera muestran su pantalla; antes caían en el tablero rápido.
+- **Pruebas:** 263 sin red (2 nuevas), 20 de Producción y 11 de funciones en el emulador.
+- **Verificado en el navegador (emulador):**
+  - la lista con saldo;
+  - la ficha con el bloque Comercial;
+  - el historial abre la venta y «Nueva venta» trae el cliente;
+  - en el teléfono, sin desborde.

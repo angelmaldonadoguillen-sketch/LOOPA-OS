@@ -128,7 +128,7 @@ const IndustryBadge = ({ industry, color }) => (
 );
 
 // ── Client card ──────────────────────────────────────────────────
-const ClientCard = ({ client, projects, onClick }) => {
+const ClientCard = ({ client, projects, onClick, com = null, dinero = null }) => {
   const clientColor = resolveThemeColor(client.color);
   const cp = projects.filter(p => p.client.toLowerCase() === client.name.toLowerCase());
   const totalBudget = cp.reduce((s, p) => s + (p.budget || 0), 0);
@@ -176,26 +176,119 @@ const ClientCard = ({ client, projects, onClick }) => {
             </div>
             <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-[0.12em]">Tareas</div>
           </div>
-          <div>
-            <div className="text-[22px] font-display font-bold leading-none mb-0.5 text-white" style={{ letterSpacing: '-0.03em' }}>
-              {active}
-            </div>
-            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-[0.12em]">Activos</div>
-          </div>
-          <div>
-            <div className="text-[13px] font-semibold font-mono text-white leading-none mb-0.5 truncate">
-              {totalBudget > 0 ? fmtMoney(totalBudget) : '—'}
-            </div>
-            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-[0.12em]">Budget</div>
-          </div>
+          {dinero ? (
+            <>
+              <div>
+                <div className="text-[22px] font-display font-bold leading-none mb-0.5 text-white" style={{ letterSpacing: '-0.03em' }}>
+                  {com ? com.ventas : 0}
+                </div>
+                <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-[0.12em]">Ventas</div>
+              </div>
+              <div>
+                <div className="text-[13px] font-semibold leading-none mb-0.5 truncate" style={{ color: com && com.saldo > 0 ? 'var(--warn)' : 'var(--text-muted)' }}>
+                  {com && com.saldo > 0 ? dinero(com.saldo) : '—'}
+                </div>
+                <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-[0.12em]">Saldo</div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <div className="text-[22px] font-display font-bold leading-none mb-0.5 text-white" style={{ letterSpacing: '-0.03em' }}>
+                  {active}
+                </div>
+                <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-[0.12em]">Activos</div>
+              </div>
+              <div>
+                <div className="text-[13px] font-semibold font-mono text-white leading-none mb-0.5 truncate">
+                  {totalBudget > 0 ? fmtMoney(totalBudget) : '—'}
+                </div>
+                <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-[0.12em]">Budget</div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
+// ── Parte comercial de la ficha (LOOPA) ──────────────────────────
+// Ventas, total, saldo e historial; empresa y canal (los guarda el servidor);
+// «Nueva venta» y abrir una venta llevan a Ventas de LOOPA.
+const ComercialFicha = ({ client, comercial, onClose }) => {
+  const r = comercial.porCliente[client.id] || { ventas: 0, total: 0, saldo: 0, historial: [] };
+  const d = comercial.datos[client.id] || { empresa: '', canal: '' };
+  const dinero = comercial.dinero;
+  const ticket = r.ventas ? r.total / r.ventas : 0;
+  const guardar = (patch) => comercial.onGuardar(client.id, patch, client.name);
+  return (
+    <section className="surf p-4">
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="flex items-center gap-2 font-semibold text-[13px]"><Icon name="briefcase" size={14} /> Comercial</div>
+        <button
+          onClick={() => { onClose && onClose(); comercial.onNuevaVenta(client.id, client.name); }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold hover:brightness-110 transition"
+          style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
+        >
+          <Icon name="plus" size={12} strokeWidth={2.4} /> Nueva venta
+        </button>
+      </div>
+      <div className="grid grid-cols-4 gap-2 mb-4">
+        {[
+          { k: 'Ventas', v: r.ventas },
+          { k: 'Total comprado', v: r.total ? dinero(r.total) : '—' },
+          { k: 'Ticket prom.', v: r.ventas ? dinero(ticket) : '—' },
+          { k: 'Saldo', v: r.saldo > 0 ? dinero(r.saldo) : '—', color: r.saldo > 0 ? 'var(--warn)' : undefined },
+        ].map(x => (
+          <div key={x.k} className="rounded-lg p-2.5" style={{ background: 'var(--surface-2)' }}>
+            <div className="text-[15px] font-semibold leading-tight truncate" style={{ color: x.color || 'var(--text)' }}>{x.v}</div>
+            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-[0.12em] mt-1">{x.k}</div>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-[0.12em] mb-1">Empresa / marca</div>
+          <InlineEdit value={d.empresa} onChange={(v) => guardar({ empresa: v })} placeholder="Agregar empresa…" className="text-[13px]" />
+        </div>
+        <div>
+          <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-[0.12em] mb-1">Canal</div>
+          <div className="flex flex-wrap gap-1.5">
+            {comercial.canales.map(ch => (
+              <button key={ch} onClick={() => guardar({ canal: ch })}
+                className="px-2 py-0.5 rounded-md text-[11px] font-medium transition-colors"
+                style={d.canal === ch ? { background: 'var(--accent)', color: 'var(--accent-on)' } : { background: 'var(--surface-2)', color: 'var(--text-dim)' }}>
+                {ch}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-[0.12em] mb-1.5">Historial · {r.historial.length} ventas</div>
+      {r.historial.length === 0 ? (
+        <div className="text-[12px] text-[var(--text-muted)]">Todavía no hay ventas.</div>
+      ) : (
+        <div className="rounded-lg overflow-hidden" style={{ background: 'var(--surface-2)' }}>
+          {r.historial.map(h => (
+            <button key={h.clave} onClick={() => { onClose && onClose(); comercial.onAbrirVenta(h.clave); }}
+              className="w-full flex items-center gap-3 px-3 py-2 text-left text-[12px] border-b border-app last:border-b-0 hover:bg-[var(--surface-3)] transition-colors"
+              style={{ opacity: h.activa ? 1 : 0.5 }}>
+              <span className="font-semibold tnum" style={{ minWidth: 44 }}>#{h.n}</span>
+              <span className="text-[var(--text-muted)] tnum" style={{ minWidth: 70 }}>{comercial.fecha(h.fecha)}</span>
+              <span className="flex-1 truncate text-[var(--text-dim)]">{h.servicios}</span>
+              <span className="tnum">{dinero(h.total)}</span>
+              <span className="text-[10px] uppercase tracking-[0.1em]" style={{ color: h.saldo > 0 ? 'var(--warn)' : 'var(--text-muted)', minWidth: 72, textAlign: 'right' }}>{h.saldo > 0 ? 'Debe ' + dinero(h.saldo) : h.estado}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+};
+
 // ── Client detail panel ──────────────────────────────────────────
-const ClientDetail = ({ client, projects, columns = [], onClose, onUpdate, onDelete, onSetPortal, onTogglePortalTask }) => {
+const ClientDetail = ({ client, projects, columns = [], onClose, onUpdate, onDelete, onSetPortal, onTogglePortalTask, comercial = null }) => {
   const [confirmDel, setConfirmDel] = useState(false);
   const [savingPortal, setSavingPortal] = useState(false);
   if (!client) return null;
@@ -335,6 +428,9 @@ const ClientDetail = ({ client, projects, columns = [], onClose, onUpdate, onDel
           </div>
 
           <div className="p-6 space-y-6">
+            {/* LOOPA (un solo sistema): lo comercial de la ficha, para quien vende. */}
+            {comercial && <ComercialFicha client={client} comercial={comercial} onClose={onClose} />}
+
             {/* Portal externo: una proyección segura y controlada del trabajo. */}
             <section className="surf p-4">
               <div className="flex items-start justify-between gap-4">
@@ -791,16 +887,21 @@ const ClientAutocomplete = ({ value, onChange, clients = [], onCreateClient, fie
 };
 
 // ── Clients section (main) ───────────────────────────────────────
-const ClientsSection = ({ clients, projects, columns = [], onCreateClient, onUpdateClient, onDeleteClient, onSetClientPortal, onTogglePortalTask, openClientId, onOpenClient, onCloseClient }) => {
+const ClientsSection = ({ clients, projects, columns = [], onCreateClient, onUpdateClient, onDeleteClient, onSetClientPortal, onTogglePortalTask, openClientId, onOpenClient, onCloseClient, comercial = null }) => {
   const [search, setSearch]   = useState('');
   const [showNew, setShowNew] = useState(false);
+  const [conSaldo, setConSaldo] = useState(false);
+  const com = (id) => (comercial && comercial.porCliente[id]) || null;
+  const saldoTotal = comercial ? clients.reduce((a, c) => a + ((com(c.id) || {}).saldo || 0), 0) : 0;
 
   const openClient = openClientId ? clients.find(c => c.id === openClientId) : null;
 
   const filtered = clients.filter(c => {
+    if (conSaldo && !((com(c.id) || {}).saldo > 0)) return false;
     if (!search) return true;
     const q = search.toLowerCase();
-    return c.name.toLowerCase().includes(q) || c.industry.toLowerCase().includes(q);
+    const extra = [c.contact && c.contact.email, c.contact && c.contact.phone, comercial && comercial.datos[c.id] && comercial.datos[c.id].empresa].filter(Boolean).join(' ').toLowerCase();
+    return c.name.toLowerCase().includes(q) || c.industry.toLowerCase().includes(q) || extra.includes(q);
   });
 
   const handleCreate = async (client) => {
@@ -812,7 +913,7 @@ const ClientsSection = ({ clients, projects, columns = [], onCreateClient, onUpd
     <>
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Section header */}
-        <header className="border-b border-app px-5 py-3 flex items-center gap-3">
+        <header className="border-b border-app px-5 py-3 flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <Icon name="briefcase" size={15} className="text-[var(--text-muted)]" />
             <span className="font-display font-bold text-[15px]" style={{ letterSpacing: '-0.02em' }}>
@@ -827,12 +928,12 @@ const ClientsSection = ({ clients, projects, columns = [], onCreateClient, onUpd
           </div>
 
           {/* Search */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md surface-2 flex-1 max-w-sm">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md surface-2 flex-1 max-w-sm min-w-0" style={{ minWidth: 160 }}>
             <Icon name="search" size={13} className="text-[var(--text-muted)]" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar clientes o industria…"
+              placeholder={comercial ? 'Buscar por nombre, empresa, email o teléfono…' : 'Buscar clientes o industria…'}
               className="flex-1 text-[13px]"
             />
             {search && (
@@ -841,6 +942,14 @@ const ClientsSection = ({ clients, projects, columns = [], onCreateClient, onUpd
               </button>
             )}
           </div>
+
+          {comercial && (
+            <button onClick={() => setConSaldo(v => !v)}
+              className="px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors whitespace-nowrap"
+              style={conSaldo ? { background: 'var(--warn-soft-2)', color: 'var(--warn)' } : { background: 'var(--surface-2)', color: 'var(--text-dim)' }}>
+              Con saldo{saldoTotal > 0 ? ' · ' + comercial.dinero(saldoTotal) : ''}
+            </button>
+          )}
 
           <div className="flex-1" />
 
@@ -887,6 +996,8 @@ const ClientsSection = ({ clients, projects, columns = [], onCreateClient, onUpd
                   client={c}
                   projects={projects}
                   onClick={() => onOpenClient(c.id)}
+                  com={com(c.id)}
+                  dinero={comercial ? comercial.dinero : null}
                 />
               ))}
             </div>
@@ -905,6 +1016,7 @@ const ClientsSection = ({ clients, projects, columns = [], onCreateClient, onUpd
           onDelete={onDeleteClient}
           onSetPortal={onSetClientPortal}
           onTogglePortalTask={onTogglePortalTask}
+          comercial={comercial}
         />
       )}
 

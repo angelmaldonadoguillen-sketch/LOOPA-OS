@@ -71,17 +71,21 @@ const LoopaFusion = (function () {
     };
   }
 
+  // Un solo sistema (Fase 4): nombre, teléfono, email y notas salen de la ficha
+  // única (los que edita Producción); lo de `commercial` queda de respaldo
+  // para fichas viejas. Empresa y canal son sólo comerciales.
   function clienteDesdeDoc(doc) {
     const k = doc.commercial || {};
-    const pick = (a, b) => (a && !/^[\s—–-]*$/.test(a) ? a : b || '');
+    const c = doc.contact || {};
+    const pick = (a, b) => (a && !/^[\s—–-]*$/.test(a) ? a : (b && !/^[\s—–-]*$/.test(b) ? b : ''));
     return {
       id: doc.id,
-      nombre: k.nombreLoopa || doc.name,
+      nombre: pick(doc.name, k.nombreLoopa),
       empresa: k.empresa || '',
-      telefono: pick(k.telefono, doc.contact && doc.contact.phone !== '—' ? doc.contact.phone : ''),
-      email: pick(k.email, doc.contact && doc.contact.email !== '—' ? doc.contact.email : ''),
+      telefono: pick(c.phone, k.telefono),
+      email: pick(c.email, k.email),
       canal: k.canal || '',
-      notas: k.notas || '',
+      notas: pick(doc.notes, k.notas),
       creado: k.creadoEnLoopa || '',
     };
   }

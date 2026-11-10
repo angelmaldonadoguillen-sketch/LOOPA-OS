@@ -1749,7 +1749,9 @@ const SettingsSection = ({ previewFields, onToggle, carryOverProjects, onToggleC
 // analytics | settings | trash) y `filtro` (all | favorites | mine | urgent
 // | delivered). El selector de tablero se dibuja en la barra de LOOPA
 // (`barra`, un nodo del DOM). No tiene pantalla de ingreso ni menú propio.
-const App = ({ seccion = 'projects', filtro = 'all', barra = null } = {}) => {
+// `comercial` (sólo para quien vende): ventas, saldo y acciones de LOOPA por
+// ficha, para la pantalla única de Clientes.
+const App = ({ seccion = 'projects', filtro = 'all', barra = null, comercial = null } = {}) => {
   const [state, dispatch]         = useReducer(reducer, initialState);
   const [authUser, setAuthUser]   = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
@@ -3143,7 +3145,9 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null } = {}) => {
     </div>,
     barra,
   );
-  if (isMobile) {
+  // En el teléfono, el tablero es la vista rápida; Clientes, Equipo, análisis,
+  // ajustes y papelera usan su pantalla (el menú de LOOPA las elige).
+  if (isMobile && state.section === 'projects') {
     return (
       <MobileApp
         state={state}
@@ -3175,6 +3179,7 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null } = {}) => {
           clients={state.clients}
           projects={state.projects}
           columns={boardCols}
+          comercial={comercial}
           onCreateClient={handleCreateClient}
           onUpdateClient={handleUpdateClient}
           onDeleteClient={handleDeleteClient}

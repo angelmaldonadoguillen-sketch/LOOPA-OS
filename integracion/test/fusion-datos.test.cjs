@@ -332,3 +332,23 @@ test('editar un cliente desde LOOPA no cambia el nombre de la ficha ni su fecha 
   const doc = await store.get('frame_clients', id);
   assert.deepEqual([doc.name, doc.commercial.nombreLoopa, doc.commercial.creadoEnLoopa], ['Original', 'Otro nombre comercial', alta]);
 });
+
+test('Fase 4.2: la ficha única: lo que se edita en una pantalla se ve en la otra', async () => {
+  const store = seeded();
+  const id = 'cli-demo-cafe-aurora';
+  // Desde LOOPA (vender o editar): teléfono, email y notas van a la ficha única.
+  await ejecutar(store, F.operacionCliente({ id, nombre: 'Otro nombre', telefono: '2222-0000', email: 'cafe@aurora.hn', notas: 'Paga a fin de mes' }));
+  let doc = await store.get('frame_clients', id);
+  assert.deepEqual([doc.contact.phone, doc.contact.email, doc.notes], ['2222-0000', 'cafe@aurora.hn', 'Paga a fin de mes']);
+  assert.notEqual(doc.name, 'Otro nombre', 'una venta no renombra la ficha: el nombre se edita en la ficha');
+  // Desde Producción (la ficha): LOOPA lee la ficha única primero.
+  await store.transaction(async tx => { tx.update('frame_clients', id, { name: 'Café Aurora Centro', contact: { ...doc.contact, phone: '3333-1111' }, notes: 'Nueva nota' }); });
+  doc = await store.get('frame_clients', id);
+  const c = F.clienteDesdeDoc(doc);
+  assert.deepEqual([c.nombre, c.telefono, c.email, c.notas], ['Café Aurora Centro', '3333-1111', 'cafe@aurora.hn', 'Nueva nota']);
+  // Un «—» de FRAME no es un dato: se usa lo comercial.
+  assert.equal(F.clienteDesdeDoc({ id: 'x', name: 'X', contact: { phone: '—', email: '—' }, commercial: { telefono: '1', email: 'a@b.c' } }).telefono, '1');
+  // Vender sin cargar teléfono no borra el de la ficha.
+  await ejecutar(store, F.operacionCliente({ id, nombre: 'Café Aurora', telefono: '', email: '' }));
+  assert.equal((await store.get('frame_clients', id)).contact.phone, '3333-1111');
+});

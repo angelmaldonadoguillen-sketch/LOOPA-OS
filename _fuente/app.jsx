@@ -2775,8 +2775,8 @@ function PeriodFilter({ value, onChange }) {
 // Rutas del menú de LOOPA que son de Producción, y qué sección muestran.
 const RUTAS_ESTUDIO = { produccion: 'projects', 'mis-tareas': 'projects', papelera: 'trash', equipo: 'team' };
 // Pestañas de pantallas que juntan lo comercial y lo de producción.
+// (Clientes es una sola pantalla: la ficha única, con su parte comercial.)
 const PESTANAS = {
-  clientes: [['comercial', 'Comercial'], ['produccion', 'Producción y portal']],
   metricas: [['ventas', 'Ventas'], ['produccion', 'Producción']],
   config: [['loopa', 'General'], ['tablero', 'Tablero y aprobaciones']],
 };
@@ -2802,13 +2802,13 @@ class MuroProduccion extends React.Component {
 
 // Producción: se monta la primera vez que se abre y queda viva (ir a Ventas y
 // volver no la recarga). Usa la sesión de LOOPA.
-function EstudioIntegrado({ seccion, filtro, barra }) {
+function EstudioIntegrado({ seccion, filtro, barra, comercial }) {
   const [ultima, setUltima] = useState(seccion);
   useEffect(() => { if (seccion) setUltima(seccion); }, [seccion]);
   if (!ultima) return null;
   return (
     <div className="estudio estudio-raiz" style={{ display: seccion ? 'flex' : 'none' }}>
-      <MuroProduccion><LoopaEstudio.EstudioApp seccion={ultima} filtro={filtro} barra={barra} /></MuroProduccion>
+      <MuroProduccion><LoopaEstudio.EstudioApp seccion={ultima} filtro={filtro} barra={barra} comercial={comercial} /></MuroProduccion>
     </div>
   );
 }
@@ -3311,10 +3311,47 @@ function App({ onLogout, usuarioFusion = null }) {
   const sub = (k) => (soloProduccion && PESTANAS[k] ? PESTANAS[k][1][0] : subvista[k]);
   // Qué sección de Producción se ve ahora (null: ninguna).
   const seccionEstudio = PROD_ON !== 'estudio' ? null
-    : RUTAS_ESTUDIO[route] || (route === 'clientes' && sub('clientes') === 'produccion' ? 'clients'
+    : RUTAS_ESTUDIO[route] || (route === 'clientes' ? 'clients'
       : route === 'metricas' && sub('metricas') === 'produccion' ? 'analytics'
         : route === 'config' && sub('config') === 'tablero' ? 'settings' : null);
   const filtroEstudio = route === 'mis-tareas' ? 'mine' : filtroTablero;
+  // La parte comercial de la ficha única (Clientes): sólo para quien vende.
+  const comercialClientes = useMemo(() => {
+    if (PROD_ON !== 'estudio' || soloProduccion) return null;
+    const porCliente = {};
+    ventas.forEach(v => {
+      if (!v.clienteId) return;
+      const r = porCliente[v.clienteId] || (porCliente[v.clienteId] = { ventas: 0, total: 0, saldo: 0, ultima: '', historial: [] });
+      r.historial.push({ clave: claveVenta(v), n: v.n, fecha: v.fecha || '', servicios: (v.items || []).map(i => i.nombre).join(', '), total: num(v.total), saldo: ventaSaldo(v), activa: esActiva(v), estado: ESTADO_LABELS[v.estado] || v.estado });
+      if (!esActiva(v)) return;
+      r.ventas += 1; r.total += num(v.total); r.saldo += ventaSaldo(v);
+      if (v.fecha > r.ultima) r.ultima = v.fecha;
+    });
+    Object.values(porCliente).forEach(r => r.historial.sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : b.n - a.n)));
+    return {
+      porCliente,
+      datos: Object.fromEntries(clientes.map(c => [c.id, { empresa: c.empresa || '', canal: c.canal || '' }])),
+      canales: config.canales || [],
+      dinero: L,
+      fecha: fmtFecha,
+      onNuevaVenta: (id, nombre) => {
+        const c = clientes.find(x => x.id === id);
+        goNueva({ cliente: c ? clientePrefill(c) : { id, nombre: nombre || '', empresa: '', telefono: '', email: '', canal: config.canales[0] } });
+      },
+      onAbrirVenta: (clave) => openVenta(clave),
+      // Empresa y canal: se guardan como siempre (servidor). Si la ficha nació en
+      // Producción y LOOPA todavía no la cargó, se actualiza igual por su id.
+      onGuardar: (id, patch, nombre) => {
+        const base = clientes.find(x => x.id === id) || { id, nombre: nombre || '', empresa: '', telefono: '', email: '', canal: '' };
+        handleSaveCliente({ ...base, ...patch });
+      },
+    };
+  }, [ventas, clientes, config, soloProduccion]);
+  // Una ficha creada en Producción tiene que poder elegirse al vender: al ir a
+  // Nueva venta se releen clientes y servicios.
+  useEffect(() => {
+    if (route === 'nueva' && PROD_ON === 'estudio' && !soloProduccion && ready && recargarRef.current) recargarRef.current();
+  }, [route]);
   const conPestanas = PROD_ON === 'estudio' && !soloProduccion && PESTANAS[route];
 
   if (!ready) return (
@@ -3449,7 +3486,7 @@ function App({ onLogout, usuarioFusion = null }) {
             </div>
           )}
           {/* Producción: tablero, tareas, clientes/portal, equipo, análisis, papelera. */}
-          {PROD_ON === 'estudio' && <EstudioIntegrado seccion={seccionEstudio} filtro={filtroEstudio} barra={barraEstudio} />}
+          {PROD_ON === 'estudio' && <EstudioIntegrado seccion={seccionEstudio} filtro={filtroEstudio} barra={barraEstudio} comercial={comercialClientes} />}
           {route === 'nueva' && (
             <NuevaVenta key={ventaKey} nextN={nextN} clientes={clientes} servicios={servicios} ventas={ventas} stats={stats} config={config}
               onCreate={handleCreate} onCreateServicio={handleCreateServicio} onUpdateServicio={handleUpdateServicio}
