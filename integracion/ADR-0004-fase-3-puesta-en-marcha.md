@@ -528,3 +528,23 @@ Corrido con aprobación («Sí, corré A0»). El respaldo está en `integracion/
   - `reglas.test.cjs` suma «quien entró después al tablero edita, con los límites de LOOPA».
 - **FRAME:** `firestore.rules.v2` se regeneró; `workspace-visibility-contract.test.js` ahora verifica la regla de edición publicada.
 - **Chequeo:** la opción `--base <respaldo>` compara las reglas activas con el respaldo de A0. Desde A3 se usa así, y vuelta a correr dio sin bloqueos.
+
+## 15. A1 hecho: FRAME publicado (2026-11-10)
+
+**Corrección a §14:** el cambio de reglas del 2026-10-15 sí estaba en GitHub (FRAME `1e21019`, más `9f9e2e1`, que agrega `.firebaserc`), pero esta PC no había hecho `fetch`. Las reglas de `origin/main` son idénticas a las activas. Lo demás de §14 no cambia: el borrador parte de lo publicado.
+
+**Lo que se hizo:**
+- La rama `fusion/reglas-loopa` se rebasó sobre `origin/main`.
+  - Conflictos: las reglas se regeneraron con `reglas-para-frame.cjs` y la prueba de visibilidad quedó como en `main`.
+  - El commit que sólo traía esas reglas quedó vacío y se omitió.
+  - La rama anterior quedó guardada como `respaldo/fusion-reglas-loopa-antes-rebase`.
+- Commits en FRAME: `e099766` (FRAME convive con las ventas) y `c503340` (las reglas de la fusión).
+- Las 22 pruebas de FRAME pasan, y `reglas.test.cjs` pasa 17/17 con FRAME.
+- `main` se adelantó con `--ff-only` y se hizo `git push origin main` (`9f9e2e1..c503340`). GitHub Pages lo publicó (build `built`).
+- **Verificado:**
+  - la página publicada carga `loopa-fusion.js?v=20261110-fusion` (200) y `app.jsx?v=20261110-fusion`;
+  - `window.FrameLoopa` existe;
+  - llega a la pantalla de ingreso sin errores en la consola (no se inició sesión).
+- **FRAME y `clientId`:** FRAME no usa `clientId` en las tareas (guarda `client` como texto), así que la regla «`clientId` no cambia» no lo afecta.
+
+**A2 (funciones):** el permiso de esta sesión bloqueó el `firebase deploy`. Lo corre Ángel, o se habilita el permiso.

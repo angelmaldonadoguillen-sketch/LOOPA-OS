@@ -9,9 +9,9 @@ rules_version = '2';
 // reglas.test.cjs). Las reglas activas de frame-studio-3a18f no se tocan:
 // publicar esto es parte de la Fase 3 y requiere aprobación explícita.
 //
-// La base incluye el cambio de FRAME publicado el 2026-10-15 que no estaba en
-// el repo (editar con la membresía de hoy: memberOfAnyBoard,
-// visibilityUnchanged). Se recuperó de las reglas activas en el punto A0.
+// La base incluye el cambio de FRAME publicado el 2026-10-15 (FRAME 1e21019:
+// editar con la membresía de hoy, memberOfAnyBoard / visibilityUnchanged).
+// Faltaba en la copia local de FRAME; lo detectó el punto A0.
 //
 // Lo que agrega la fusión:
 //   · loopa_sales: sólo lectura para el equipo comercial (D15); se escribe
