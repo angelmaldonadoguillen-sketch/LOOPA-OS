@@ -867,3 +867,30 @@ El detalle y el orden del corte están en `integracion/puesta-en-marcha/PUNTO-B-
   - la lectura una por una no cambia.
   - Resultado: 35 en el emulador, 11 de funciones, 265 sin red y 20 de Producción. `puesta-en-marcha.test.cjs` registra las 3 líneas reemplazadas.
 - **Falta publicarla.** La compilación en seco desde LOOPA salió bien. Se publica con: `firebase deploy --only firestore:rules --config servidor-produccion/firebase.json --project frame-studio-3a18f`
+## 29. Vaciado: ventas, clientes y tareas en cero (2026-11-10)
+
+- **Pedido del usuario:** «guardá la información de ventas y clientes afuera y eliminalas de toda la plataforma», y después «eliminá las tareas, todo dejalo en 0» y «todo a cero».
+- **Respaldo (sólo lectura), antes de borrar.** Está en `integracion/puesta-en-marcha/respaldo/vc-2026-11-10-175058/`, fuera de git.
+  - Firestore: los documentos tal cual (`crudo/`) y legibles (`legible/`), con huellas sha256.
+  - Storage: los 44 archivos, verificados con md5.
+  - Lo arman `respaldo-ventas-clientes.cjs` y `respaldo-tareas-archivos.cjs`.
+- **Borrado (`vaciar.cjs`).**
+  - Por defecto es una prueba en seco. Para borrar exige `--escribir` y la huella del plan revisado.
+  - Cada escritura se valida contra el plan (`vaciar-plan.cjs`). Los deletes llevan `exists`, y los archivos se borran con `ifGenerationMatch`.
+  - Huella `a6c4d7f0955b4979`, con `--gastos --copia-vieja`.
+- **Qué se borró:**
+
+  | Qué | Cuántos |
+  | --- | --- |
+  | Ventas | 6 |
+  | Clientes | 15 |
+  | Portales | 2, con 5 comentarios |
+  | Tareas | 18, con 65 registros de historial |
+  | Gastos | 8 |
+  | Copia vieja `loopa/*` de tooned-os | 5 documentos |
+  | Archivos de Storage | 44 |
+
+  - El contador `loopa_counters/sales.next` volvió a 1001; el resto de ese documento quedó igual.
+  - Al terminar, el script volvió a leer todo y confirmó que quedó en cero.
+- **Quedan:** usuarios, tableros, equipo, servicios, configuración, el registro de la migración (`loopa_migrations`) y el portfolio.
+- **Pruebas:** 6 sin red (`vaciar.test.cjs`) y 1 en el emulador (`vaciar-commit.test.cjs`). En total: 271 sin red y 36 en el emulador.
