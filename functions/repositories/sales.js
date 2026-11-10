@@ -150,7 +150,7 @@ async function createSale(store, draft, { now = () => new Date().toISOString() }
   if (!['draft', 'confirmed'].includes(draft.status)) problems.push(issue('sale.status.create', 'status', 'Una venta nace como borrador o confirmada'));
   if (hasErrors(problems)) throw new ContractError(problems, 'Venta inválida');
 
-  return retryOnContention(() => store.transaction(async tx => {
+  const result = await retryOnContention(() => store.transaction(async tx => {
     const counter = await tx.get(COUNTERS, 'sales');
     const existing = await tx.get(COLLECTIONS.sales, draft.id);
     const client = await tx.get(CLIENTS, draft.client.clientId);
@@ -180,6 +180,21 @@ async function createSale(store, draft, { now = () => new Date().toISOString() }
       eventId = event.eventId;
     }
     return { status: 'created', n: doc.n, eventId, sale: doc };
+  }));
+  // La ficha queda marcada como referenciada por ventas: las reglas no dejan
+  // borrarla (su id no puede quedar libre para otro tablero). Va en su propia
+  // transacción, chica e idempotente, y NO en la del correlativo: varias
+  // ventas simultáneas del mismo cliente nuevo bloqueaban dos documentos
+  // calientes a la vez (visto en el emulador). Corre también cuando la venta
+  // ya existía, así reintentar la misma venta completa una marca fallida.
+  await markClientWithSales(store, result.sale.client.clientId);
+  return result;
+}
+
+async function markClientWithSales(store, clientId) {
+  await retryOnContention(() => store.transaction(async tx => {
+    const client = await tx.get(CLIENTS, clientId);
+    if (client && client.hasSales !== true) tx.update(CLIENTS, clientId, { hasSales: true });
   }));
 }
 
@@ -228,6 +243,7 @@ async function updateSale(store, saleId, patch, { expectedVersion, now = () => n
     if (productionChanged) update.revision = next.revision;
     if (patch.status && patch.status !== current.status) update.estadoLog = [...(current.estadoLog || []), { estado: patch.status, ts: at }];
     tx.update(COLLECTIONS.sales, saleId, update);
+    if (clientChanged && newClient.hasSales !== true) tx.update(CLIENTS, patch.client.clientId, { hasSales: true });
 
     let type = productionChanged ? eventTypeFor(current, next) : null;
     // Cancelar una venta que nunca pasó por Producción (histórica o borrador)

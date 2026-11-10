@@ -154,3 +154,17 @@ test('de punta a punta: vender → outbox → worker → tarjeta en Producción'
   const drained = await core.drainSale(store, draft.id, { context: fx.context, now: () => T });
   assert.deepEqual(drained.map(r => r.status), ['needs_attention'], 'cambio de fecha: requiere decisión (relocated)');
 });
+
+test('la ficha de un cliente con ventas queda marcada (las reglas no la dejan borrar)', async () => {
+  const store = freshStore();
+  const draft = draftOf('plan-mensual');
+  const id = draft.client.clientId;
+  assert.equal((await store.get('frame_clients', id)).hasSales, undefined);
+  await repo.createSale(store, draft, { now: () => T });
+  assert.equal((await store.get('frame_clients', id)).hasSales, true);
+  // Cambiar el cliente de la venta marca también la ficha nueva.
+  const otro = Object.keys(fx.context.clients).find(c => c !== id && fx.context.clients[c].workspaceId === fx.context.clients[id].workspaceId);
+  const sale = await store.get(COLLECTIONS.sales, draft.id);
+  await repo.updateSale(store, draft.id, { client: { ...sale.client, clientId: otro, nombre: fx.context.clients[otro].name } }, { expectedVersion: sale.version, now: () => T });
+  assert.equal((await store.get('frame_clients', otro)).hasSales, true);
+});

@@ -247,4 +247,67 @@ Verificación: 133 pruebas con `REQUIRE_FRAME=1` y LOOPA 6/6.
 Las tres mutaciones del adaptador siguen haciendo fallar la suite. Verificación: 141 pruebas sin red, LOOPA 6/6, simulador y migración simulada OK, y 9/9 en el emulador en 3 corridas seguidas.
 
 Queda sin verificar si Firestore real se comporta como el emulador con 20 ventas simultáneas; se mide en la Fase 3. Una CI futura debe correr `correr.cjs` o definir `REQUIRE_EMULATOR=1`: un `node --test` pelado saltea la suite del emulador (con aviso) y sale con 0.
-- **Pendiente, tanda 2.7:** reglas para las colecciones nuevas (`loopa_sales`, eventos, contadores, migraciones; campos de procedencia y `deadline` bloqueados en `frame_projects`), escritas como borrador y probadas en el emulador sin tocar las reglas activas.
+- **Tanda 2.7 (antes pendiente):** reglas para las colecciones nuevas (`loopa_sales`, eventos, contadores, migraciones; campos de procedencia y `deadline` bloqueados en `frame_projects`), escritas como borrador y probadas en el emulador sin tocar las reglas activas.
+
+## 11. Tanda 2.7 · Reglas en borrador (hecha)
+
+- **Borrador** (`integracion/reglas/firestore.rules.borrador`): es la base de reglas de FRAME (`firestore.rules.v2`) copiada tal cual, con los agregados marcados «LOOPA:».
+  - **No se publica.** Sólo se carga en el emulador local.
+  - Las reglas activas de frame-studio-3a18f no se tocaron; publicarlas es parte de la Fase 3 y necesita aprobación.
+- **Ventas** (`loopa_sales`): sólo lectura, y sólo para el equipo comercial (**D15**).
+  - El equipo comercial es una lista `commercialUids` en `loopa_config/access` que mantiene sólo el admin de plataforma.
+  - Crear, editar y cobrar pasa por funciones del servidor (D9): el navegador no escribe ventas.
+- **Outbox, correlativo y migraciones** (`loopa_integration_events`, `loopa_counters`, `loopa_migrations`): cerrados a todo cliente; sólo el Admin SDK escribe.
+- **Tareas** (`frame_projects`):
+  - la procedencia (`sourceSystem`, `sourceSaleId`, `sourceSaleStatus`, `idempotencyKey`…) sólo la escribe el servidor: no se puede crear, cambiar ni quitar desde el navegador;
+  - en una tarea de venta, la entrega (`deadline`) no se edita y la tarea no se borra: se archiva (**D14**);
+  - `clientId` se asigna una sola vez, a una ficha que existe en el mismo tablero, y después no cambia ni se quita;
+  - las tareas manuales conservan las reglas de FRAME.
+- **Fichas** (`frame_clients`):
+  - `commercial`, `legacyLoopaIds` y `hasSales` los escribe sólo el servidor;
+  - una ficha con cualquiera de esos campos no se borra (migrada o con ventas nuevas);
+  - una ficha no se muda de tablero;
+  - El `set()` completo de FRAME sigue valiendo si conserva esos campos. La UI de la Fase 3 debe conservarlos (o usar `update`).
+- **Pruebas:** `integracion/emulador/reglas.test.cjs` tiene 8 pruebas con usuarios de ejemplo (comercial, producción, otro tablero, admin y pendiente).
+  - Siete debilitamientos deliberados del borrador hacen fallar la suite: edición libre, ventas para todos, borrar una tarea de venta, editar lo comercial, crear con procedencia, ficha de otro tablero y contador abierto.
+  - La suite del emulador queda en 17/17: 9 escenarios del almacén y 8 de reglas.
+
+**Revisión independiente de la tanda 2.7:** aprobada con cambios. No encontró ningún camino desde el navegador para:
+- leer ventas o montos sin estar en la lista comercial;
+- falsear o cambiar la procedencia (ni con `set`, `merge`, rutas anidadas, `deleteField` o el flujo de papelera);
+- mover la entrega de una tarea de venta, borrarla o volver a enlazar su `clientId`;
+- tocar el outbox, el correlativo o las migraciones.
+
+Lo que encontró y quedó corregido:
+
+1. **Una ficha con ventas nuevas se podía borrar,** y otro tablero podía ocupar su id. La protección sólo cubría fichas migradas.
+   - Ahora el servidor marca la ficha con `hasSales: true` al crear una venta o al cambiarle el cliente, y la regla la protege igual que `commercial` y `legacyLoopaIds`.
+   - La marca va en una transacción propia, chica e idempotente, y no en la del correlativo. Ponerla en la misma bloqueaba dos documentos calientes a la vez y hacía fallar la prueba de 20 ventas simultáneas en el emulador. Reintentar la misma venta completa una marca fallida.
+2. **Las pruebas eran más débiles de lo que parecía.** Siete debilitamientos pasaban inadvertidos. Ahora las pruebas:
+   - recorren los 10 campos de procedencia, más una ruta anidada;
+   - ponen a un usuario pendiente y a uno rechazado DENTRO de la lista comercial;
+   - usan un miembro de los dos tableros para probar la mudanza de una ficha;
+   - prueban leer otro documento de configuración y cambiar el `id`.
+
+   Resultado: 17 debilitamientos deliberados del borrador hacen fallar la suite.
+3. **Ids `loopa_*` reservados.** Un miembro podía crear antes una tarea con el id determinista de una venta y frenar su producción. Ahora el navegador no puede crear tareas con id `loopa_*`.
+4. **Campo `id`:** en tareas y fichas sólo puede ser el id del documento. Una ficha vieja de FRAME sin `id` puede recibir el suyo, como hace el `set()` de FRAME.
+5. **Encabezado y ADR corregidos:** qué fichas no se borran y qué líneas del encabezado de FRAME se quitaron.
+
+**Cambios que la interfaz necesita en la Fase 3** (el borrador los rechaza, a propósito):
+- **Duplicar una tarea de venta:** la copia debe salir sin procedencia y, si cambia de tablero, sin `clientId`.
+- **Borrar una tarea de venta:** la interfaz no debe ofrecerlo (se archiva, D14). FRAME escribe primero la copia en la papelera y después borra: con la regla nueva el borrado falla y queda una copia fantasma en la papelera, que al restaurarla pisaría la tarea viva. La papelera y el borrado deben ir en un solo lote.
+- **Restaurar de la papelera una tarea cuya ficha se borró:** se rechaza. Hay que restaurarla sin `clientId`.
+- **Editar una ficha con `set()` completo:** debe conservar `commercial`, `legacyLoopaIds` y `hasSales`, o usar `update`.
+
+**Límites:**
+- El límite que importa es el de 1000 expresiones evaluadas por pedido, no el de lecturas de documentos.
+- El flujo real de FRAME de compartir con 4 tableros pasa igual que hoy.
+- Compartir con 5 tableros ya lo rechazan las reglas activas de FRAME.
+- Lo que el borrador sí rechaza nadie lo hace hoy: un cambio de acceso a 4 tableros junto con un enlace de ficha, o 10 o más enlaces a fichas distintas en un mismo lote.
+
+**Verificación:** 142 pruebas sin red y 17/17 en el emulador (9 del almacén y 8 de reglas) en varias corridas seguidas.
+
+**Sin verificar:**
+- si en producción hay fichas sin `id` o con otro distinto;
+- las reglas de Storage, que usan `viewerIds`.
