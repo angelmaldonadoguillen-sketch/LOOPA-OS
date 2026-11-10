@@ -47,6 +47,7 @@ const LoopaFuente = (function () {
     service_not_for_client: 'Ese acuerdo especial es de otro cliente.',
     config_missing: 'Falta la configuración de producción en el servidor.',
     payment_conflict: 'Ya hay otro cobro con ese id.',
+    workspace_forbidden: 'Tu cuenta no es miembro de un tablero de producción: pedile al admin que te agregue.',
     payment_exceeds_total: 'El cobro supera el saldo de la venta.',
     sale_cancelled: 'La venta está cancelada: reactivala antes de cambiarla.',
     invalid_transition: 'Ese cambio de estado no está permitido.',
@@ -62,7 +63,7 @@ const LoopaFuente = (function () {
     // version_conflict o un id repetido no se arreglan reintentando.
     const transitorio = TRANSITORIOS.includes(tipo) || (tipo === 'aborted' && codigo === 'aborted');
     const base = tipo === 'red' || tipo === 'unavailable' ? 'Sin conexión con el servidor. Se reintenta solo.'
-      : tipo === 'permission-denied' ? 'Tu cuenta no tiene permiso para este cambio.'
+      : tipo === 'permission-denied' ? 'Tu cuenta no tiene permiso para esto (¿está en el equipo comercial?).'
       : tipo === 'unauthenticated' ? 'Tu sesión se cerró: volvé a iniciar sesión.'
       : '';
     const mensaje = MENSAJES[codigo] || base || String(e.message || 'Error del servidor').slice(0, 300);
@@ -167,6 +168,7 @@ const LoopaFuente = (function () {
     async function correr() {
       let hizo = false;
       for (;;) {
+        if (detenida) break; // la pantalla que la creó ya no está (otra persona)
         const st = cargar();
         const e = st.entradas[0];
         if (!e || e.error) break;
@@ -207,7 +209,9 @@ const LoopaFuente = (function () {
 
     let corriendo = null;
     let otraVez = false;
+    let detenida = false;
     function procesar() {
+      if (detenida) return Promise.resolve(resumen());
       if (corriendo) { otraVez = true; return corriendo; }
       corriendo = Promise.resolve(exclusivo(async () => {
         let hizo = false;
@@ -257,7 +261,11 @@ const LoopaFuente = (function () {
       return e;
     }
 
-    return { encolar, procesar, reintentar, descartar, estado: resumen, ocupada: () => !!corriendo, sesion, _estado: cargar };
+    // Al cerrar sesión o cambiar de persona: no se manda nada más desde esta
+    // cola (lo pendiente queda guardado para cuando vuelva esa persona).
+    const detener = () => { detenida = true; };
+
+    return { encolar, procesar, reintentar, descartar, detener, estado: resumen, ocupada: () => !!corriendo, sesion, _estado: cargar };
   }
 
   // ── Adaptador HTTP (servidor local de integracion/servidor-local) ──
@@ -288,6 +296,48 @@ const LoopaFuente = (function () {
     };
   }
 
-  return { armarDatos, crearCola, normalizarError, adaptadorHttp, CLAVE };
+  // ── Adaptador Firebase (tanda 3.4) ──────────────────────────────
+  // Lee como el equipo comercial bajo las reglas (en borrador) y escribe
+  // SÓLO llamando a las funciones del servidor. No importa el SDK: recibe
+  // cuatro primitivas (las arma la app con el SDK compat, o las pruebas con
+  // el modular), cada una devuelve objetos planos { id, ...datos }.
+  //   leerDoc(col, id) → doc | null
+  //   leerColeccion(col) → [doc]
+  //   consultarIgual(col, campo, valor) → [doc]
+  //   invocar(nombre, data) → resultado (lanza el HttpsError tal cual)
+  //   escucharColeccion(col, alCambiar, alError) → dejar de escuchar (opcional)
+  // Las fichas se piden por tablero de producción (las reglas dejan leer las
+  // fichas de los tableros donde la persona es miembro).
+  function adaptadorFirebase({ leerDoc, leerColeccion, consultarIgual, invocar, escucharColeccion }) {
+    return {
+      async leer() {
+        const cfg = await leerDoc('loopa_config', 'production');
+        const tableros = cfg && Array.isArray(cfg.allowedWorkspaceIds) ? [...new Set(cfg.allowedWorkspaceIds.filter(w => typeof w === 'string' && w))] : [];
+        if (!tableros.length) throw Object.assign(new Error('Falta la configuración de producción (loopa_config/production)'), { code: 'failed-precondition', details: { code: 'config_missing' } });
+        // Si la persona no es miembro de un tablero de producción, las reglas
+        // rechazan esa consulta: se dice cuál, en vez de un «sin permiso» vago.
+        const fichasDe = (w) => consultarIgual('frame_clients', 'workspaceId', w).catch((err) => {
+          const t = normalizarError(err).tipo;
+          if (t !== 'permission-denied') throw err;
+          throw Object.assign(new Error(`No sos miembro del tablero de producción «${w}»`), { code: 'permission-denied', details: { code: 'workspace_forbidden' } });
+        });
+        const [sales, services, ...porTablero] = await Promise.all([
+          leerColeccion('loopa_sales'),
+          leerColeccion('loopa_services'),
+          ...tableros.map(fichasDe),
+        ]);
+        // Una ficha no aparece dos veces aunque dos tableros la devolvieran.
+        const vistos = new Set();
+        const clients = porTablero.flat().filter(c => (vistos.has(c.id) ? false : vistos.add(c.id)));
+        return { sales, services, clients };
+      },
+      async llamar(op) { return invocar(op.fn, op.data); },
+      // Ventas en vivo: lo que hace el disparador (producción) y lo que
+      // cambian otras personas aparece sin recargar.
+      escucharVentas: typeof escucharColeccion === 'function' ? (alCambiar, alError) => escucharColeccion('loopa_sales', alCambiar, alError) : null,
+    };
+  }
+
+  return { armarDatos, crearCola, normalizarError, adaptadorHttp, adaptadorFirebase, CLAVE };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = LoopaFuente;

@@ -123,6 +123,16 @@ y nunca duplica.
       node integracion/servidor-local/servidor.cjs
       → http://127.0.0.1:8790/?datos=fusion&produccion=demo
 
+  Con Firebase emulado (Auth + Firestore con las reglas en borrador +
+  Functions; proyecto demo, nada sale de la PC; requiere Java 21, Firebase CLI
+  y `cd functions && npm ci --ignore-scripts`):
+
+      node integracion/emulador/arrancar-fusion.cjs
+      → http://127.0.0.1:8791/?datos=fusion&servidor=emulador&produccion=demo
+
+  Cuentas de prueba: ver integracion/emulador/siembra.cjs. Pruebas de punta a
+  punta: `node integracion/emulador/correr.cjs --funciones`.
+
 Nada de esto cambia `index.html` ni escribe en Firebase. Las decisiones están
 en `integracion/ADR-0001-fusion-loopa-os.md` (producción) y
 `integracion/ADR-0002-modelo-unificado-y-migracion.md` (datos y migración).

@@ -152,6 +152,7 @@ const html = `<!doctype html><!-- LOOPA OS v3.1 · base TOONED OS v2.8 -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
 <script>
   // ══ CONECTAR LA NUBE ══════════════════════════════════════════
   // Proyecto Firebase de LOOPA (heredado de TOONED: id interno "tooned-os").
@@ -166,7 +167,9 @@ const html = `<!doctype html><!-- LOOPA OS v3.1 · base TOONED OS v2.8 -->
     appId: "1:193761852127:web:ba8d049866d581920e076a"
   };
   // ═══════════════════════════════════════════════════════════════
-  window.USE_FB = !!(window.LOOPA_FIREBASE.apiKey && window.firebase);
+  // Con ?datos=fusion (pruebas de la fusión en este equipo) la app de Firebase
+  // de siempre NI se inicia: nada habla con el proyecto real.
+  window.USE_FB = !!(window.LOOPA_FIREBASE.apiKey && window.firebase) && !/[?&]datos=fusion(&|$)/.test(window.location.search);
   if (window.USE_FB) {
     firebase.initializeApp(window.LOOPA_FIREBASE);
     window.db = firebase.firestore();

@@ -241,3 +241,68 @@ También se corrigió:
 - Conflicto con otra persona: aviso «No se guardó». Al descartar, la pantalla volvió a lo que tiene el servidor.
 - Corte de red: aviso «Sin guardar»; el cambio sobrevivió a recargar la página y se guardó solo al volver la red.
 - Sin la bandera, LOOPA guarda como siempre en este navegador.
+
+
+## 10. Tanda 3.4 · Las pantallas con Firebase, en emuladores (hecha)
+
+Con `?datos=fusion&servidor=emulador`, LOOPA usa Firebase tal cual: inicio de sesión (Auth), lecturas bajo las reglas en borrador (Firestore) y escrituras sólo por las funciones del codebase «loopa» (Functions). Por ahora sólo contra los **emuladores** de este equipo (proyecto `demo-loopa`, que no existe en la nube). Conectar el proyecto real es el punto A.
+
+**Piezas:**
+- `_fuente/datos/fuente.js` → `adaptadorFirebase`: recibe primitivas (leer un documento, una colección, consultar, invocar, escuchar). No importa el SDK: la app le pasa el compat y las pruebas el modular.
+  - Lee `loopa_config/production` y, con eso, las fichas **por tablero de producción**: nunca toda la colección, que las reglas no dejan leer.
+  - Lee ventas y catálogo.
+  - Escucha las ventas en vivo: lo que hace el disparador (producción) y los cambios de otras personas aparecen sin recargar.
+  - Escribe sólo llamando a las funciones.
+- `_fuente/app.jsx`:
+  - una app de Firebase **aparte** (`loopa-fusion`, demo), conectada a los emuladores antes de usarse;
+  - inicio de sesión con el Auth del emulador;
+  - cola por modo y por persona;
+  - la pantalla se rearma al cambiar de persona.
+- `integracion/emulador/`:
+  - `correr.cjs --funciones` corre `funciones.test.cjs` con Auth + Firestore + Functions;
+  - `arrancar-fusion.cjs` deja todo levantado para el navegador (`http://127.0.0.1:8791/?datos=fusion&servidor=emulador&produccion=demo`);
+  - `siembra.cjs` carga los datos de ejemplo y las cuentas de prueba, que existen sólo en el emulador;
+  - `entorno.cjs` arma el entorno de Java compartido.
+- `firebase.emulador.json` (raíz): configuración SÓLO para emuladores. Apunta a las reglas en borrador y al codebase «loopa». El `firebase.json` de publicación no cambió.
+- Reglas en borrador: el equipo comercial puede leer `loopa_config/production` (sólo ids de tableros).
+
+**Requisito nuevo para el punto C:** las personas del equipo comercial deben ser **miembros** de los tableros de producción. Las reglas sólo dejan leer las fichas de cliente de los tableros propios.
+
+**Probado:**
+- `funciones.test.cjs`: 5 pruebas contra los emuladores.
+  - Lectura bajo las reglas.
+  - Quien no es comercial, o no inició sesión, no lee ni vende.
+  - Venta por la cola → funciones → disparador → tarjetas, y la venta en vivo con su producción lista.
+  - Cambio, cobro, nota con respuesta perdida y conflicto.
+  - La app no escribe ventas ni catálogo directo.
+- Navegador (emulador):
+  - inicio de sesión con la cuenta de prueba;
+  - venta nueva (el servidor asignó el #1006);
+  - la ficha pasó sola de «en preparación» a «1 tarea en el tablero».
+
+**Revisión independiente de la tanda 3.4:** 5 problemas confirmados y varios riesgos. Todo está corregido, con prueba:
+
+1. **Las ventas en vivo cancelaban la recarga completa,** y un cliente o servicio descartado podía quedar en pantalla. Ahora hay contadores separados: la escucha sólo compite con las ventas.
+2. **Al volver a iniciar sesión, la cola seguía trabada en «Tu sesión se cerró».** Ahora, con sesión, lo que falló por falta de sesión se reintenta solo. Antes de cerrar sesión con cambios sin enviar, se avisa.
+3. **`arrancar-fusion.cjs` podía dejar emuladores huérfanos.** Ahora revisa que los puertos estén libres antes de arrancar y se apaga ordenado ante cualquier error. En Linux y Mac baja todo el grupo de procesos.
+4. **Con `?servidor=emulador` sin el SDK (sin red), la app volvía en silencio a la de siempre,** que puede ser la nube real. Ahora `?datos=fusion` nunca cae a la app de siempre: si no se puede, muestra un aviso. Además, con la bandera la app de Firebase de siempre ni se inicia.
+5. **La cola que quedó de la 3.3** (otra clave) se pasa a la nueva.
+
+Riesgos corregidos:
+- Cada llamada sale sólo con la sesión dueña de la cola, y la cola se detiene al cambiar de persona. El candado es por persona.
+- Si la persona no es miembro de un tablero de producción: «Tu cuenta no es miembro de un tablero de producción», en vez de un «sin permiso» vago. Los tableros repetidos se consultan una vez. Una lista vacía da `config_missing`.
+- `firebase.emulador.json` tiene una guarda: publicar con esa configuración en un proyecto que no sea `demo-*` se detiene antes de tocar nada (probado).
+- `loopa_config/production` tiene forma cerrada en las reglas en borrador, porque la lee el equipo comercial.
+- Si la escucha en vivo se cae, se reintenta a los 30 s.
+- Si llega en vivo una venta de un cliente o servicio desconocido, se recarga todo.
+
+**Queda para después:**
+- Al arrancar, las ventas se leen dos veces: la carga y la primera escucha.
+- Configuración y gastos (`loopa-fusion-*`) se comparten entre personas en el mismo navegador, hasta que tengan funciones del servidor.
+- El SDK de Functions se carga también en la app publicada. Es inofensivo, pero sobra hasta el punto A.
+
+**Pruebas:**
+- `funciones.test.cjs`: 7 pruebas con Firebase emulado.
+- Pruebas de la tanda: 26 en `fuente.test.cjs`.
+- Suites generales: 208 sin red, 22 en el emulador de siempre y LOOPA 6/6.
+- Navegador: sólo existe la app de Firebase de la fusión (la de siempre no se inició). Cambio de estado guardado, con la cola por persona.

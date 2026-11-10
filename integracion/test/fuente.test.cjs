@@ -542,7 +542,7 @@ test('las pantallas (revisión 3.3): lo que la revisión pidió sigue en su luga
   assert.ok(/<button className="linkbtn" onClick=\{onDescartar\}>Descartar…<\/button>/.test(app) && !app.includes('!e.transitorio && <button'), 'descartar siempre disponible');
   assert.ok(app.includes("else setClientes(prev => [{ id: armado.clienteId, ...datos"), 'el cliente nuevo entra a la lista al vender');
   assert.ok(app.includes('if (mia !== lectura.current'), 'una lectura vieja no pisa la pantalla');
-  assert.ok(app.includes("window.navigator.locks.request('loopa-fusion-cola'"), 'una pestaña a la vez');
+  assert.ok(app.includes('window.navigator.locks.request(claveCola(usuarioFusion)'), 'una pestaña a la vez (por persona)');
   assert.ok(app.includes('colaEstado.error.intentos >= 5'), 'reintentos automáticos limitados');
   assert.ok(app.includes('if (enviando.current) return;'), 'doble clic en registrar');
 });
@@ -565,4 +565,95 @@ test('cadena de versiones: un cambio de OTRA pestaña no sigue los saltos de és
   assert.equal(st.error && st.error.etiqueta, 'B (pestaña 2, sin ver A)');
   assert.equal(st.error.codigo, 'version_conflict');
   assert.equal((await store.get('loopa_sales', v.id)).commercial.nota, 'A');
+});
+
+test('adaptadorFirebase: lee por tablero de producción, sin duplicar, y sólo escribe llamando', async () => {
+  const pedidos = [];
+  const docs = {
+    'loopa_config/production': { id: 'production', allowedWorkspaceIds: ['ws1', 'ws2', '', 7] },
+  };
+  const prim = {
+    leerDoc: async (c, id) => { pedidos.push(`doc:${c}/${id}`); return docs[`${c}/${id}`] || null; },
+    leerColeccion: async (c) => { pedidos.push(`col:${c}`); return [{ id: `${c}-1` }]; },
+    consultarIgual: async (c, campo, v) => { pedidos.push(`q:${c}.${campo}==${v}`); return [{ id: 'cl-compartida', workspaceId: v }, { id: `cl-${v}`, workspaceId: v }]; },
+    invocar: async (n, data) => ({ n, data }),
+  };
+  const api = LoopaFuente.adaptadorFirebase(prim);
+  const r = await api.leer();
+  assert.deepEqual(pedidos.sort(), ['col:loopa_sales', 'col:loopa_services', 'doc:loopa_config/production', 'q:frame_clients.workspaceId==ws1', 'q:frame_clients.workspaceId==ws2'], 'nunca toda la colección de fichas; ids raros fuera');
+  assert.deepEqual(r.clients.map(c => c.id), ['cl-compartida', 'cl-ws1', 'cl-ws2'], 'una ficha no aparece dos veces');
+  assert.deepEqual(await api.llamar({ fn: 'loopaUpdateSale', data: { x: 1 } }), { n: 'loopaUpdateSale', data: { x: 1 } });
+  assert.equal(api.escucharVentas, null, 'sin primitiva de escucha, no hay vivo');
+  // Sin configuración de producción: error claro, no una lista vacía.
+  delete docs['loopa_config/production'];
+  const e = await api.leer().catch(x => x);
+  assert.equal(LoopaFuente.normalizarError(e).codigo, 'config_missing');
+  assert.equal(LoopaFuente.normalizarError(e).transitorio, false);
+  // Con escucha: sólo ventas.
+  const vistos = [];
+  const api2 = LoopaFuente.adaptadorFirebase({ ...prim, escucharColeccion: (c, cb) => { vistos.push(c); cb([{ id: 's' }]); return () => {}; } });
+  let llego = null;
+  const dejar = api2.escucharVentas(s => { llego = s; });
+  assert.deepEqual(vistos, ['loopa_sales']);
+  assert.deepEqual(llego, [{ id: 's' }]);
+  assert.equal(typeof dejar, 'function');
+});
+
+test('adaptadorFirebase (revisión 3.4): tablero sin permiso, lista vacía y tableros repetidos', async () => {
+  const consultas = [];
+  const base = {
+    leerDoc: async () => ({ id: 'production', allowedWorkspaceIds: ['ws1', 'ws1', 'ws-ajeno'] }),
+    leerColeccion: async () => [],
+    consultarIgual: async (c, campo, v) => {
+      consultas.push(v);
+      if (v === 'ws-ajeno') throw Object.assign(new Error('Missing or insufficient permissions.'), { code: 'permission-denied' });
+      return [];
+    },
+    invocar: async () => ({}),
+  };
+  const e = await LoopaFuente.adaptadorFirebase(base).leer().catch(x => x);
+  const n = LoopaFuente.normalizarError(e);
+  assert.equal(n.codigo, 'workspace_forbidden');
+  assert.match(n.mensaje, /miembro/);
+  assert.deepEqual(consultas.sort(), ['ws-ajeno', 'ws1'], 'un tablero repetido se consulta una vez');
+  const vacia = await LoopaFuente.adaptadorFirebase({ ...base, leerDoc: async () => ({ allowedWorkspaceIds: [] }) }).leer().catch(x => x);
+  assert.equal(LoopaFuente.normalizarError(vacia).codigo, 'config_missing', 'sin tableros: error claro, no una lista vacía');
+  const otro = await LoopaFuente.adaptadorFirebase({ ...base, consultarIgual: async () => { throw Object.assign(new Error('x'), { code: 'unavailable' }); } }).leer().catch(x => x);
+  assert.equal(LoopaFuente.normalizarError(otro).tipo, 'unavailable', 'otros errores pasan tal cual');
+});
+
+test('cola: detener — al cambiar de persona no se manda nada más', async () => {
+  const a = almacen();
+  const vistas = [];
+  let soltar;
+  const traba = new Promise(r => { soltar = r; });
+  const cola = LoopaFuente.crearCola({ almacen: a, llamar: async (op) => { vistas.push(op.data.k); if (op.data.k === 'A') await traba; return {}; } });
+  cola.encolar({ etiqueta: 'A', ops: [{ fn: 'f', data: { k: 'A' } }] });
+  cola.encolar({ etiqueta: 'B', ops: [{ fn: 'f', data: { k: 'B' } }] });
+  for (let i = 0; i < 10 && !vistas.length; i += 1) await new Promise(r => setImmediate(r)); // A en vuelo
+  cola.detener();
+  soltar();
+  await cola.procesar();
+  await new Promise(r => setImmediate(r));
+  assert.deepEqual(vistas, ['A'], 'la que estaba en vuelo termina; la siguiente no sale');
+  assert.equal(cola.estado().pendientes, 1, 'B queda guardada para cuando vuelva esa persona');
+  const otraVez = LoopaFuente.crearCola({ almacen: a, llamar: async (op) => { vistas.push(op.data.k); return {}; } });
+  await otraVez.procesar();
+  assert.deepEqual(vistas, ['A', 'B']);
+});
+
+test('las pantallas (revisión 3.4): nunca se cae a la app de siempre ni a la nube', () => {
+  const app = fs.readFileSync(path.join(ROOT, '_fuente', 'app.jsx'), 'utf8');
+  const build = fs.readFileSync(path.join(ROOT, '_fuente', 'build.js'), 'utf8');
+  assert.ok(app.includes("return 'no-disponible'; // sólo en este equipo"), 'fuera de este equipo: aviso, no la app de siempre');
+  assert.ok(app.includes("return window.firebase && window.firebase.functions ? 'emulador' : 'no-disponible';"), 'sin SDK de Functions: aviso');
+  assert.ok(app.includes("if (DATOS_FUSION === 'no-disponible') return ("), 'la pantalla de aviso existe');
+  assert.ok(build.includes("&& !/[?&]datos=fusion(&|$)/.test(window.location.search)"), 'con la bandera no se inicia la app de Firebase de siempre');
+  assert.ok(app.includes('FUSION_FB.auth.currentUser.uid === usuarioFusion ? FUSION_API.llamar(op)'), 'cada llamada con la sesión dueña');
+  assert.ok(app.includes('if (vivoAlEmpezar === vivo.current) setVentas(d.ventas);'), 'las ventas en vivo no cancelan la recarga de clientes y servicios');
+  assert.ok(app.includes("cola.current.detener()"), 'al salir, la cola se detiene');
+  const emu = JSON.parse(fs.readFileSync(path.join(ROOT, 'firebase.emulador.json'), 'utf8'));
+  assert.ok(emu.functions[0].predeploy[0].includes('^demo-') && emu.firestore.predeploy[0].includes('^demo-'), 'la configuración de emuladores no se publica');
+  const real = JSON.parse(fs.readFileSync(path.join(ROOT, 'firebase.json'), 'utf8'));
+  assert.equal(real.firestore, undefined, 'el firebase.json de publicación no publica reglas');
 });

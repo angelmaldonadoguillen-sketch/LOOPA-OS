@@ -1,0 +1,43 @@
+{
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "loopa",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local",
+        "*.log"
+      ],
+      "predeploy": [
+        "node -e \"if(!/^demo-/.test(process.env.GCLOUD_PROJECT||'')){console.error('firebase.emulador.json es SOLO para emuladores (proyecto demo-*): no se publica con esta configuracion');process.exit(1)}\""
+      ]
+    }
+  ],
+  "firestore": {
+    "rules": "integracion/reglas/firestore.rules.borrador",
+    "predeploy": [
+      "node -e \"if(!/^demo-/.test(process.env.GCLOUD_PROJECT||'')){console.error('firebase.emulador.json es SOLO para emuladores (proyecto demo-*): no se publica con esta configuracion');process.exit(1)}\""
+    ]
+  },
+  "emulators": {
+    "firestore": {
+      "host": "127.0.0.1",
+      "port": 8085
+    },
+    "functions": {
+      "host": "127.0.0.1",
+      "port": 5001
+    },
+    "auth": {
+      "host": "127.0.0.1",
+      "port": 9099
+    },
+    "ui": {
+      "enabled": false
+    },
+    "singleProjectMode": false
+  }
+}

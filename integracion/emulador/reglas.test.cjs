@@ -81,6 +81,7 @@ async function seed() {
     // pend y rej están en la lista a propósito: sin aprobación no alcanza.
     await put('loopa_config', 'access', { commercialUids: ['u1', 'pend', 'rej'] });
     await put('loopa_config', 'otro', { secreto: true });
+    await put('loopa_config', 'production', { defaultWorkspaceId: 'ws1', allowedWorkspaceIds: ['ws1'] });
     await put('loopa_integration_events', 'e1', { eventId: 'e1', status: 'done' });
     await put('loopa_counters', 'sales', { next: 1043 });
     await put('loopa_migrations', 'run-a', { status: 'done' });
@@ -134,6 +135,11 @@ test('quién es comercial lo decide sólo el admin de plataforma', { skip }, asy
   await no(fsMod.setDoc(ref(as('adm'), 'loopa_config', 'access'), { commercialUids: ['u1'], extra: true }), 'campos extra');
   await no(fsMod.deleteDoc(ref(as('adm'), 'loopa_config', 'access')), 'no se borra');
   await no(fsMod.getDoc(ref(as('u1'), 'loopa_config', 'otro')), 'un comercial sólo ve la lista, no otra configuración');
+  await ok(fsMod.getDoc(ref(as('u1'), 'loopa_config', 'production')), 'comercial ve qué tableros son de producción');
+  await no(fsMod.getDoc(ref(as('u3'), 'loopa_config', 'production')), 'no comercial: no');
+  await ok(fsMod.setDoc(ref(as('adm'), 'loopa_config', 'production'), { defaultWorkspaceId: 'ws1', allowedWorkspaceIds: ['ws1'] }), 'admin configura tableros');
+  await no(fsMod.setDoc(ref(as('adm'), 'loopa_config', 'production'), { defaultWorkspaceId: 'ws1', allowedWorkspaceIds: ['ws1'], secreto: 'x' }), 'production no lleva otros campos (lo lee el equipo comercial)');
+  await no(fsMod.setDoc(ref(as('u1'), 'loopa_config', 'production'), { defaultWorkspaceId: 'ws1', allowedWorkspaceIds: ['ws1', 'ws9'] }), 'un comercial no cambia tableros');
 });
 
 test('tarea de una venta: el equipo la trabaja, pero no toca procedencia, entrega ni la borra', { skip }, async () => {

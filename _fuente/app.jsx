@@ -124,22 +124,53 @@ function downloadCSV(name, headers, rows) {
   downloadFile(name, csv, 'text/csv;charset=utf-8;');
 }
 
-// ─── Datos de la fusión (Fase 3, tanda 3.3) ───
+// ─── Datos de la fusión (Fase 3, tandas 3.3 y 3.4) ───
 // ?datos=fusion → ventas, clientes y servicios vienen del modelo nuevo y se
 // guardan SÓLO a través del servidor, con una cola persistente (se reintenta
-// sola si se corta la red; ver _fuente/datos/fuente.js). Por ahora sólo con
-// el servidor local de integracion/servidor-local (este equipo, 127.0.0.1):
-// la conexión al proyecto real llega con la puesta en marcha (ADR-0004).
+// sola si se corta la red; ver _fuente/datos/fuente.js). Por ahora sólo en
+// este equipo (127.0.0.1 / localhost):
+//   ?datos=fusion                    servidor local (integracion/servidor-local)
+//   ?datos=fusion&servidor=emulador  emuladores de Firebase (Auth, Firestore
+//                                    con las reglas en borrador, Functions):
+//                                    integracion/emulador/arrancar-fusion.cjs
+// La conexión al proyecto real llega con la puesta en marcha (ADR-0004 §4 A).
 // Sin la bandera, LOOPA funciona exactamente como siempre.
 const DATOS_FUSION = (() => {
   try {
-    if (new URLSearchParams(window.location.search).get('datos') !== 'fusion') return null;
-    if (['127.0.0.1', 'localhost', '[::1]'].includes(window.location.hostname)) return 'local';
-    console.warn('?datos=fusion sólo funciona con el servidor local (127.0.0.1)');
-    return null;
-  } catch (e) { return null; }
+    const q = new URLSearchParams(window.location.search);
+    if (q.get('datos') !== 'fusion') return null;
+    if (!['127.0.0.1', 'localhost', '[::1]'].includes(window.location.hostname)) {
+      return 'no-disponible'; // sólo en este equipo: nunca cae a la app de siempre
+    }
+    if (q.get('servidor') !== 'emulador') return 'local';
+    // Sin el SDK de Functions (sin red, CDN bloqueado) no hay emulador: se
+    // avisa, no se sigue con la app de siempre.
+    return window.firebase && window.firebase.functions ? 'emulador' : 'no-disponible';
+  } catch (e) { return 'no-disponible'; }
 })();
-const FUSION_API = DATOS_FUSION ? LoopaFuente.adaptadorHttp((...a) => window.fetch(...a), '') : null;
+// Emuladores: una app de Firebase APARTE (proyecto demo-*, que no existe en
+// la nube), nunca la de la colección «loopa».
+const FUSION_FB = DATOS_FUSION === 'emulador' ? (() => {
+  const app = firebase.initializeApp({ projectId: 'demo-loopa', apiKey: 'demo-api-key', authDomain: 'demo-loopa.firebaseapp.com' }, 'loopa-fusion');
+  app.auth().useEmulator('http://127.0.0.1:9099');
+  const db = app.firestore();
+  db.useEmulator('127.0.0.1', 8085);
+  const functions = app.functions('us-central1');
+  functions.useEmulator('127.0.0.1', 5001);
+  return { app, auth: app.auth(), db, functions };
+})() : null;
+const planoFb = (d) => ({ id: d.id, ...d.data() });
+const FUSION_API = DATOS_FUSION === 'emulador'
+  ? LoopaFuente.adaptadorFirebase({
+    leerDoc: async (c, id) => { const d = await FUSION_FB.db.collection(c).doc(id).get(); return d.exists ? planoFb(d) : null; },
+    leerColeccion: async (c) => (await FUSION_FB.db.collection(c).get()).docs.map(planoFb),
+    consultarIgual: async (c, campo, v) => (await FUSION_FB.db.collection(c).where(campo, '==', v).get()).docs.map(planoFb),
+    invocar: async (n, data) => (await FUSION_FB.functions.httpsCallable(n)(data)).data,
+    escucharColeccion: (c, alCambiar, alError) => FUSION_FB.db.collection(c).onSnapshot(q => alCambiar(q.docs.map(planoFb)), alError),
+  })
+  : DATOS_FUSION ? LoopaFuente.adaptadorHttp((...a) => window.fetch(...a), '') : null;
+// Cada modo con su cola (y cada persona: la cola es de quien inició sesión).
+const claveCola = (uid) => `${LoopaFuente.CLAVE}-${DATOS_FUSION}${uid ? `-${uid}` : ''}`;
 const nuevoIdFusion = () => (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID()
   : 'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g, () => Math.floor(Math.random() * 16).toString(16)));
 const confirmarCancelar = (v) => ({
@@ -2410,7 +2441,7 @@ function Configuracion({ config, setConfig, allData, onImport, showToast }) {
             <div className="field">
               <label>Dónde se guardan los datos</label>
               <div className="mono" style={{ fontSize: 'var(--fs-s)', lineHeight: 1.7, color: window.USE_FB ? 'var(--ok)' : 'var(--warn)' }}>
-                {DATOS_FUSION ? '● Fusión · ventas, clientes y servicios en el servidor local; configuración y gastos sólo en este navegador' : window.USE_FB ? '● Nube (Firebase) · sincronizado entre dispositivos' : '● Modo local · solo en este navegador'}
+                {DATOS_FUSION ? `● Fusión · ventas, clientes y servicios en ${DATOS_FUSION === 'emulador' ? 'los emuladores de Firebase' : 'el servidor local'}; configuración y gastos sólo en este navegador` : window.USE_FB ? '● Nube (Firebase) · sincronizado entre dispositivos' : '● Modo local · solo en este navegador'}
               </div>
               {!window.USE_FB && <div className="muted" style={{ fontSize: 'var(--fs-s)', lineHeight: 1.6 }}>Para usarlo desde el celular y la compu con los mismos datos, conectá Firebase (instrucciones en <span className="mono">LEEME.md</span>). Mientras tanto, descargá respaldos seguido.</div>}
             </div>
@@ -2472,7 +2503,7 @@ function LoginScreen() {
   const tryLogin = async () => {
     if (!email.trim() || !password || submitting) return;
     setSubmitting(true); setErrorMsg('');
-    try { await firebase.auth().signInWithEmailAndPassword(email.trim(), password); }
+    try { await (FUSION_FB ? FUSION_FB.auth : firebase.auth()).signInWithEmailAndPassword(email.trim(), password); }
     catch (e) {
       setErrorMsg(LOOPA_AUTH_ERRORS[e.code] || `Error inesperado (${e.code || e.message})`);
       setPassword(''); setShake(true); setTimeout(() => setShake(false), 500); setSubmitting(false);
@@ -2637,7 +2668,7 @@ function PeriodFilter({ value, onChange }) {
   );
 }
 
-function App({ onLogout }) {
+function App({ onLogout, usuarioFusion = null }) {
   const [route, setRoute] = useState(() => {
     try {
       const r = localStorage.getItem('loopa-route') || 'nueva';
@@ -2664,10 +2695,19 @@ function App({ onLogout }) {
   const confirmadoRef = useRef(() => {});
   if (DATOS_FUSION && !cola.current) {
     const almacen = { leer: (k) => localStorage.getItem(k), escribir: (k, v) => localStorage.setItem(k, v) };
+    // La cola de la tanda 3.3 (servidor local) se llamaba sin modo: se pasa a la nueva.
+    try {
+      const vieja = localStorage.getItem(LoopaFuente.CLAVE);
+      if (DATOS_FUSION === 'local' && vieja && !localStorage.getItem(claveCola(null))) { localStorage.setItem(claveCola(null), vieja); localStorage.removeItem(LoopaFuente.CLAVE); }
+    } catch (e) { /* sin almacenamiento */ }
+    // Con Firebase, cada llamada sale SÓLO con la sesión dueña de esta cola.
+    const llamar = DATOS_FUSION === 'emulador'
+      ? (op) => (FUSION_FB.auth.currentUser && FUSION_FB.auth.currentUser.uid === usuarioFusion ? FUSION_API.llamar(op) : Promise.reject(Object.assign(new Error('Otra sesión'), { code: 'unauthenticated' })))
+      : FUSION_API.llamar;
     cola.current = LoopaFuente.crearCola({
-      llamar: FUSION_API.llamar, almacen, nuevoId: nuevoIdFusion,
+      llamar, almacen, nuevoId: nuevoIdFusion, clave: claveCola(usuarioFusion),
       // Una sola pestaña ejecuta la cola a la vez (las demás esperan el candado).
-      exclusivo: window.navigator && window.navigator.locks ? (fn) => window.navigator.locks.request('loopa-fusion-cola', fn) : undefined,
+      exclusivo: window.navigator && window.navigator.locks ? (fn) => window.navigator.locks.request(claveCola(usuarioFusion), fn) : undefined,
       alCambiar: (e) => setColaEstado(e),
       alConfirmar: (e, res) => confirmadoRef.current(e, res),
       alVaciarse: () => recargarRef.current(),
@@ -2717,7 +2757,11 @@ function App({ onLogout }) {
         if (local('gastos')) setGastos({ ...GASTOS_DEFAULT, ...local('gastos') });
         setReady(true);
         setColaEstado(cola.current.estado());
-        cola.current.procesar(); // retoma lo que quedó sin guardar
+        // Retoma lo que quedó sin guardar; si falló por falta de sesión o con
+        // una sesión vieja, ahora que hay sesión se reintenta.
+        const e0 = cola.current.estado().error;
+        if (e0 && ['unauthenticated', 'permission-denied'].includes(e0.tipo) && e0.codigo !== 'workspace_forbidden') cola.current.reintentar();
+        else cola.current.procesar();
       }).catch(e => { console.error('Carga (fusión):', e); setLoadError(LoopaFuente.normalizarError(e).mensaje); });
       return;
     }
@@ -2810,18 +2854,48 @@ function App({ onLogout }) {
   }, [ventas, gastos, config, tickerPeriod]);
 
   // ── Fusión: recarga, confirmaciones, reintentos ──
-  const lectura = useRef(0);
+  const lectura = useRef(0);   // lecturas completas y cambios encolados
+  const vivo = useRef(0);      // ventas llegadas en vivo
+  const conocidos = useRef({ clientes: new Set(), servicios: new Set() });
+  useEffect(() => { conocidos.current = { clientes: new Set(clientes.map(c => c.id)), servicios: new Set(servicios.map(s => s.id)) }; }, [clientes, servicios]);
   const recargar = () => {
     const mia = ++lectura.current;
+    const vivoAlEmpezar = vivo.current;
     FUSION_API.leer().then(docs => {
       // Una lectura vieja (empezó antes de otra, o antes de un cambio nuevo)
       // no pisa la pantalla; con cambios pendientes se espera a la cola.
       if (mia !== lectura.current || cola.current.estado().pendientes) return;
       const d = LoopaFuente.armarDatos(docs);
-      setVentas(d.ventas); setClientes(d.clientes); setServicios(d.servicios);
-    }).catch(e => console.warn('Recargar (fusión):', e));
+      setClientes(d.clientes); setServicios(d.servicios);
+      // Si mientras tanto llegaron ventas en vivo, esas son más nuevas.
+      if (vivoAlEmpezar === vivo.current) setVentas(d.ventas);
+    }).catch(e => console.warn('Recargar (fusión):', e && e.code));
   };
   recargarRef.current = recargar;
+  // Firebase: las ventas en vivo (con cambios pendientes manda la pantalla;
+  // al vaciarse la cola se recarga todo).
+  const [vivoCaido, setVivoCaido] = useState(0);
+  useEffect(() => {
+    if (!ready || !FUSION_API || !FUSION_API.escucharVentas) return undefined;
+    let reintento = null;
+    const dejar = FUSION_API.escucharVentas(sales => {
+      if (cola.current.estado().pendientes) return;
+      vivo.current += 1;
+      const ventasVivas = LoopaFuente.armarDatos({ sales }).ventas;
+      setVentas(ventasVivas);
+      // Una venta de un cliente o servicio que esta pantalla no conoce
+      // (creado por otra persona): se recarga todo.
+      const k = conocidos.current;
+      if (ventasVivas.some(v => (v.clienteId && !k.clientes.has(v.clienteId)) || v.items.some(i => i.tipoId && !k.servicios.has(i.tipoId)))) recargar();
+    }, e => {
+      // Se cayó la escucha (permisos, red): se vuelve a intentar en 30 s.
+      console.warn('Ventas en vivo (fusión):', e && e.code);
+      reintento = setTimeout(() => setVivoCaido(n => n + 1), 30000);
+    });
+    return () => { clearTimeout(reintento); if (typeof dejar === 'function') dejar(); };
+  }, [ready, vivoCaido]);
+  // Al cerrar sesión o cambiar de persona, esta cola no manda nada más.
+  useEffect(() => () => { if (cola.current) cola.current.detener(); }, []);
   const creadas = useRef({});
   confirmadoRef.current = (e, res) => {
     const r = (res || []).find(x => x && x.n && x.saleId);
@@ -2841,7 +2915,7 @@ function App({ onLogout }) {
     if (!DATOS_FUSION) return;
     const online = () => cola.current.reintentar();
     // Otra pestaña cambió la cola: refrescar el aviso y seguir.
-    const otra = (ev) => { if (ev.key === LoopaFuente.CLAVE) { setColaEstado(cola.current.estado()); cola.current.procesar(); } };
+    const otra = (ev) => { if (ev.key === claveCola(usuarioFusion)) { setColaEstado(cola.current.estado()); cola.current.procesar(); } };
     window.addEventListener('online', online);
     window.addEventListener('storage', otra);
     return () => { window.removeEventListener('online', online); window.removeEventListener('storage', otra); };
@@ -3102,7 +3176,9 @@ function App({ onLogout }) {
             {saveError && <span className="chip" style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }} title="Los últimos cambios no se guardaron. Revisá la conexión.">● Error al guardar</span>}
             <span className="chip mob-hide">{new Date().toLocaleDateString('es-HN', { weekday: 'short', day: '2-digit', month: 'short' }).toUpperCase()}</span>
             <AlertBell ventas={ventas} onOpen={openVenta} />
-            {onLogout && <button className="btn sm ghost" onClick={onLogout} title="Cerrar sesión" style={{ color: 'var(--muted)' }}>⏻</button>}
+            {onLogout && <button className="btn sm ghost" onClick={() => (DATOS_FUSION && colaEstado.pendientes
+              ? uiConfirm({ title: 'Hay cambios sin enviar', message: `${colaEstado.pendientes} cambio(s) todavía no llegaron al servidor. Quedan guardados en este equipo y se envían cuando vuelvas a iniciar sesión.`, confirmLabel: 'Cerrar sesión igual' }).then(ok => { if (ok) onLogout(); })
+              : onLogout())} title="Cerrar sesión" style={{ color: 'var(--muted)' }}>⏻</button>}
           </div>
         </div>
 
@@ -3174,20 +3250,32 @@ function ColaAviso({ estado, onReintentar, onDescartar }) {
   );
   if (estado.sinPersistencia) return <span className="chip" style={{ color: 'var(--warn)', borderColor: 'currentColor' }} title="El navegador no deja guardar la cola (sin espacio o modo privado): si cerrás la página, los cambios sin enviar se pierden.">● Cola sin respaldo{estado.pendientes ? ` · ${estado.pendientes}` : ''}</span>;
   if (estado.pendientes) return <span className="chip" title={estado.etiquetas.join('\n')}>● Guardando {estado.pendientes}…</span>;
-  return <span className="chip mob-hide" title="Datos de la fusión: servidor local de este equipo" style={{ color: 'var(--ok)' }}>● Fusión · local</span>;
+  return <span className="chip mob-hide" title={DATOS_FUSION === 'emulador' ? 'Datos de la fusión: emuladores de Firebase de este equipo (proyecto demo)' : 'Datos de la fusión: servidor local de este equipo'} style={{ color: 'var(--ok)' }}>● Fusión · {DATOS_FUSION === 'emulador' ? 'emulador' : 'local'}</span>;
 }
 
 function Root() {
+  if (DATOS_FUSION === 'no-disponible') return (
+    <div className="boot"><div className="boot-err"><span style={{ color: 'var(--danger)' }}>✕</span><div className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>
+      Los datos de la fusión (?datos=fusion) sólo funcionan en este equipo y, con ?servidor=emulador, con el SDK de Firebase cargado. Abrí LOOPA sin ?datos=fusion para usarlo como siempre.
+    </div></div></div>
+  );
+  return <RootConDatos />;
+}
+
+function RootConDatos() {
   const [authUser, setAuthUser] = useState(null);
-  const [checked, setChecked] = useState(!window.USE_FB || !!DATOS_FUSION);
+  // Con Firebase (el de siempre o el emulador de la fusión) hay que iniciar sesión.
+  const auth = FUSION_FB ? FUSION_FB.auth : (window.USE_FB && DATOS_FUSION !== 'local' ? firebase.auth() : null);
+  const [checked, setChecked] = useState(!auth);
   useEffect(() => {
-    if (!window.USE_FB || DATOS_FUSION) return;
-    return firebase.auth().onAuthStateChanged(u => { setAuthUser(u); setChecked(true); });
+    if (!auth) return;
+    return auth.onAuthStateChanged(u => { setAuthUser(u); setChecked(true); });
   }, []);
-  if (!window.USE_FB || DATOS_FUSION) return <App onLogout={null} />;
+  if (!auth) return <App onLogout={null} />;
   if (!checked) return <div className="boot"><div className="mono dim" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.22em', textTransform: 'uppercase' }}>Verificando sesión…</div></div>;
   if (!authUser) return <LoginScreen />;
-  return <App onLogout={() => firebase.auth().signOut()} />;
+  // key: otra persona = otra App (otra cola, otros datos).
+  return <App key={authUser.uid} usuarioFusion={FUSION_FB ? authUser.uid : null} onLogout={() => auth.signOut()} />;
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<Root />);

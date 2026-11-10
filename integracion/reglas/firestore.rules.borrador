@@ -445,12 +445,21 @@ service cloud.firestore {
 
     // Quién es comercial: lo administra sólo el admin de plataforma.
     match /loopa_config/{doc} {
-      allow read: if isPlatformAdmin() || (doc == 'access' && isCommercial());
+      // El equipo comercial lee la lista y qué tableros son de producción
+      // (sólo ids: la app los necesita para pedir las fichas de cliente).
+      allow read: if isPlatformAdmin() || ((doc == 'access' || doc == 'production') && isCommercial());
       allow create, update: if isPlatformAdmin()
                             && (doc != 'access'
                                 || (request.resource.data.keys().hasOnly(['commercialUids'])
                                     && request.resource.data.commercialUids is list
-                                    && request.resource.data.commercialUids.size() <= 50));
+                                    && request.resource.data.commercialUids.size() <= 50))
+                            // production la lee el equipo comercial: sólo ids
+                            // de tableros, nada más (forma cerrada).
+                            && (doc != 'production'
+                                || (request.resource.data.keys().hasOnly(['defaultWorkspaceId', 'allowedWorkspaceIds'])
+                                    && request.resource.data.defaultWorkspaceId is string
+                                    && request.resource.data.allowedWorkspaceIds is list
+                                    && request.resource.data.allowedWorkspaceIds.size() <= 20));
       allow delete: if false;
     }
 
