@@ -252,3 +252,99 @@ test('FRAME sigue creando y editando fichas con su forma real (createdAt incluid
   await no(fsMod.setDoc(ref(db, 'frame_clients', frame.id), { ...frame, createdAt: '2020-01-01' }), 'createdAt no se reescribe');
   await no(fsMod.setDoc(ref(db, 'frame_clients', 'cl-otra'), { ...frame, id: 'cl-otra', createdBy: 'u1' }), 'el autor lo pone sólo el servidor');
 });
+
+// ── Tanda 3.6: la app de FRAME con sus ajustes (loopa-fusion.js de FRAME) ──
+// Los patrones de escritura de FRAME, armados con las MISMAS funciones que
+// usa FRAME, contra el borrador. Sin el repo de FRAME se saltea (con
+// REQUIRE_FRAME=1, falla).
+const FRAME_REPO = process.env.FRAME_REPO || path.join('C:', 'Users', 'ANGEL M', 'Documents', 'Codex', '2026-08-10', 'realtime-voice-chat', 'work', 'frame-studio-manager');
+const frameFusion = fs.existsSync(path.join(FRAME_REPO, 'loopa-fusion.js')) ? require(path.join(FRAME_REPO, 'loopa-fusion.js')) : null;
+if (!frameFusion && process.env.REQUIRE_FRAME === '1' && EMU) throw new Error(`REQUIRE_FRAME=1 y no está loopa-fusion.js en ${FRAME_REPO}`);
+const skipFrame = skip || (frameFusion ? false : 'sin el repo de FRAME (FRAME_REPO)');
+
+test('FRAME 3.6: borrar va en un lote — una tarea manual se va a la papelera; una de venta, no (y no deja fantasma)', { skip: skipFrame }, async () => {
+  const db = as('u2');
+  // Manual: papelera + borrado juntos.
+  const b1 = fsMod.writeBatch(db);
+  b1.set(ref(db, 'frame_trash', 'tManual'), { ...MANUAL_TASK, deletedAt: '2026-11-10T00:00:00Z' });
+  b1.delete(ref(db, 'frame_projects', 'tManual'));
+  await ok(b1.commit(), 'manual: papelera y borrado');
+  // De venta: el lote entero se rechaza, sin copia en la papelera.
+  const b2 = fsMod.writeBatch(db);
+  b2.set(ref(db, 'frame_trash', 'tSale'), { ...SALE_TASK, deletedAt: '2026-11-10T00:00:00Z' });
+  b2.delete(ref(db, 'frame_projects', 'tSale'));
+  await no(b2.commit(), 'de venta: no se borra');
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const fantasma = await fsMod.getDoc(fsMod.doc(ctx.firestore(), 'frame_trash', 'tSale'));
+    assert.equal(fantasma.exists(), false, 'sin copia fantasma');
+  });
+  // Lo que hace FRAME en su lugar: archivarla.
+  assert.equal(frameFusion.isFromSale(SALE_TASK), true);
+  await ok(fsMod.updateDoc(ref(db, 'frame_projects', 'tSale'), { status: 'archived' }), 'archivar la de venta');
+});
+
+test('FRAME 3.6: duplicar una tarea de venta da una manual (con procedencia se rechazaría)', { skip: skipFrame }, async () => {
+  const db = as('u2');
+  const copia = frameFusion.duplicateOf(SALE_TASK, { newId: 'pCopia1', wsId: 'ws1', viewerIds: ['u1', 'u2', 'pend', 'u5'], now: '2026-11-10T00:00:00Z', clientIdsInTarget: ['c1'] });
+  await ok(fsMod.setDoc(ref(db, 'frame_projects', 'pCopia1'), copia), 'copia manual con su ficha');
+  await no(fsMod.setDoc(ref(db, 'frame_projects', 'pCopia2'), { ...SALE_TASK, id: 'pCopia2', title: 'x (copia)' }), 'copia con procedencia (lo que hacía FRAME)');
+  // A otro tablero: sin la ficha de ws1.
+  const otra = frameFusion.duplicateOf(SALE_TASK, { newId: 'pCopia3', wsId: 'ws2', viewerIds: ['u3', 'u5'], now: 'x', clientIdsInTarget: [] });
+  await ok(fsMod.setDoc(ref(as('u5'), 'frame_projects', 'pCopia3'), otra), 'copia en otro tablero, sin ficha ajena');
+});
+
+test('FRAME 3.6: restaurar de la papelera una tarea cuya ficha se borró: vuelve sin ficha', { skip: skipFrame }, async () => {
+  const db = as('u2');
+  const guardada = { ...LEGACY_TASK, id: 'tVuelve', clientId: 'c-borrada', workspaceIds: ['ws1'], viewerIds: ['u1', 'u2'] };
+  await no(fsMod.setDoc(ref(db, 'frame_projects', 'tVuelve'), { ...guardada, viewerIds: ['u1', 'u2', 'pend', 'u5'] }), 'con la ficha borrada se rechaza');
+  const r = frameFusion.restorableFromTrash(guardada, { originId: 'ws1', clientOk: false });
+  assert.equal(r.ok, true);
+  // Como restoreTrashItem de FRAME: nace con la ACL del tablero principal.
+  await ok(fsMod.setDoc(ref(db, 'frame_projects', 'tVuelve'), { ...r.project, workspaceIds: ['ws1'], viewerIds: ['u1', 'u2', 'pend', 'u5'] }), 'sin ficha, vuelve');
+  assert.equal(frameFusion.restorableFromTrash(SALE_TASK, { originId: 'ws1', clientOk: true }).ok, false, 'una de venta no se restaura');
+});
+
+test('FRAME 3.6: editar una ficha con update de lo que cambió deja intacto lo comercial', { skip: skipFrame }, async () => {
+  const db = as('u2');
+  // La copia que tiene FRAME en pantalla está desactualizada: LOOPA cambió el teléfono.
+  const enPantalla = { id: 'cm', name: 'Ferretería Norte', workspaceId: 'ws1', commercial: { nombreLoopa: 'Ferretería Norte', telefono: 'VIEJO' }, legacyLoopaIds: ['CL-1'] };
+  const editada = { ...enPantalla, name: 'Ferretería del Norte' };
+  await no(fsMod.setDoc(ref(db, 'frame_clients', 'cm'), editada), 'set() completo con lo comercial viejo (lo que hacía FRAME)');
+  const patch = frameFusion.clientUpdatePatch(enPantalla, editada);
+  assert.deepEqual(patch, { name: 'Ferretería del Norte' });
+  await ok(fsMod.updateDoc(ref(db, 'frame_clients', 'cm'), patch), 'update sólo del nombre');
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = (await fsMod.getDoc(fsMod.doc(ctx.firestore(), 'frame_clients', 'cm'))).data();
+    assert.equal(d.name, 'Ferretería del Norte');
+    assert.equal(d.commercial.telefono, '9999-0000', 'lo comercial del servidor, intacto');
+  });
+  assert.equal(frameFusion.clientHasSales(enPantalla), true, 'y FRAME no ofrece borrarla');
+  await no(fsMod.deleteDoc(ref(db, 'frame_clients', 'cm')), 'las reglas tampoco');
+});
+
+test('FRAME 3.6 (revisión): ficha con los campos que agrega stampWs, portal, favorito y restaurar con ficha', { skip: skipFrame }, async () => {
+  const db = as('u2');
+  // FRAME arma la ficha con stampWs: en una ficha de LOOPA eso agrega startDate,
+  // workspaceIds y viewerIds además del cambio.
+  const enPantalla = { id: 'cm', name: 'Ferretería Norte', workspaceId: 'ws1', commercial: { nombreLoopa: 'Ferretería Norte', telefono: '9999-0000' }, legacyLoopaIds: ['CL-1'] };
+  const stamp = (o) => ({ ...o, startDate: '2026-11-10', workspaceIds: ['ws1'], viewerIds: ['u1', 'u2', 'pend', 'u5'] });
+  const patch = frameFusion.clientUpdatePatch(enPantalla, stamp({ ...enPantalla, notes: 'nota' }));
+  assert.deepEqual(Object.keys(patch).sort(), ['notes', 'startDate', 'viewerIds', 'workspaceIds']);
+  await ok(fsMod.updateDoc(ref(db, 'frame_clients', 'cm'), patch), 'update con los campos de stampWs');
+  // Portal: sólo token y publicado.
+  const portal = frameFusion.clientUpdatePatch(stamp(enPantalla), stamp({ ...enPantalla, portalToken: 'tok-1', portalPublished: true }));
+  assert.deepEqual(portal, { portalToken: 'tok-1', portalPublished: true });
+  await ok(fsMod.updateDoc(ref(db, 'frame_clients', 'cm'), portal), 'publicar el portal');
+  // Favorito en una tarea de venta: sólo el campo (un set() completo con una copia vieja se rechaza).
+  await ok(fsMod.updateDoc(ref(db, 'frame_projects', 'tSale'), { favorite: true }), 'favorito con update');
+  await no(fsMod.setDoc(ref(db, 'frame_projects', 'tSale'), { ...SALE_TASK, sourceSaleStatus: 'viejo', favorite: true }), 'set() con procedencia vieja');
+  // Restaurar con su ficha (c1 sigue en ws1), en el mismo lote que borra la papelera (como FRAME).
+  const guardada = { ...MANUAL_TASK, id: 'tConFicha', clientId: 'c1' };
+  await env.withSecurityRulesDisabled(async (ctx) => { await fsMod.setDoc(fsMod.doc(ctx.firestore(), 'frame_trash', 'tConFicha'), { ...guardada, deletedAt: 'x' }); });
+  const r = frameFusion.restorableFromTrash(guardada, { originId: 'ws1', clientOk: true });
+  assert.equal(r.project.clientId, 'c1');
+  const b = fsMod.writeBatch(db);
+  b.set(ref(db, 'frame_projects', 'tConFicha'), { ...r.project, workspaceIds: ['ws1'], viewerIds: ['u1', 'u2', 'pend', 'u5'] });
+  b.delete(ref(db, 'frame_trash', 'tConFicha'));
+  await ok(b.commit(), 'restaurar con su ficha y vaciar la papelera, juntos');
+});

@@ -379,3 +379,57 @@ Riesgos corregidos:
 **Queda para después:**
 - Editar la rutina y publicar el portal desde LOOPA.
 - Dos marcas seguidas del checklist, más rápidas que la respuesta, se pisan entre sí: es el mismo comportamiento de FRAME.
+
+## 12. Tanda 3.6 · FRAME convive con las ventas de LOOPA (hecha, en una rama local de FRAME)
+
+FRAME sigue en uso durante la transición, así que necesita respetar lo que las reglas nuevas protegen (ADR-0003 §11, «Cambios que la interfaz necesita»).
+
+**Dónde está:** repo de FRAME, rama local `fusion/reglas-loopa` (sale de `main`; **sin push**). `main` se publica en GitHub Pages, así que mezclarla es parte del punto A, con aprobación.
+
+**Qué cambia en FRAME:**
+- `loopa-fusion.js` (nuevo, puro, con su prueba `loopa-fusion.test.js`): `isFromSale`, `withoutProvenance`, `duplicateOf`, `restorableFromTrash`, `clientHasSales`, `clientUpdatePatch` y `clientRemovedKeys`.
+- **Borrar:**
+  - una tarea de venta no se borra, se archiva (D14), y el detalle no ofrece «Eliminar»;
+  - una tarea manual va a la papelera y se borra en **un solo lote**: si el borrado falla, no queda una copia fantasma;
+  - un borrado rechazado se avisa.
+- **Restaurar:**
+  - una tarea de venta no se restaura;
+  - si la ficha ya no existe, la tarea vuelve sin ficha;
+  - una copia vieja de la papelera no pisa una tarea que sigue viva;
+  - «Restaurar todo» dice el motivo.
+- **Duplicar:** la copia es manual, sin procedencia ni la etiqueta `loopa`, y sin ficha si la ficha no es del tablero destino.
+- **Fichas:**
+  - editar usa `update` sólo con lo que cambió (lo que la pantalla quitó se borra a propósito), así que lo comercial que escribe LOOPA queda intacto aunque la copia en pantalla esté vieja;
+  - una ficha con ventas de LOOPA (alcanza con que exista la clave, como en la regla) no se borra;
+  - el portal se desactiva sólo después de un borrado exitoso, y publicarlo actualiza sólo token y estado.
+- **Favorito:** sólo ese campo, nunca un `set()` completo.
+- **Entrega de una tarea de venta:** sólo lectura, en la tarjeta y en el detalle («La fija la venta en LOOPA»).
+- Si falta `loopa-fusion.js` (caché, archivo sin subir), no se escribe nada a medias y se avisa. `app.jsx?v` cambió.
+- Todo esto funciona también con las reglas activas de hoy: FRAME se puede publicar antes que las reglas nuevas.
+
+**Orden de la puesta en marcha (punto A):** primero FRAME con estos cambios. Después, cuando las cachés ya se hayan renovado, las reglas nuevas. Una pestaña vieja de FRAME podría dejar copias en la papelera de tareas de venta, pero no se pueden restaurar.
+
+**Pruebas:**
+- FRAME: `loopa-fusion.test.js` y las 21 pruebas de FRAME pasan. Se verificó en el navegador que FRAME compila y carga el módulo (sin iniciar sesión).
+- LOOPA, `reglas.test.cjs`, 5 pruebas nuevas (16 en total). Escriben con las mismas funciones de FRAME contra el borrador:
+  - borrar en lote, sin fantasma;
+  - duplicar una tarea de venta;
+  - restaurar con ficha y sin ficha;
+  - editar una ficha con los campos de `stampWs`;
+  - portal, favorito.
+  - Se saltean sin el repo de FRAME; con `REQUIRE_FRAME=1`, fallan.
+
+**Revisión independiente de la tanda 3.6:** 3 problemas confirmados y varios riesgos. Todo está corregido, con prueba:
+1. Sin `loopa-fusion.js`, duplicar y editar fichas fallaban en silencio. Ahora hay una guarda en cada camino.
+2. La entrega de una tarea de venta se podía «editar» en FRAME y las reglas la revertían con un mensaje vago. Ahora es sólo lectura.
+3. `clientHasSales` no coincidía con la regla (con valores vacíos). Ahora mira si la clave existe, y el portal ya no se apaga antes de saber si el borrado se hizo.
+
+También se corrigió:
+- verificar la ficha al restaurar sin red;
+- no pisar una tarea viva desde la papelera;
+- favorito con `update`;
+- avisar los errores al borrar;
+- `merge` al guardar una ficha que no está en pantalla;
+- pruebas más fieles a FRAME.
+
+**Queda para después:** las tarjetas de las vistas todavía muestran «Eliminar» en tareas de venta (al confirmar, se archiva con aviso).
