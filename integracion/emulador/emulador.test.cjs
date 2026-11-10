@@ -21,6 +21,7 @@ const core = require('../../functions/production-plan');
 const repo = require('../../functions/repositories/sales');
 const { buildMigrationPlan } = require('../../functions/migration/plan');
 const { runMigration } = require('../../functions/migration/runner');
+const server = require('../../functions/loopa-server');
 const { FirestoreStore } = require('../../functions/adapters/firestore-store');
 const { MemoryStore } = require('../memory-store.cjs');
 const { loadFixtures, buildSale, applyPatch } = require('../harness.cjs');
@@ -192,6 +193,34 @@ test('emulador ≡ memoria: repositorio de ventas (alta, versión, cobros) y su 
   });
 });
 
+test('emulador ≡ memoria: funciones del servidor (vender, procesar, cobrar, barrer)', { skip }, async () => {
+  const { state } = await bothStores(async (env) => {
+    await seedRepo(env);
+    await env.seed('frame_users', 'u-com', { status: 'active' });
+    await env.seed('loopa_config', 'access', { commercialUids: ['u-com'] });
+    await env.seed('loopa_config', 'production', { defaultWorkspaceId: fx.context.defaultWorkspaceId, allowedWorkspaceIds: fx.context.allowedWorkspaceIds });
+    for (const [id, w] of Object.entries(fx.context.workspaces)) await env.seed('frame_workspaces', id, { name: w.name, memberIds: w.memberIds });
+    const U = { uid: 'u-com' };
+    const opts = { now: () => T0 };
+    const id = '7c0de000-0000-4000-8000-000000000001';
+    const kind = (p) => p.then(r => r.status, e => `${e.kind}:${(e.details && e.details.code) || ''}`);
+    const out = [];
+    out.push(await kind(server.createSale(env.store, { uid: 'nadie' }, { draft: draftOf('plan-mensual', id) }, opts)));
+    const r = await server.createSale(env.store, U, { draft: draftOf('plan-mensual', id) }, opts);
+    out.push([r.status, r.n]);
+    out.push((await server.onEventCreated(env.store, r.eventId, opts)).status);
+    out.push(await kind(server.updateSale(env.store, U, { saleId: id, patch: { entrega: '2026-12-01' }, expectedVersion: 9 }, opts)));
+    const upd = await server.updateSale(env.store, U, { saleId: id, patch: { entrega: '2026-12-01' }, expectedVersion: 1 }, opts);
+    out.push([upd.status, upd.version]);
+    out.push((await server.addPayment(env.store, U, { saleId: id, abono: { id: 'AB-1', fecha: '2026-11-10', monto: 1000, metodo: 'bac' } })).status);
+    const s = await server.sweep(env.store, opts);
+    out.push(s.due);
+    return out;
+  });
+  assert.ok(state.frame_projects.length > 0, 'la venta generó tarjetas en el emulador');
+  assert.equal(state.frame_clients.find(c => c.id === fx.scenarios.find(x => x.name === 'plan-mensual').sale.client.clientId).hasSales, true);
+});
+
 test('emulador ≡ memoria: migración completa, repetible y sin pisar nada', { skip }, async () => {
   const FX = path.join(__dirname, '..', 'fixtures', 'migration');
   const backupText = fs.readFileSync(path.join(FX, 'loopa-backup.json'), 'utf8');
@@ -264,4 +293,30 @@ test('emulador: el adaptador traduce los errores de Firestore', { skip }, async 
     await env.seed('loopa_probe/x/comments', 'c1', { text: 'hola' });
     assert.equal(await env.store.hasDocuments('loopa_probe/x/comments'), true, 'subcolección con documentos');
   } finally { await env.close(); }
+});
+
+// functions/index.js con las librerías reales de Firebase (instaladas sólo en
+// integracion/emulador): carga, exporta las 5 funciones y el envoltorio
+// convierte los errores en HttpsError. Corre en un proceso aparte con
+// NODE_PATH y apuntando al emulador (proyecto demo-*).
+test('functions/index.js carga con firebase-functions y responde errores como HttpsError', { skip }, () => {
+  const { spawnSync } = require('node:child_process');
+  const root = path.join(__dirname, '..', '..');
+  const code = `
+    const f = require(${JSON.stringify(path.join(root, 'functions', 'index.js'))});
+    (async () => {
+      const out = { exports: Object.keys(f).sort() };
+      try { await f.loopaCreateSale.run({ auth: null, data: {} }); out.unauth = 'ok?'; } catch (e) { out.unauth = [e.constructor.name, e.code, e.message]; }
+      try { await f.loopaUpdateSale.run({ auth: { uid: 'nadie' }, data: {} }); out.denied = 'ok?'; } catch (e) { out.denied = [e.constructor.name, e.code]; }
+      console.log(JSON.stringify(out));
+    })();`;
+  const r = spawnSync(process.execPath, ['-e', code], {
+    encoding: 'utf8',
+    env: { ...process.env, NODE_PATH: path.join(__dirname, 'node_modules'), GCLOUD_PROJECT: 'demo-loopa-fn', GOOGLE_APPLICATION_CREDENTIALS: '' },
+  });
+  assert.equal(r.status, 0, r.stderr);
+  const out = JSON.parse(r.stdout.trim().split('\n').pop());
+  assert.deepEqual(out.exports, ['loopaAddPayment', 'loopaCreateSale', 'loopaOnEventCreated', 'loopaSweepEvents', 'loopaUpdateSale']);
+  assert.deepEqual(out.unauth, ['HttpsError', 'unauthenticated', 'Iniciá sesión para vender']);
+  assert.deepEqual(out.denied, ['HttpsError', 'permission-denied']);
 });

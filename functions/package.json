@@ -1,0 +1,13 @@
+{
+  "name": "loopa-functions",
+  "private": true,
+  "description": "Funciones de LOOPA OS (codebase loopa en frame-studio-3a18f). Publicar sólo con aprobación: firebase deploy --only functions:loopa",
+  "engines": {
+    "node": "22"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "13.4.0",
+    "firebase-functions": "6.5.0"
+  }
+}

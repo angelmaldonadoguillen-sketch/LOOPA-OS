@@ -4,3 +4,4 @@ firestore-debug.log
 integracion/emulador/.jtmp/
 firebase-debug.log
 socket_*
+functions/node_modules/

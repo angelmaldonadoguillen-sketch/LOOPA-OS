@@ -89,11 +89,16 @@ test('sin remoto: el núcleo y el arnés no cargan Firebase ni abren red', () =>
     assert.doesNotMatch(src, /require\(['"]node:(http|https|net|dgram|tls)['"]\)/, file);
     assert.doesNotMatch(src, /\bfetch\(/, file);
   }
-  // Todavía no hay Cloud Functions en LOOPA OS: el núcleo no está conectado a
-  // ninguna función desplegable (eso es Fase 3).
-  const entry = path.join(ROOT, 'functions', 'index.js');
-  if (fs.existsSync(entry)) assert.doesNotMatch(fs.readFileSync(entry, 'utf8'), /production-plan/);
-  assert.equal(fs.existsSync(path.join(ROOT, 'firebase.json')), false, 'sin configuración de despliegue en esta fase');
+  // Fase 3: el ÚNICO archivo que carga Firebase es functions/index.js (los
+  // envoltorios onCall/onDocumentCreated/onSchedule). La lógica del servidor
+  // y el adaptador siguen sin cargarlo: se prueban sin red.
+  for (const f of ['loopa-server.js', path.join('adapters', 'firestore-store.js'), path.join('adapters', 'firestore-data.js')]) {
+    assert.doesNotMatch(fs.readFileSync(path.join(ROOT, 'functions', f), 'utf8'), /require\(['"](firebase|firebase-admin|firebase-functions|@google-cloud)[^'"]*['"]\)/, f);
+  }
+  const top = fs.readdirSync(path.join(ROOT, 'functions')).filter(f => f.endsWith('.js'));
+  assert.deepEqual(top.filter(f => /require\(['"]firebase/.test(fs.readFileSync(path.join(ROOT, 'functions', f), 'utf8'))), ['index.js']);
+  // La configuración de despliegue sólo declara el codebase de LOOPA.
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(ROOT, 'firebase.json'), 'utf8')).functions.map(f => f.codebase), ['loopa']);
 });
 
 test('sin día local por toISOString: el núcleo sólo lo usa para instantes', () => {

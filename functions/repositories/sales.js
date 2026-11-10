@@ -39,7 +39,7 @@ const TRANSITIONS = {
   cancelled: ['cancelled', 'confirmed'],
 };
 const PAYMENT_TOLERANCE = 0.5;
-const SERVER_ONLY = new Set(['id', 'n', 'revision', 'version', 'operations', 'lock', 'migration', 'createdAt']);
+const SERVER_ONLY = new Set(['id', 'n', 'revision', 'version', 'operations', 'lock', 'migration', 'createdAt', 'createdBy', 'updatedBy']);
 
 const repoError = (code, message, issues) => Object.assign(new Error(message), { code, issues });
 
@@ -141,7 +141,9 @@ function eventTypeFor(before, after) {
  * Crea una venta. `draft.id` es un UUID generado por quien vende: reintentar
  * con el mismo id devuelve la venta existente y NO consume otro número.
  */
-async function createSale(store, draft, { now = () => new Date().toISOString() } = {}) {
+// actor: uid de quien vende (lo pone el servidor; queda en createdBy y en
+// estadoLog). Sin actor (pruebas, migración) no se agregan esos campos.
+async function createSale(store, draft, { now = () => new Date().toISOString(), actor } = {}) {
   if (!draft || !isUuid(draft.id)) throw repoError('sale.id', 'La venta necesita un UUID generado al empezar a vender');
   const extra = Object.keys(draft).filter(k => !DRAFT_FIELDS.includes(k));
   if (extra.length) throw repoError('field_not_editable', `Campos no permitidos al crear: ${extra.join(', ')}`);
@@ -165,8 +167,9 @@ async function createSale(store, draft, { now = () => new Date().toISOString() }
       n: counter.next,
       revision: 1,
       version: 1,
-      estadoLog: [{ estado: draft.status, ts: at }],
+      estadoLog: [{ estado: draft.status, ts: at, ...(actor ? { by: actor } : {}) }],
       createdAt: at,
+      ...(actor ? { createdBy: actor } : {}),
       operations: { status: draft.status === 'confirmed' ? 'pending' : 'not_applicable', taskIds: [], lastEventId: null, lastSuccessAt: null, lastError: null, pendingDiff: null, updatedAt: at },
       lock: null,
     };
@@ -203,7 +206,7 @@ async function markClientWithSales(store, clientId) {
  * que la persona tenía en pantalla. Si alguien guardó antes, falla con
  * 'version_conflict' en lugar de pisar.
  */
-async function updateSale(store, saleId, patch, { expectedVersion, now = () => new Date().toISOString() } = {}) {
+async function updateSale(store, saleId, patch, { expectedVersion, now = () => new Date().toISOString(), actor } = {}) {
   const keys = Object.keys(patch || {});
   const forbidden = keys.filter(k => SERVER_ONLY.has(k) || !EDITABLE.has(k));
   if (forbidden.length) throw repoError('field_not_editable', `Campos no editables: ${forbidden.join(', ')}`);
@@ -241,7 +244,8 @@ async function updateSale(store, saleId, patch, { expectedVersion, now = () => n
     const update = { version: next.version };
     keys.forEach(k => { update[k] = next[k]; });
     if (productionChanged) update.revision = next.revision;
-    if (patch.status && patch.status !== current.status) update.estadoLog = [...(current.estadoLog || []), { estado: patch.status, ts: at }];
+    if (patch.status && patch.status !== current.status) update.estadoLog = [...(current.estadoLog || []), { estado: patch.status, ts: at, ...(actor ? { by: actor } : {}) }];
+    if (actor) update.updatedBy = actor;
     tx.update(COLLECTIONS.sales, saleId, update);
     if (clientChanged && newClient.hasSales !== true) tx.update(CLIENTS, patch.client.clientId, { hasSales: true });
 
@@ -272,7 +276,11 @@ async function updateSale(store, saleId, patch, { expectedVersion, now = () => n
  * Registra un cobro. Es idempotente por id del cobro y no necesita versión:
  * agregar cobros es conmutativo. No toca la revisión de producción.
  */
-async function addPayment(store, saleId, abono, { allowOverpayment = false } = {}) {
+// actor: uid de quien cobra; queda en el cobro como registradoPor. Un
+// registradoPor que mande la app se ignora (lo pone sólo el servidor) y no
+// cuenta para la idempotencia: reintentar el mismo cobro sigue siendo 'existing'.
+async function addPayment(store, saleId, abonoIn, { allowOverpayment = false, actor } = {}) {
+  const { registradoPor: _ignorado, ...abono } = abonoIn || {};
   const problems = validatePayment(abono);
   if (hasErrors(problems)) throw new ContractError(problems, 'Cobro inválido');
   return store.transaction(async tx => {
@@ -282,14 +290,16 @@ async function addPayment(store, saleId, abono, { allowOverpayment = false } = {
     const abonos = current.commercial.abonos || [];
     const same = abonos.find(a => a.id === abono.id);
     if (same) {
-      if (canonicalJson(same) === canonicalJson(abono)) return { status: 'existing' };
+      const { registradoPor: _quien, ...sameSinQuien } = same;
+      if (canonicalJson(sameSinQuien) === canonicalJson(abono)) return { status: 'existing' };
       throw repoError('payment_conflict', 'Ya existe otro cobro con ese id');
     }
     const paid = abonos.reduce((a, x) => a + x.monto, 0) + abono.monto;
     if (!allowOverpayment && paid > current.commercial.total + PAYMENT_TOLERANCE) {
       throw repoError('payment_exceeds_total', `El cobro deja la venta pagada de más (${paid} sobre ${current.commercial.total})`);
     }
-    tx.update(COLLECTIONS.sales, saleId, { commercial: { ...current.commercial, abonos: [...abonos, abono] }, version: current.version + 1 });
+    const guardado = actor ? { ...abono, registradoPor: actor } : abono;
+    tx.update(COLLECTIONS.sales, saleId, { commercial: { ...current.commercial, abonos: [...abonos, guardado] }, version: current.version + 1 });
     return { status: 'added', version: current.version + 1 };
   });
 }
