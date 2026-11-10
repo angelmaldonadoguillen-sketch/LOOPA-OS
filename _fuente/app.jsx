@@ -2774,11 +2774,13 @@ function PeriodFilter({ value, onChange }) {
 // ─── Producción integrada (Fase 4 · un solo sistema) ───
 // Rutas del menú de LOOPA que son de Producción, y qué sección muestran.
 const RUTAS_ESTUDIO = { produccion: 'projects', 'mis-tareas': 'projects', papelera: 'trash', equipo: 'team' };
-// Pestañas de pantallas que juntan lo comercial y lo de producción.
-// (Clientes es una sola pantalla: la ficha única, con su parte comercial.)
-const PESTANAS = {
-  metricas: [['ventas', 'Ventas'], ['produccion', 'Producción']],
-  config: [['loopa', 'General'], ['tablero', 'Tablero y aprobaciones']],
+// Pantallas que juntan lo comercial y lo de producción en una sola página
+// (sin pestañas): arriba lo de LOOPA, abajo esta sección de Producción.
+// Quien sólo produce ve únicamente la sección de Producción.
+const SECCION_ESTUDIO = { metricas: 'analytics', config: 'settings' };
+const SECCIONES_JUNTAS = {
+  metricas: ['Producción', 'Avance y carga del equipo', 'Tareas del tablero, entregas, fechas urgentes y quién está ocupado.'],
+  config: ['Producción', 'Tablero y aprobaciones', 'Lo que muestran las tarjetas, el arrastre de tareas y la aprobación de cuentas nuevas.'],
 };
 const FILTROS_TABLERO = [['all', 'Todas'], ['favorites', 'Favoritas'], ['urgent', 'Urgentes'], ['delivered', 'Completadas']];
 // Encabezado de página de LOOPA para las pantallas de Producción (como Ventas):
@@ -2824,16 +2826,6 @@ function EstudioIntegrado({ seccion, filtro, barra, comercial }) {
   );
 }
 
-function Pestanas({ opciones, valor, onCambio }) {
-  return (
-    <div className="pestanas" role="tablist">
-      {opciones.map(([id, label]) => (
-        <button key={id} role="tab" aria-selected={valor === id} className={`pestana ${valor === id ? 'on' : ''}`} onClick={() => onCambio(id)}>{label}</button>
-      ))}
-    </div>
-  );
-}
-
 function App({ onLogout, usuarioFusion = null }) {
   const [route, setRoute] = useState(() => {
     try {
@@ -2847,8 +2839,7 @@ function App({ onLogout, usuarioFusion = null }) {
       return r;
     } catch (e) { return 'nueva'; }
   });
-  // Pestañas (comercial / producción) y filtro del tablero.
-  const [subvista, setSubvista] = useState({ clientes: 'comercial', metricas: 'ventas', config: 'loopa' });
+  // Filtro del tablero.
   const [filtroTablero, setFiltroTablero] = useState('all');
   // La barra de LOOPA donde Producción dibuja el selector de tablero.
   const [barraEstudio, setBarraEstudio] = useState(null);
@@ -3317,14 +3308,12 @@ function App({ onLogout, usuarioFusion = null }) {
     { id: 'config',    label: 'Configuración', icon: 'settings' },
   ];
   const current = modules.find(m => m.id === route) || modules[0];
-  // Quien sólo produce ve la parte de producción de Clientes, Métricas y
-  // Configuración (sin montos ni lo comercial).
-  const sub = (k) => (soloProduccion && PESTANAS[k] ? PESTANAS[k][1][0] : subvista[k]);
   // Qué sección de Producción se ve ahora (null: ninguna).
   const seccionEstudio = PROD_ON !== 'estudio' ? null
-    : RUTAS_ESTUDIO[route] || (route === 'clientes' ? 'clients'
-      : route === 'metricas' && sub('metricas') === 'produccion' ? 'analytics'
-        : route === 'config' && sub('config') === 'tablero' ? 'settings' : null);
+    : RUTAS_ESTUDIO[route] || SECCION_ESTUDIO[route] || (route === 'clientes' ? 'clients' : null);
+  // Métricas y Configuración: una sola página, lo comercial arriba y la
+  // sección de Producción abajo. Quien sólo produce ve sólo esa sección.
+  const juntas = !!seccionEstudio && !soloProduccion && !!SECCIONES_JUNTAS[route];
   const filtroEstudio = route === 'mis-tareas' ? 'mine' : filtroTablero;
   // La parte comercial de la ficha única (Clientes): sólo para quien vende.
   const comercialClientes = useMemo(() => {
@@ -3363,7 +3352,6 @@ function App({ onLogout, usuarioFusion = null }) {
   useEffect(() => {
     if (route === 'nueva' && PROD_ON === 'estudio' && !soloProduccion && ready && recargarRef.current) recargarRef.current();
   }, [route]);
-  const conPestanas = PROD_ON === 'estudio' && !soloProduccion && PESTANAS[route];
 
   if (!ready) return (
     <div className="boot">
@@ -3487,9 +3475,9 @@ function App({ onLogout, usuarioFusion = null }) {
           </div>
         </div>
 
-        <div className={`content${seccionEstudio ? ' content-estudio' : ''}`}>
+        <div className={`content${juntas ? ' content-juntas' : seccionEstudio ? ' content-estudio' : ''}`}>
           {/* Producción con el encabezado de LOOPA: etiqueta, título y descripción. */}
-          {seccionEstudio && CABECERAS_ESTUDIO[route] && (
+          {seccionEstudio && !juntas && CABECERAS_ESTUDIO[route] && (
             <div className="page-head page-head-estudio">
               <div>
                 <div className="page-kicker">{CABECERAS_ESTUDIO[route][0]}</div>
@@ -3503,10 +3491,16 @@ function App({ onLogout, usuarioFusion = null }) {
                   ))}
                 </div>
               )}
-              {conPestanas && <Pestanas opciones={PESTANAS[route]} valor={subvista[route]} onCambio={(v) => setSubvista(s => ({ ...s, [route]: v }))} />}
             </div>
           )}
-          {conPestanas && !seccionEstudio && <Pestanas opciones={PESTANAS[route]} valor={subvista[route]} onCambio={(v) => setSubvista(s => ({ ...s, [route]: v }))} />}
+          {/* Página junta: título de la sección de Producción (va debajo de lo comercial). */}
+          {juntas && (
+            <div className="seccion-junta">
+              <div className="page-kicker">{SECCIONES_JUNTAS[route][0]}</div>
+              <div className="seccion-junta-titulo">{SECCIONES_JUNTAS[route][1]}</div>
+              <div className="page-desc">{SECCIONES_JUNTAS[route][2]}</div>
+            </div>
+          )}
           {/* Producción: tablero, tareas, clientes/portal, equipo, análisis, papelera. */}
           {PROD_ON === 'estudio' && <EstudioIntegrado seccion={seccionEstudio} filtro={filtroEstudio} barra={barraEstudio} comercial={comercialClientes} />}
           {route === 'nueva' && (
@@ -3542,9 +3536,9 @@ function App({ onLogout, usuarioFusion = null }) {
               onNuevaVenta={(c) => goNueva({ cliente: clientePrefill(c) })} onOpenVenta={openVenta} />
           )}
           {route === 'produccion' && PROD_ON && PROD_ON !== 'estudio' && <ProduccionModulo modo={PROD_FLAG} onAbrirVenta={openVenta} conexion={conexionProduccion} />}
-          {route === 'metricas' && !seccionEstudio && <Metricas ventas={ventas} gastos={gastos} config={config} />}
+          {route === 'metricas' && (!seccionEstudio || juntas) && <Metricas ventas={ventas} gastos={gastos} config={config} />}
           {route === 'gastos' && <Gastos gastos={gastos} setGastos={setGastos} config={config} setConfig={setConfig} />}
-          {route === 'config' && !seccionEstudio && (
+          {route === 'config' && (!seccionEstudio || juntas) && (
             <Configuracion config={config} setConfig={setConfig} showToast={showToast} onImport={handleImport}
               allData={{ ventas, clientes, servicios, config, gastos }} />
           )}

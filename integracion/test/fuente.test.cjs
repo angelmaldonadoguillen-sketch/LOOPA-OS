@@ -767,7 +767,7 @@ test('Fase 4.2: un solo Clientes (ficha única con su parte comercial)', () => {
   const est = fs.readFileSync(path.join(ROOT, '_fuente', 'estudio', 'app.jsx'), 'utf8');
   // Clientes es siempre la ficha única (sin pestañas comercial/producción).
   assert.doesNotMatch(app, /clientes: \[\['comercial'/);
-  assert.match(app, /RUTAS_ESTUDIO\[route\] \|\| \(route === 'clientes' \? 'clients'/);
+  assert.match(app, /RUTAS_ESTUDIO\[route\] \|\| SECCION_ESTUDIO\[route\] \|\| \(route === 'clientes' \? 'clients'/);
   // La parte comercial, sólo para quien vende.
   assert.match(app, /const comercialClientes = useMemo\(\(\) => \{\s*if \(PROD_ON !== 'estudio' \|\| soloProduccion\) return null;/);
   assert.match(app, /comercial=\{comercialClientes\}/);
@@ -778,4 +778,20 @@ test('Fase 4.2: un solo Clientes (ficha única con su parte comercial)', () => {
   assert.match(cli, /comercial\.onAbrirVenta\(h\.clave\)/);
   // En el teléfono, cada sección muestra su pantalla (el tablero rápido sólo en Tablero).
   assert.match(est, /if \(isMobile && state\.section === 'projects'\) \{/);
+});
+
+test('Fase 4.4: Métricas y Configuración son una sola página (sin pestañas)', () => {
+  const app = fs.readFileSync(path.join(ROOT, '_fuente', 'app.jsx'), 'utf8');
+  const css = fs.readFileSync(path.join(ROOT, '_fuente', 'shell', 'navegacion.css'), 'utf8');
+  // No quedan pestañas comercial/producción.
+  assert.doesNotMatch(app, /PESTANAS|subvista|<Pestanas/);
+  assert.match(app, /const SECCION_ESTUDIO = \{ metricas: 'analytics', config: 'settings' \};/);
+  // Página junta sólo para quien vende; quien sólo produce ve su sección.
+  assert.match(app, /const juntas = !!seccionEstudio && !soloProduccion && !!SECCIONES_JUNTAS\[route\];/);
+  assert.match(app, /route === 'metricas' && \(!seccionEstudio \|\| juntas\) && <Metricas/);
+  assert.match(app, /route === 'config' && \(!seccionEstudio \|\| juntas\) && \(/);
+  assert.match(app, /seccionEstudio && !juntas && CABECERAS_ESTUDIO\[route\]/);
+  // Producción va debajo de lo comercial y se desplaza con la página.
+  assert.match(css, /\.content-juntas > \.seccion-junta \{ order: 2;/);
+  assert.match(css, /\.content-juntas > \.estudio-raiz \{ order: 3; flex: none;/);
 });

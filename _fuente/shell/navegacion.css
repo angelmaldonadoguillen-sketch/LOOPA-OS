@@ -28,6 +28,18 @@
 .estudio-raiz { flex: 1; min-height: 0; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; background: var(--bg); }
 .estudio-raiz > * { flex: 1; min-height: 0; }
 .estudio-portal { min-height: 100vh; overflow: auto; }
+/* Métricas y Configuración: una sola página que se desplaza entera. Arriba lo
+   comercial; abajo el título de Producción y su panel, con su altura natural. */
+.content.content-juntas { display: flex; flex-direction: column; }
+.content-juntas > .seccion-junta { order: 2; margin-top: 12px; padding-top: 28px; margin-bottom: 18px; border-top: 1px solid var(--line); }
+.content-juntas > .estudio-raiz { order: 3; flex: none; overflow: visible; }
+.content-juntas > .estudio-raiz > * { flex: none; }
+.content-juntas > .estudio-raiz .h-full { height: auto !important; }
+.content-juntas > .estudio-raiz main,
+.content-juntas > .estudio-raiz .overflow-y-auto { overflow: visible !important; flex: none !important; }
+.seccion-junta .page-kicker { margin-bottom: 10px; }
+.seccion-junta-titulo { font-family: var(--font-display); font-weight: 500; font-size: 22px; line-height: 1.1; letter-spacing: -0.02em; }
+.seccion-junta .page-desc { margin-top: 8px; }
 .topbar-estudio { margin-left: 16px; min-width: 0; }
 .topbar-estudio .estudio-barra { background: transparent; font-size: var(--fs-m); }
 .pestanas { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }

@@ -812,3 +812,12 @@ El detalle y el orden del corte están en `integracion/puesta-en-marcha/PUNTO-B-
 - **Teléfono:** el buscador de Clientes ocupa todo el ancho (`estudio-buscador`). Sin desborde horizontal.
 - **Pruebas:** 263 sin red, 20 de Producción y 34 en el emulador.
 - **Verificado en el navegador (emulador):** todas las pantallas de Producción en escritorio, y Tablero y Clientes en el teléfono.
+## 25. Fase 4.4: Métricas y Configuración, una sola página cada una (2026-11-10)
+
+- **Sin pestañas.** Se quitaron `PESTANAS`, `subvista` y `Pestanas`. Métricas y Configuración son una página que se desplaza entera:
+  - arriba, lo comercial de LOOPA (ventas, ganancia; pagos, categorías, canales, respaldos);
+  - abajo, un título de sección **Producción** (`SECCIONES_JUNTAS`) y el panel de Producción (`SECCION_ESTUDIO`: `analytics` y `settings`) con su altura natural (`content-juntas`).
+- **Quien sólo produce** ve únicamente la sección de Producción, con el encabezado de LOOPA (`CABECERAS_ESTUDIO`).
+- Producción sigue montada una sola vez: el panel se reordena con CSS (`order`), no se vuelve a crear.
+- **Pruebas:** 264 sin red (1 nueva), 20 de Producción y 34 en el emulador.
+- **Verificado en el navegador (emulador):** Métricas y Configuración en escritorio y teléfono, sin recortes ni desborde; el Tablero sigue igual; la cuenta que sólo produce no ve montos ni ajustes comerciales.
