@@ -692,3 +692,40 @@ El detalle y el orden del corte están en `integracion/puesta-en-marcha/PUNTO-B-
 - «Eliminar» en las tarjetas de FRAME para tareas de venta (hoy archiva con aviso);
 - sumar a más gente a ventas, con `configurar-c.cjs`;
 - afinar las plantillas por servicio (subiendo la versión).
+
+## 21. Un solo programa (tanda 3.9, 2026-11-10)
+
+**Corrección del objetivo (Ángel):** no basta con la misma fuente de datos; tiene que ser **un solo programa**.
+- El inventario dio que el módulo Producción nativo de LOOPA cubre una parte chica de FRAME, unas 1 800 líneas contra las 13 000 de FRAME.
+- Además estaba escondido detrás de `?produccion=`.
+
+**Decisión:** «Integrar FRAME ya». Después se rehacen sus pantallas, una por una.
+
+**LOOPA:**
+- Con datos reales, Producción se ve siempre y es FRAME completo dentro de LOOPA, en un iframe del mismo origen. Se monta una vez y queda vivo.
+- **Una sola sesión:** LOOPA usa la app por defecto de Firebase (`[DEFAULT]`) con la configuración de FRAME. Mismo origen y misma app: mismo almacenamiento de sesión.
+- **Quien no es del equipo comercial:** si leer ventas da `permission-denied`, LOOPA queda sólo con Producción (sin ventas, montos ni buscador, y sin escuchar ventas).
+- `?ruta=produccion` abre directo ahí.
+
+**FRAME:**
+- Abierto solo en la versión publicada, redirige a `../LOOPA-OS/?ruta=produccion`.
+- Se siguen abriendo solos:
+  - el portal del cliente (`?portal=`);
+  - el portfolio publicado (`?portfolio=`);
+  - `?solo=1`, para emergencias.
+- Decide antes de cargar Firebase.
+
+**Publicado:**
+- LOOPA `76e3070` y FRAME `0626038` en `main`; las dos páginas `built`.
+- **Verificado sin iniciar sesión:**
+  - FRAME solo lleva a LOOPA › Producción;
+  - el portal del cliente no redirige;
+  - LOOPA sólo abre `[DEFAULT]:frame-studio-3a18f` y no da errores.
+
+**Falta:**
+- **Verificación con sesión (Ángel):**
+  - entrar a LOOPA y abrir Producción: FRAME sin un segundo ingreso;
+  - con una cuenta que sólo produce, LOOPA tiene que mostrar sólo Producción.
+- **Después:**
+  - rehacer las pantallas de FRAME con el estilo de LOOPA, una por una;
+  - «Abrir venta» desde una tarea de FRAME hacia LOOPA.
