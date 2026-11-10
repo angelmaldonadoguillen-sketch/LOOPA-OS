@@ -200,6 +200,38 @@ fs.writeFileSync(path.join(OUT, 'icon.svg'),
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="104" fill="#121211"/><svg x="72" y="72" width="368" height="368" viewBox="${markBox(mark)}" fill="#f4f4f1">${mark.join('')}</svg></svg>`);
 if (/<\/script/i.test(app)) throw new Error('app.jsx contiene </script>');
 
+// ── JSX compilado al armar ──
+// Antes el navegador bajaba Babel (3 MB) y traducía ~1 MB de JSX en cada
+// apertura: en el teléfono eran segundos de pantalla en blanco. Ahora se
+// traduce acá, con el MISMO Babel (@babel/standalone 7.29.0, preset react),
+// y el navegador recibe JavaScript listo. No es un empaquetador: el código
+// queda en el mismo orden y en el mismo script global.
+// Dónde está Babel: LOOPA_BABEL, o el node_modules de TOONED-OS de esta PC.
+const BABEL_VERSION = '7.29.0';
+function cargarBabel() {
+  const candidatos = [process.env.LOOPA_BABEL, path.join(here, '..', '..', '..', '..', 'TOONED-OS', 'node_modules', '@babel', 'standalone')].filter(Boolean);
+  for (const dir of candidatos) {
+    try {
+      const v = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8')).version;
+      if (v !== BABEL_VERSION) { console.warn(`Babel ${v} en ${dir}: se espera ${BABEL_VERSION}`); continue; }
+      return require(path.join(dir, 'babel.min.js'));
+    } catch (e) { /* probar el siguiente */ }
+  }
+  return null;
+}
+const Babel = cargarBabel();
+// La versión publicada siempre va compilada.
+if (!Babel && FUSION_REAL) throw new Error(`Para armar la versión publicada hace falta @babel/standalone ${BABEL_VERSION} (LOOPA_BABEL=<carpeta>).`);
+const appJs = Babel ? Babel.transform(app, { presets: ['react'], sourceType: 'script', compact: true,
+  // Sólo quedan las marcas de cada archivo («// ── estudio: x ──»): sirven
+  // para ubicarse en el código publicado y para las pruebas de orden.
+  shouldPrintComment: (c) => /^ ── /.test(c) }).code : null;
+if (appJs && /<\/script/i.test(appJs)) throw new Error('el código compilado contiene </script>');
+if (!Babel) console.warn('Sin Babel local: el JSX se traduce en el navegador (más lento).');
+const scriptApp = appJs
+  ? `<script>\n${appJs}\n</script>`
+  : `<script src="https://unpkg.com/@babel/standalone@${BABEL_VERSION}/babel.min.js" crossorigin="anonymous"></script>\n<script type="text/babel" data-presets="react">\n${app}\n</script>`;
+
 const html = `<!doctype html><!-- LOOPA OS v3.1 · base TOONED OS v2.8 -->
 <html lang="es">
 <head>
@@ -276,12 +308,9 @@ ${extraCss}
 <div id="root"></div>
 <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
 <script>
 ${paths}</script>
-<script type="text/babel" data-presets="react">
-${app}
-</script>
+${scriptApp}
 </body>
 </html>
 `;

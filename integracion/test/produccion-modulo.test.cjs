@@ -20,7 +20,8 @@ test('el build incluye los módulos de Producción antes de app.jsx', () => {
   assert.match(build, /const MODULES = \['datos\/fusion\.js', 'datos\/fuente\.js', 'produccion\/nucleo\.js', 'produccion\/datos-reales\.js', 'produccion\/calendario\.jsx', 'produccion\/tablero\.jsx', 'produccion\/resumen\.jsx', 'produccion\/cliente\.jsx', 'shell\/navegacion\.jsx'\]/);
   assert.match(build, /const MODULE_CSS = \['produccion\/produccion\.css', 'shell\/navegacion\.css'\]/);
   const html = read('index.html');
-  const iNucleo = html.indexOf('const LoopaProduccion = (function');
+  // index.html lleva el JS ya compilado (fase 4.6): se busca sin depender de espacios.
+  const iNucleo = html.search(/const LoopaProduccion\s*=\s*\(?function/);
   const iModulo = html.indexOf('function ProduccionModulo(');
   const iApp = html.indexOf('// ── app.jsx ──');
   assert.ok(iNucleo > 0 && iModulo > iNucleo && iApp > iModulo, 'index.html desactualizado: correr node _fuente/build.js');

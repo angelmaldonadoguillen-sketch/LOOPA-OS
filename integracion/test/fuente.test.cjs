@@ -780,6 +780,21 @@ test('Fase 4.2: un solo Clientes (ficha única con su parte comercial)', () => {
   assert.match(est, /if \(isMobile && state\.section === 'projects'\) \{/);
 });
 
+test('Fase 4.6: el JSX se compila al armar; el navegador no baja Babel', () => {
+  const build = fs.readFileSync(path.join(ROOT, '_fuente', 'build.js'), 'utf8');
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  assert.match(build, /const BABEL_VERSION = '7\.29\.0';/);
+  // La versión publicada no se arma sin compilar.
+  assert.match(build, /if \(!Babel && FUSION_REAL\) throw new Error/);
+  assert.match(build, /Babel\.transform\(app, \{ presets: \['react'\], sourceType: 'script', compact: true,/);
+  // index.html: JavaScript listo, sin Babel ni scripts text/babel.
+  assert.doesNotMatch(html, /text\/babel|babel\.min\.js/);
+  assert.doesNotMatch(html, /return \(\s*<div/, 'no queda JSX sin compilar');
+  assert.match(html, /React\.createElement\(/);
+  // Quedan las marcas de cada archivo, en orden.
+  assert.ok(html.indexOf('// ── estudio: capa.js') > 0 && html.indexOf('// ── estudio: capa.js') < html.indexOf('// ── app.jsx ──'));
+});
+
 test('Fase 4.4: Métricas y Configuración son una sola página (sin pestañas)', () => {
   const app = fs.readFileSync(path.join(ROOT, '_fuente', 'app.jsx'), 'utf8');
   const css = fs.readFileSync(path.join(ROOT, '_fuente', 'shell', 'navegacion.css'), 'utf8');

@@ -837,3 +837,18 @@ El detalle y el orden del corte están en `integracion/puesta-en-marcha/PUNTO-B-
 - **Pruebas:**
   - 264 sin red y 20 de Producción.
   - FRAME: 45. `board-motion` falla sólo con toda la suite en paralelo; sola pasa, con y sin el cambio.
+## 27. Fase 4.6: LOOPA carga más rápido (2026-11-10)
+
+- **El JSX se compila al armar, no en el navegador.**
+  - Antes, en cada apertura el navegador bajaba Babel (3 MB) y traducía ~1,1 MB de JSX. En el teléfono eso eran segundos de pantalla en blanco.
+  - Ahora `build.js` traduce con el mismo Babel (`@babel/standalone` 7.29.0, preset `react`, `sourceType: 'script'`). El navegador recibe JavaScript listo, en el mismo orden y en el mismo script global. No es un empaquetador.
+- **Tamaño:** `index.html` pasa de 1108 KB a 850 KB, y ya no se descarga Babel.
+- **De dónde sale Babel:** `LOOPA_BABEL=<carpeta>` o, en esta PC, `Documents/TOONED-OS/node_modules/@babel/standalone`. Tiene que ser la versión 7.29.0.
+  - La versión publicada (`LOOPA_FUSION_REAL=1`) no se arma sin Babel.
+  - Una prueba local sin Babel vuelve al modo anterior y avisa.
+- **Comentarios:** sólo quedan las marcas de cada archivo (`// ── estudio: x ──`), para ubicarse y para las pruebas de orden.
+- **Carga a demanda del teléfono** (`cargarModulo` en `mobile.jsx`): ya no usa Babel, porque esos componentes vienen en el mismo ámbito.
+- **Pruebas:**
+  - 265 sin red (1 nueva) y 20 de Producción. Dos pruebas se adaptaron al código compilado.
+  - 34 en el emulador.
+- **Verificado en el navegador (emulador):** abre en ~0,35 s sin cargar Babel. Las 11 pantallas del menú abren y la ficha de una tarea abre en el teléfono, sin errores.

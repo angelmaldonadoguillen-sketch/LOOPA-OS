@@ -12,7 +12,9 @@ const check = (value, message) => { assert.ok(value, message); checks += 1; };
 // LOOPA (Fase 4): todo va en un solo ámbito; el portal se arma antes que la app.
 check(index.indexOf('// ── estudio: portal.jsx') > 0 && index.indexOf('// ── estudio: portal.jsx') < index.indexOf('// ── estudio: app.jsx'), 'el portal debe cargarse antes de montar la app');
 // LOOPA (Fase 4): el portal (?portal=) lo abre LOOPA sin pasar por el ingreso.
-check(index.includes('if (PORTAL_TOKEN && PROD_ON === \'estudio\') return (') && index.includes('<LoopaEstudio.ClientPortal token={PORTAL_TOKEN} />'), 'el enlace debe abrir el portal sin entrar al gestor');
+// index.html lleva el JS ya compilado (fase 4.6): JSX → React.createElement, sin espacios.
+const compacto = index.replace(/\s+/g, '');
+check(compacto.includes("if(PORTAL_TOKEN&&PROD_ON==='estudio')return") && compacto.includes('React.createElement(LoopaEstudio.ClientPortal,{token:PORTAL_TOKEN})'), 'el enlace debe abrir el portal sin entrar al gestor');
 check(portal.includes('crypto.getRandomValues'), 'el token debe usar entropía criptográfica');
 check(portal.includes("filter(project => String(project.client"), 'el portal debe limitarse al cliente correcto');
 check(portal.includes('project.clientVisible !== false'), 'las tareas del cliente deben publicarse salvo exclusión explícita');
