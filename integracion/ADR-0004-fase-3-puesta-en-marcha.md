@@ -852,3 +852,18 @@ El detalle y el orden del corte están en `integracion/puesta-en-marcha/PUNTO-B-
   - 265 sin red (1 nueva) y 20 de Producción. Dos pruebas se adaptaron al código compilado.
   - 34 en el emulador.
 - **Verificado en el navegador (emulador):** abre en ~0,35 s sin cargar Babel. Las 11 pantallas del menú abren y la ficha de una tarea abre en el teléfono, sin errores.
+## 28. Tareas compartidas: la regla impedía listarlas (2026-11-10)
+
+- **Síntoma.** En la consola aparecía «[FRAME] Tareas compartidas: … workspaceId is undefined». La app consulta `frame_projects` con `viewerIds array-contains uid`, y esa consulta siempre se rechazaba. Así, una tarea compartida con otro tablero no le aparecía a quien sólo está en ese otro tablero. La app lo ocultaba en silencio porque trataba `permission-denied` como algo «normal».
+- **No viene de la fusión.** La regla es la de FRAME antes de la fusión (respaldo de A0).
+- **Causa.** `hasProjectAccess` pedía `data.keys().hasAll(['viewerIds']) && data.viewerIds is list`. En una consulta el motor no puede probar esas condiciones, así que rechazaba la lista entera.
+- **Arreglo.** Ahora pide `myUid() in data.viewerIds || isMember(data.workspaceId)`.
+  - No abre nada de más: toda escritura exige que `viewerIds` sea una lista (en `create`, y en las opciones B y C de `update`), y la opción A no lo cambia.
+  - Una tarea vieja sin `viewerIds` sigue entrando por el tablero.
+- **Pruebas.** Prueba nueva en `reglas.test.cjs`:
+  - quien está sólo en el otro tablero lista la tarea compartida;
+  - nadie lista las de otra persona;
+  - una cuenta pendiente no lista;
+  - la lectura una por una no cambia.
+  - Resultado: 35 en el emulador, 11 de funciones, 265 sin red y 20 de Producción. `puesta-en-marcha.test.cjs` registra las 3 líneas reemplazadas.
+- **Falta publicarla.** La compilación en seco desde LOOPA salió bien. Se publica con: `firebase deploy --only firestore:rules --config servidor-produccion/firebase.json --project frame-studio-3a18f`

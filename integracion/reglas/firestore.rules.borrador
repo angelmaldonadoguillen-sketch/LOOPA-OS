@@ -107,11 +107,15 @@ service cloud.firestore {
     // viewerIds materializa la unión de miembros para que tanto las consultas
     // como Storage puedan autorizar sin recorrer una cantidad variable de
     // documentos. Las tareas antiguas siguen usando workspaceId.
+    // Sin keys().hasAll ni «is list»: en una CONSULTA (viewerIds
+    // array-contains uid) el motor no puede probarlos y rechazaba la lista
+    // entera, así que las tareas compartidas con otro tablero nunca se veían.
+    // viewerIds sólo puede ser una lista: create, la opción B y la C de update
+    // lo exigen, y la A no lo cambia. Una tarea vieja sin viewerIds da error en
+    // la primera mitad y entra por el tablero.
     function hasProjectAccess(data) {
       return approved() && (
-        (data.keys().hasAll(['viewerIds'])
-         && data.viewerIds is list
-         && myUid() in data.viewerIds)
+        myUid() in data.viewerIds
         || isMember(data.workspaceId)
       );
     }

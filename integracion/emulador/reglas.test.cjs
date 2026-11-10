@@ -102,6 +102,28 @@ test.before(async () => { if (!skip) await setup(); });
 test.after(async () => { if (env) await env.cleanup(); });
 test.beforeEach(async () => { if (!skip) await seed(); });
 
+test('tareas compartidas: la consulta por viewerIds se permite (y sólo la propia)', { skip }, async () => {
+  // Una tarea de ws1 que también se ve en ws2: u3 (sólo ws2) la tiene que
+  // poder listar con la consulta de la app (viewerIds array-contains uid).
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await fsMod.setDoc(fsMod.doc(ctx.firestore(), 'frame_projects', 'tShared'), {
+      ...MANUAL_TASK, id: 'tShared', workspaceIds: ['ws1', 'ws2'], viewerIds: ['u1', 'u2', 'u3', 'u5'],
+    });
+  });
+  const compartidas = (uid, de = uid) => fsMod.getDocs(fsMod.query(fsMod.collection(as(uid), 'frame_projects'), fsMod.where('viewerIds', 'array-contains', de)));
+  await ok(compartidas('u3'), 'u3 lista sus tareas compartidas');
+  const snap = await compartidas('u3');
+  assert.deepEqual(snap.docs.map(d => d.id), ['tShared']);
+  await ok(compartidas('u1'), 'u1 lista sus tareas compartidas');
+  // Nadie lista las de otro, ni sin aprobación.
+  await no(compartidas('u3', 'u1'), 'u3 no lista las de u1');
+  await no(compartidas('pend'), 'una cuenta pendiente no lista');
+  // Leer una por una sigue igual: u3 la ve; quien no está, no.
+  await ok(fsMod.getDoc(ref(as('u3'), 'frame_projects', 'tShared')), 'u3 lee la compartida');
+  await no(fsMod.getDoc(ref(as('u3'), 'frame_projects', 'tManual')), 'u3 no lee una de ws1 que no le compartieron');
+  await ok(fsMod.getDoc(ref(as('u2'), 'frame_projects', 'tLegacy')), 'una tarea vieja (sin viewerIds) se lee por el tablero');
+});
+
 test('ventas: sólo el equipo comercial lee; nadie escribe desde el navegador', { skip }, async () => {
   const s = (uid) => ref(as(uid), 'loopa_sales', 's1');
   await ok(fsMod.getDoc(s('u1')), 'comercial lee');

@@ -87,8 +87,13 @@ test('reglasParaFrame: las reglas publicadas siguen todas, salvo lo que cambia L
   const cuenta = {};
   nuevas.forEach(l => { cuenta[l] = (cuenta[l] || 0) + 1; });
   const faltan = lineas(base).filter(l => !(cuenta[l]-- > 0));
-  // Sólo las 4 que LOOPA reemplaza a propósito (borrar tareas de venta, fichas con ventas).
+  // Sólo las 4 que LOOPA reemplaza a propósito (borrar tareas de venta, fichas
+  // con ventas) y las 3 de hasProjectAccess que impedían listar las tareas
+  // compartidas (2026-11-10: ver reglas.test.cjs, «tareas compartidas»).
   assert.deepEqual(faltan, [
+    '(data.keys().hasAll([\'viewerIds\'])',
+    '&& data.viewerIds is list',
+    '&& myUid() in data.viewerIds)',
     'allow delete: if memberOfExisting();',
     'allow read, delete: if memberOfExisting();',
     'allow create:       if memberOfIncoming();',
