@@ -325,8 +325,9 @@ test('servidor local por HTTP: lectura, funciones, errores y fallas simuladas', 
 test('las pantallas: la bandera sólo en este equipo y sin guardar en los documentos «loopa»', () => {
   const app = fs.readFileSync(path.join(ROOT, '_fuente', 'app.jsx'), 'utf8');
   const build = fs.readFileSync(path.join(ROOT, '_fuente', 'build.js'), 'utf8');
-  assert.match(app, /get\('datos'\) !== 'fusion'\) return null;/);
-  assert.match(app, /\['127\.0\.0\.1', 'localhost', '\[::1\]'\]\.includes\(window\.location\.hostname\)/);
+  // La decisión es LoopaFuente.modoDatos (probada aparte, caso por caso).
+  assert.match(app, /return LoopaFuente\.modoDatos\(\{/);
+  assert.match(app, /corte: window\.LOOPA_FUSION_REAL === true, conSdk: !!\(window\.firebase && window\.firebase\.functions\)/);
   for (const k of ['ventas', 'clientes', 'servicios']) {
     assert.ok(app.includes(`if (ready && !DATOS_FUSION) queueSave('${k}'`), `${k} no se guarda como documento «loopa» con la fusión`);
   }
@@ -645,10 +646,10 @@ test('cola: detener — al cambiar de persona no se manda nada más', async () =
 test('las pantallas (revisión 3.4): nunca se cae a la app de siempre ni a la nube', () => {
   const app = fs.readFileSync(path.join(ROOT, '_fuente', 'app.jsx'), 'utf8');
   const build = fs.readFileSync(path.join(ROOT, '_fuente', 'build.js'), 'utf8');
-  assert.ok(app.includes("return 'no-disponible'; // sólo en este equipo"), 'fuera de este equipo: aviso, no la app de siempre');
-  assert.ok(app.includes("return window.firebase && window.firebase.functions ? 'emulador' : 'no-disponible';"), 'sin SDK de Functions: aviso');
+  assert.ok(app.includes("} catch (e) { return 'no-disponible'; }"), 'si algo falla al decidir: aviso, no la app de siempre');
   assert.ok(app.includes("if (DATOS_FUSION === 'no-disponible') return ("), 'la pantalla de aviso existe');
   assert.ok(build.includes("&& !/[?&]datos=fusion(&|$)/.test(window.location.search)"), 'con la bandera no se inicia la app de Firebase de siempre');
+  assert.ok(build.includes('window.USE_FB = !window.LOOPA_FUSION_REAL &&'), 'después del corte tampoco');
   assert.ok(app.includes('FUSION_FB.auth.currentUser.uid === usuarioFusion ? FUSION_API.llamar(op)'), 'cada llamada con la sesión dueña');
   assert.ok(app.includes('if (vivoAlEmpezar === vivo.current) setVentas(d.ventas);'), 'las ventas en vivo no cancelan la recarga de clientes y servicios');
   assert.ok(app.includes("cola.current.detener()"), 'al salir, la cola se detiene');
@@ -656,4 +657,29 @@ test('las pantallas (revisión 3.4): nunca se cae a la app de siempre ni a la nu
   assert.ok(emu.functions[0].predeploy[0].includes('^demo-') && emu.firestore.predeploy[0].includes('^demo-'), 'la configuración de emuladores no se publica');
   const real = JSON.parse(fs.readFileSync(path.join(ROOT, 'firebase.json'), 'utf8'));
   assert.equal(real.firestore, undefined, 'el firebase.json de publicación no publica reglas');
+});
+
+test('modoDatos (tanda 3.7): de dónde salen los datos, caso por caso', () => {
+  const m = (search, hostname, extra = {}) => LoopaFuente.modoDatos({ search, hostname, conSdk: true, ...extra });
+  const PUB = 'angelmaldonadoguillen-sketch.github.io';
+  // Antes del corte: sin la bandera, la app de siempre, en cualquier lado.
+  assert.equal(m('', PUB), null);
+  assert.equal(m('?datos=otra', '127.0.0.1'), null);
+  // Local y emulador: sólo en este equipo; afuera, aviso (nunca la app de siempre).
+  assert.equal(m('?datos=fusion', '127.0.0.1'), 'local');
+  assert.equal(m('?datos=fusion&servidor=emulador', 'localhost'), 'emulador');
+  assert.equal(m('?datos=fusion', PUB), 'no-disponible');
+  assert.equal(m('?datos=fusion&servidor=emulador', PUB), 'no-disponible');
+  // Real: también publicado.
+  assert.equal(m('?datos=fusion&servidor=real', PUB), 'real');
+  assert.equal(m('?datos=fusion&servidor=real', '127.0.0.1'), 'real');
+  // Sin el SDK de Functions: aviso.
+  assert.equal(m('?datos=fusion&servidor=real', PUB, { conSdk: false }), 'no-disponible');
+  assert.equal(m('?datos=fusion&servidor=emulador', '127.0.0.1', { conSdk: false }), 'no-disponible');
+  // Después del corte: siempre FRAME, aunque la URL pida otra cosa; la app
+  // vieja ya no existe para nadie.
+  assert.equal(m('', PUB, { corte: true }), 'real');
+  assert.equal(m('?datos=fusion&servidor=emulador', '127.0.0.1', { corte: true }), 'real');
+  assert.equal(m('', PUB, { corte: true, conSdk: false }), 'no-disponible');
+  assert.equal(m('', PUB, { corte: 'true' }), null, 'sólo el booleano verdadero');
 });

@@ -338,6 +338,23 @@ const LoopaFuente = (function () {
     };
   }
 
-  return { armarDatos, crearCola, normalizarError, adaptadorHttp, adaptadorFirebase, CLAVE };
+  // De dónde salen los datos (tanda 3.7). Nunca cae a la app de siempre si
+  // se pidió la fusión y no se puede: 'no-disponible' muestra un aviso.
+  //   null           la app de siempre (colección «loopa» de tooned-os)
+  //   'real'         FRAME (frame-studio-3a18f): ?datos=fusion&servidor=real,
+  //                  o siempre después del corte (build con LOOPA_FUSION_REAL)
+  //   'emulador'     emuladores de este equipo (?servidor=emulador)
+  //   'local'        servidor local de pruebas (sólo ?datos=fusion)
+  function modoDatos({ search = '', hostname = '', corte = false, conSdk = false } = {}) {
+    const q = new URLSearchParams(search);
+    if (q.get('datos') !== 'fusion' && corte !== true) return null;
+    if (corte === true || q.get('servidor') === 'real') return conSdk ? 'real' : 'no-disponible';
+    // local y emulador: sólo en este equipo.
+    if (!['127.0.0.1', 'localhost', '[::1]'].includes(hostname)) return 'no-disponible';
+    if (q.get('servidor') !== 'emulador') return 'local';
+    return conSdk ? 'emulador' : 'no-disponible';
+  }
+
+  return { armarDatos, crearCola, normalizarError, adaptadorHttp, adaptadorFirebase, modoDatos, CLAVE };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = LoopaFuente;

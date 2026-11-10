@@ -133,23 +133,33 @@ function downloadCSV(name, headers, rows) {
 //   ?datos=fusion&servidor=emulador  emuladores de Firebase (Auth, Firestore
 //                                    con las reglas en borrador, Functions):
 //                                    integracion/emulador/arrancar-fusion.cjs
-// La conexión al proyecto real llega con la puesta en marcha (ADR-0004 §4 A).
-// Sin la bandera, LOOPA funciona exactamente como siempre.
+//   ?datos=fusion&servidor=real      el proyecto real de FRAME
+//                                    (frame-studio-3a18f), con la cuenta de FRAME
+// Tanda 3.7 (el corte): un build con LOOPA_FUSION_REAL=1 hace del modo real
+// el de siempre (sin parámetros) y retira el modo viejo (colección «loopa» de
+// tooned-os, que queda como archivo). Sin eso, LOOPA funciona como siempre.
+// La decisión es pura (LoopaFuente.modoDatos, probada con Node). Sin el SDK
+// de Functions (sin red, CDN bloqueado) no hay fusión: se avisa, nunca se
+// sigue con la app de siempre.
 const DATOS_FUSION = (() => {
   try {
-    const q = new URLSearchParams(window.location.search);
-    if (q.get('datos') !== 'fusion') return null;
-    if (!['127.0.0.1', 'localhost', '[::1]'].includes(window.location.hostname)) {
-      return 'no-disponible'; // sólo en este equipo: nunca cae a la app de siempre
-    }
-    if (q.get('servidor') !== 'emulador') return 'local';
-    // Sin el SDK de Functions (sin red, CDN bloqueado) no hay emulador: se
-    // avisa, no se sigue con la app de siempre.
-    return window.firebase && window.firebase.functions ? 'emulador' : 'no-disponible';
+    return LoopaFuente.modoDatos({
+      search: window.location.search, hostname: window.location.hostname,
+      corte: window.LOOPA_FUSION_REAL === true, conSdk: !!(window.firebase && window.firebase.functions),
+    });
   } catch (e) { return 'no-disponible'; }
 })();
-// Emuladores: una app de Firebase APARTE (proyecto demo-*, que no existe en
-// la nube), nunca la de la colección «loopa».
+// El proyecto de FRAME (configuración web pública, la misma de su index.html).
+const FRAME_WEB = {
+  apiKey: 'AIzaSyBh2zicshrrr1XOgmyBkMgO5od01sIFAJ4',
+  authDomain: 'frame-studio-3a18f.firebaseapp.com',
+  projectId: 'frame-studio-3a18f',
+  storageBucket: 'frame-studio-3a18f.firebasestorage.app',
+  messagingSenderId: '336293390648',
+  appId: '1:336293390648:web:b2feefaf19b11ceee679cd',
+};
+// Una app de Firebase APARTE, nunca la de la colección «loopa»: en el
+// emulador, un proyecto demo-* que no existe en la nube; en real, FRAME.
 const FUSION_FB = DATOS_FUSION === 'emulador' ? (() => {
   const app = firebase.initializeApp({ projectId: 'demo-loopa', apiKey: 'demo-api-key', authDomain: 'demo-loopa.firebaseapp.com' }, 'loopa-fusion');
   app.auth().useEmulator('http://127.0.0.1:9099');
@@ -158,9 +168,12 @@ const FUSION_FB = DATOS_FUSION === 'emulador' ? (() => {
   const functions = app.functions('us-central1');
   functions.useEmulator('127.0.0.1', 5001);
   return { app, auth: app.auth(), db, functions };
+})() : DATOS_FUSION === 'real' ? (() => {
+  const app = firebase.initializeApp(FRAME_WEB, 'loopa-fusion');
+  return { app, auth: app.auth(), db: app.firestore(), functions: app.functions('us-central1') };
 })() : null;
 const planoFb = (d) => ({ id: d.id, ...d.data() });
-const FUSION_API = DATOS_FUSION === 'emulador'
+const FUSION_API = FUSION_FB
   ? LoopaFuente.adaptadorFirebase({
     leerDoc: async (c, id) => { const d = await FUSION_FB.db.collection(c).doc(id).get(); return d.exists ? planoFb(d) : null; },
     leerColeccion: async (c) => (await FUSION_FB.db.collection(c).get()).docs.map(planoFb),
@@ -2442,7 +2455,7 @@ function Configuracion({ config, setConfig, allData, onImport, showToast }) {
             <div className="field">
               <label>Dónde se guardan los datos</label>
               <div className="mono" style={{ fontSize: 'var(--fs-s)', lineHeight: 1.7, color: window.USE_FB ? 'var(--ok)' : 'var(--warn)' }}>
-                {DATOS_FUSION ? `● Fusión · ventas, clientes y servicios en ${DATOS_FUSION === 'emulador' ? 'los emuladores de Firebase' : 'el servidor local'}; configuración y gastos sólo en este navegador` : window.USE_FB ? '● Nube (Firebase) · sincronizado entre dispositivos' : '● Modo local · solo en este navegador'}
+                {DATOS_FUSION ? `● Fusión · ventas, clientes y servicios en ${DATOS_FUSION === 'real' ? 'FRAME (la ficha única)' : DATOS_FUSION === 'emulador' ? 'los emuladores de Firebase' : 'el servidor local'}; configuración y gastos sólo en este navegador` : window.USE_FB ? '● Nube (Firebase) · sincronizado entre dispositivos' : '● Modo local · solo en este navegador'}
               </div>
               {!window.USE_FB && <div className="muted" style={{ fontSize: 'var(--fs-s)', lineHeight: 1.6 }}>Para usarlo desde el celular y la compu con los mismos datos, conectá Firebase (instrucciones en <span className="mono">LEEME.md</span>). Mientras tanto, descargá respaldos seguido.</div>}
             </div>
@@ -2702,7 +2715,7 @@ function App({ onLogout, usuarioFusion = null }) {
       if (DATOS_FUSION === 'local' && vieja && !localStorage.getItem(claveCola(null))) { localStorage.setItem(claveCola(null), vieja); localStorage.removeItem(LoopaFuente.CLAVE); }
     } catch (e) { /* sin almacenamiento */ }
     // Con Firebase, cada llamada sale SÓLO con la sesión dueña de esta cola.
-    const llamar = DATOS_FUSION === 'emulador'
+    const llamar = FUSION_FB
       ? (op) => (FUSION_FB.auth.currentUser && FUSION_FB.auth.currentUser.uid === usuarioFusion ? FUSION_API.llamar(op) : Promise.reject(Object.assign(new Error('Otra sesión'), { code: 'unauthenticated' })))
       : FUSION_API.llamar;
     cola.current = LoopaFuente.crearCola({
@@ -3062,7 +3075,7 @@ function App({ onLogout, usuarioFusion = null }) {
     goNueva({ cliente: clientePrefill(c), items, pay: v.pay });
   };
   // Producción con los datos del tablero: sólo con Firebase (emulador) y sesión.
-  const conexionProduccion = useMemo(() => (DATOS_FUSION === 'emulador' && usuarioFusion ? { db: FUSION_FB.db, uid: usuarioFusion } : null), [usuarioFusion]);
+  const conexionProduccion = useMemo(() => (FUSION_FB && usuarioFusion ? { db: FUSION_FB.db, uid: usuarioFusion } : null), [usuarioFusion]);
   const openVenta = (k) => {
     const porNumero = ventas.filter(x => x.n === k);
     const v = ventas.find(x => claveVenta(x) === k) || (porNumero.length === 1 ? porNumero[0] : null);
@@ -3253,13 +3266,16 @@ function ColaAviso({ estado, onReintentar, onDescartar }) {
   );
   if (estado.sinPersistencia) return <span className="chip" style={{ color: 'var(--warn)', borderColor: 'currentColor' }} title="El navegador no deja guardar la cola (sin espacio o modo privado): si cerrás la página, los cambios sin enviar se pierden.">● Cola sin respaldo{estado.pendientes ? ` · ${estado.pendientes}` : ''}</span>;
   if (estado.pendientes) return <span className="chip" title={estado.etiquetas.join('\n')}>● Guardando {estado.pendientes}…</span>;
+  if (DATOS_FUSION === 'real') return null; // el modo de siempre después del corte: sin cartel
   return <span className="chip mob-hide" title={DATOS_FUSION === 'emulador' ? 'Datos de la fusión: emuladores de Firebase de este equipo (proyecto demo)' : 'Datos de la fusión: servidor local de este equipo'} style={{ color: 'var(--ok)' }}>● Fusión · {DATOS_FUSION === 'emulador' ? 'emulador' : 'local'}</span>;
 }
 
 function Root() {
   if (DATOS_FUSION === 'no-disponible') return (
     <div className="boot"><div className="boot-err"><span style={{ color: 'var(--danger)' }}>✕</span><div className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>
-      Los datos de la fusión (?datos=fusion) sólo funcionan en este equipo y, con ?servidor=emulador, con el SDK de Firebase cargado. Abrí LOOPA sin ?datos=fusion para usarlo como siempre.
+      {window.LOOPA_FUSION_REAL === true
+        ? 'No se pudo cargar Firebase (¿sin conexión o bloqueado?). Revisá la conexión y recargá la página.'
+        : 'Los datos de la fusión (?datos=fusion) sólo funcionan en este equipo (o con ?servidor=real) y con el SDK de Firebase cargado. Abrí LOOPA sin ?datos=fusion para usarlo como siempre.'}
     </div></div></div>
   );
   return <RootConDatos />;

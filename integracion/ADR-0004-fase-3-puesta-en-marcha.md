@@ -566,3 +566,41 @@ Corrido con aprobación («Sí, corré A0»). El respaldo está en `integracion/
 - **Volver atrás las reglas:** historial de reglas en la consola, o publicar `respaldo/2026-11-10-101612/firestore.rules` desde FRAME (PUNTO-A.md, A4).
 - **Pendiente:** la revisión con sesión en FRAME (la hace Ángel): mover una tarjeta, editar y marcar favorito, crear y editar una ficha, papelera y restaurar, portal de un cliente.
 - **Sigue:** B (migración), C (configuración y equipo) y D (push de LOOPA).
+
+## 17. Hacia el corte: B0, tanda 3.7 y herramientas de B y C (2026-11-10)
+
+El detalle y el orden del corte están en `integracion/puesta-en-marcha/PUNTO-B-C.md`.
+
+**B0 (sólo lectura):** `respaldo/b-2026-11-10-125825`.
+- **LOOPA:** 6 ventas, 3 clientes, 10 servicios, 2 gastos variables y 6 fijos.
+- **FRAME:** 12 tableros, 12 fichas y 8 usuarios.
+- **Corrida en seco** sobre «Loopa Estudio»:
+  - plan LISTO, 0 errores, 0 advertencias;
+  - la conciliación cuadra: total 83 200 y cobrado 82 000;
+  - los 3 clientes reciben ficha nueva;
+  - contra el proyecto real: 29 documentos para crear y 0 conflictos.
+
+**Tanda 3.7 (LOOPA contra el proyecto real):**
+- `?datos=fusion&servidor=real` abre una app de Firebase aparte (`loopa-fusion`) sobre frame-studio-3a18f, con la cuenta de FRAME.
+- `LOOPA_FUSION_REAL=1` en el build lo deja como modo por defecto. La app de `tooned-os` ya no se inicia (`USE_FB = false`).
+- **Decisión pura:** `LoopaFuente.modoDatos`, probada caso por caso.
+  - Local y emulador siguen funcionando sólo en este equipo.
+  - Sin el SDK de Functions se muestra un aviso: nunca se cae a la app de siempre.
+- **En el navegador:** el emulador sigue andando. El modo real muestra «Misma cuenta que FRAME», sólo con la app de FRAME (no se inició sesión).
+
+**B (migración real):**
+- **`almacen-rest.cjs`:** la interfaz del almacén sobre la API REST, porque no hay credenciales de servicio en esta PC. Limita a las colecciones de la migración y a dos tipos de escritura: crear sólo si el documento no existe, o actualizar campos sólo si existe.
+- **`migrar.cjs`:** usa el ejecutor de siempre. Sin `--escribir` sólo lee; con `--escribir` exige la huella exacta.
+- **Dos fallas encontradas probando en el emulador, corregidas:**
+  1. un GET dentro de una transacción se cuelga en el emulador; ahora se usa `batchGet`, como los SDK;
+  2. una transacción fallida retenía documentos; ahora se cierra (rollback) antes de reintentar.
+- **`migracion-rest.test.cjs`:** la corrida por REST es igual a la corrida en memoria, documento por documento, y se reanuda tras un corte.
+
+**C:** `configurar-c.cjs`. Verifica que cada comercial esté aprobado y sea miembro del tablero, y escribe `loopa_config/production` y `access`.
+
+**Pendiente de decisión:**
+- quiénes venden;
+- el tablero de producción;
+- las plantillas de producción de los servicios: ninguno tiene, así que las ventas todavía no crearían tareas.
+
+**Pruebas:** 251 sin red, 33 en el emulador, 11 de funciones.

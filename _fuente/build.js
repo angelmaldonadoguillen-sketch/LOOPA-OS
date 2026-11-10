@@ -5,6 +5,10 @@ const fs = require('fs');
 const path = require('path');
 const here = __dirname;
 const OUT = path.join(__dirname, '..');
+// El corte (tanda 3.7): `LOOPA_FUSION_REAL=1 node _fuente/build.js` arma la
+// versión que usa FRAME como fuente de datos por defecto. Sin la variable,
+// la de siempre.
+const FUSION_REAL = process.env.LOOPA_FUSION_REAL === '1';
 let baseCss = fs.readFileSync(path.join(here, "base.css"), "utf8");
 baseCss = baseCss
   .replace('--accent: #E63946;', '--accent: #f4f4f1;')
@@ -167,9 +171,12 @@ const html = `<!doctype html><!-- LOOPA OS v3.1 · base TOONED OS v2.8 -->
     appId: "1:193761852127:web:ba8d049866d581920e076a"
   };
   // ═══════════════════════════════════════════════════════════════
-  // Con ?datos=fusion (pruebas de la fusión en este equipo) la app de Firebase
-  // de siempre NI se inicia: nada habla con el proyecto real.
-  window.USE_FB = !!(window.LOOPA_FIREBASE.apiKey && window.firebase) && !/[?&]datos=fusion(&|$)/.test(window.location.search);
+  // El corte (tanda 3.7): con LOOPA_FUSION_REAL los datos viven en FRAME
+  // (frame-studio-3a18f) y la colección «loopa» de tooned-os queda de archivo.
+  window.LOOPA_FUSION_REAL = ${FUSION_REAL};
+  // Con ?datos=fusion o después del corte, la app de Firebase de siempre NI
+  // se inicia: nada escribe en la colección «loopa».
+  window.USE_FB = !window.LOOPA_FUSION_REAL && !!(window.LOOPA_FIREBASE.apiKey && window.firebase) && !/[?&]datos=fusion(&|$)/.test(window.location.search);
   if (window.USE_FB) {
     firebase.initializeApp(window.LOOPA_FIREBASE);
     window.db = firebase.firestore();
