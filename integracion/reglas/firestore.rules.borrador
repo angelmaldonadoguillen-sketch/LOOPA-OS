@@ -407,11 +407,17 @@ service cloud.firestore {
       }
       allow read:   if memberOfExisting();
       allow delete: if memberOfExisting() && !resource.data.keys().hasAny(serverOwnedClientKeys());
+      // Auditoría: quién creó o editó desde LOOPA lo escribe sólo el servidor.
+      // createdAt sí puede venir al crear (FRAME crea así sus fichas), pero
+      // después no cambia.
+      function clientAuthorKeys() {
+        return ['createdBy', 'updatedBy'];
+      }
       allow create: if memberOfIncoming()
-                    && !request.resource.data.keys().hasAny(serverOwnedClientKeys())
+                    && !request.resource.data.keys().hasAny(serverOwnedClientKeys().concat(clientAuthorKeys()))
                     && request.resource.data.get('id', doc) == doc;
       allow update: if memberOfExisting() && memberOfIncoming()
-                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(serverOwnedClientKeys())
+                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(serverOwnedClientKeys().concat(clientAuthorKeys()).concat(['createdAt']))
                     // El campo id, si cambia (fichas viejas sin id o con otro),
                     // sólo puede pasar a ser el id del documento.
                     && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['id']) || request.resource.data.id == doc)
@@ -426,6 +432,13 @@ service cloud.firestore {
     // versión, el outbox y la revisión de producción no se pueden falsear
     // desde la consola del navegador.
     match /loopa_sales/{saleId} {
+      allow read: if isCommercial();
+      allow create, update, delete: if false;
+    }
+
+    // Catálogo: el equipo comercial lo lee; se escribe sólo desde el servidor
+    // (loopaSaveService), que nunca acepta la plantilla de producción.
+    match /loopa_services/{serviceId} {
       allow read: if isCommercial();
       allow create, update, delete: if false;
     }

@@ -44,6 +44,9 @@ const callable = (name, fn) => onCall({ region: REGION, timeoutSeconds: 60 }, as
 exports.loopaCreateSale = callable('loopaCreateSale', server.createSale);
 exports.loopaUpdateSale = callable('loopaUpdateSale', server.updateSale);
 exports.loopaAddPayment = callable('loopaAddPayment', server.addPayment);
+exports.loopaRemovePayment = callable('loopaRemovePayment', server.removePayment);
+exports.loopaSaveClient = callable('loopaSaveClient', server.saveClient);
+exports.loopaSaveService = callable('loopaSaveService', server.saveService);
 
 // El outbox: cada evento nuevo se procesa enseguida (y la cola de su venta).
 // Sin retry automático: si falla, el evento queda pendiente o con backoff y

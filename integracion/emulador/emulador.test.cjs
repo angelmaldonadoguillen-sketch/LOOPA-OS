@@ -200,13 +200,16 @@ test('emulador ≡ memoria: funciones del servidor (vender, procesar, cobrar, ba
     await env.seed('loopa_config', 'access', { commercialUids: ['u-com'] });
     await env.seed('loopa_config', 'production', { defaultWorkspaceId: fx.context.defaultWorkspaceId, allowedWorkspaceIds: fx.context.allowedWorkspaceIds });
     for (const [id, w] of Object.entries(fx.context.workspaces)) await env.seed('frame_workspaces', id, { name: w.name, memberIds: w.memberIds });
+    for (const sv of fx.services) await env.seed('loopa_services', sv.id, sv);
     const U = { uid: 'u-com' };
+    // Lo que manda el navegador: líneas sin snapshot ni plantilla.
+    const desdeNavegador = (d) => ({ ...d, lines: d.lines.map(l => ({ lineId: l.lineId, serviceId: l.serviceId, quantity: l.quantity, precio: l.snapshot.precio })) });
     const opts = { now: () => T0 };
     const id = '7c0de000-0000-4000-8000-000000000001';
     const kind = (p) => p.then(r => r.status, e => `${e.kind}:${(e.details && e.details.code) || ''}`);
     const out = [];
-    out.push(await kind(server.createSale(env.store, { uid: 'nadie' }, { draft: draftOf('plan-mensual', id) }, opts)));
-    const r = await server.createSale(env.store, U, { draft: draftOf('plan-mensual', id) }, opts);
+    out.push(await kind(server.createSale(env.store, { uid: 'nadie' }, { draft: desdeNavegador(draftOf('plan-mensual', id)) }, opts)));
+    const r = await server.createSale(env.store, U, { draft: desdeNavegador(draftOf('plan-mensual', id)) }, opts);
     out.push([r.status, r.n]);
     out.push((await server.onEventCreated(env.store, r.eventId, opts)).status);
     out.push(await kind(server.updateSale(env.store, U, { saleId: id, patch: { entrega: '2026-12-01' }, expectedVersion: 9 }, opts)));
@@ -316,7 +319,7 @@ test('functions/index.js carga con firebase-functions y responde errores como Ht
   });
   assert.equal(r.status, 0, r.stderr);
   const out = JSON.parse(r.stdout.trim().split('\n').pop());
-  assert.deepEqual(out.exports, ['loopaAddPayment', 'loopaCreateSale', 'loopaOnEventCreated', 'loopaSweepEvents', 'loopaUpdateSale']);
+  assert.deepEqual(out.exports, ['loopaAddPayment', 'loopaCreateSale', 'loopaOnEventCreated', 'loopaRemovePayment', 'loopaSaveClient', 'loopaSaveService', 'loopaSweepEvents', 'loopaUpdateSale']);
   assert.deepEqual(out.unauth, ['HttpsError', 'unauthenticated', 'Iniciá sesión para vender']);
   assert.deepEqual(out.denied, ['HttpsError', 'permission-denied']);
 });

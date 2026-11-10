@@ -29,6 +29,7 @@ function seeded({ production = true } = {}) {
   Object.entries(fx.context.workspaces).forEach(([id, w]) => store.seed('frame_workspaces', id, { name: w.name, memberIds: w.memberIds }));
   Object.entries(fx.context.clients).forEach(([id, c]) => store.seed('frame_clients', id, { id, ...c }));
   store.seed(repo.COUNTERS, 'sales', { next: 1043 });
+  fx.services.forEach(sv => store.seed('loopa_services', sv.id, sv));
   return store;
 }
 let seq = 0;
@@ -38,6 +39,9 @@ function draftOf(name, over = {}) {
   seq += 1;
   return {
     ...rest, id: `5a1e0000-0000-4000-8000-${String(seq).padStart(12, '0')}`, status: 'confirmed',
+    // Lo que manda el navegador: sin snapshot ni plantilla (el servidor los
+    // toma del catálogo).
+    lines: rest.lines.map(l => ({ lineId: l.lineId, serviceId: l.serviceId, quantity: l.quantity, precio: l.snapshot.precio })),
     commercial: { subtotal: 9000, descuento: 0, total: 9000, pay: 'bac', abonos: [], canal: 'WhatsApp', nota: '', contacto: { telefono: '', email: '' } },
     ...over,
   };
@@ -96,7 +100,11 @@ test('errores del dominio: código estable para la app, sin datos internos', asy
   assert.equal(await kindOf(server.updateSale(store, U, { saleId: 'no-existe', patch: { entrega: '2026-11-25' }, expectedVersion: 1 }, { now })), 'not-found:not_found');
   assert.equal(await kindOf(server.updateSale(store, U, { saleId: draft.id, patch: { n: 1 }, expectedVersion: 1 }, { now })), 'invalid-argument:field_not_editable');
   assert.equal(await kindOf(server.createSale(store, U, { draft: draftOf('plan-mensual', { client: { clientId: 'no-existe', nombre: 'X', empresa: '' } }) }, { now })), 'failed-precondition:client_unknown');
-  const malo = draftOf('plan-mensual', { lines: [] });
+  const base = draftOf('plan-mensual');
+  // Fecha imposible: la valida el contrato y vuelve con sus problemas.
+  const malo = { ...base, fecha: '2026-13-45' };
+  assert.equal(await kindOf(server.createSale(store, U, { draft: { ...base, lines: base.lines.map(l => ({ ...l, quantity: 0 })) } }, { now })), 'invalid-argument:', 'cantidad 0');
+  assert.equal(await kindOf(server.createSale(store, U, { draft: { ...base, lines: base.lines.map(l => ({ ...l, quantity: 1.5 })) } }, { now })), 'invalid-argument:', 'cantidad no entera');
   const e = await server.createSale(store, U, { draft: malo }, { now }).catch(x => x);
   assert.equal(e.kind, 'invalid-argument');
   assert.ok(Array.isArray(e.details.issues) && e.details.issues.length > 0, 'trae los problemas de validación');
@@ -148,8 +156,8 @@ test('el barrido retoma un evento fallido cumplida la espera, y sólo entonces',
 test('functions/index.js: codebase propio, sólo envoltorios, y firebase.json no toca a FRAME', () => {
   const root = path.join(__dirname, '..', '..');
   const idx = fs.readFileSync(path.join(root, 'functions', 'index.js'), 'utf8');
-  ['loopaCreateSale', 'loopaUpdateSale', 'loopaAddPayment', 'loopaOnEventCreated', 'loopaSweepEvents'].forEach(n => assert.match(idx, new RegExp(`exports\\.${n} =`)));
-  assert.equal((idx.match(/exports\.\w+ =/g) || []).length, 5, 'ninguna función de más (las de FRAME viven en su repo)');
+  ['loopaCreateSale', 'loopaUpdateSale', 'loopaAddPayment', 'loopaRemovePayment', 'loopaSaveClient', 'loopaSaveService', 'loopaOnEventCreated', 'loopaSweepEvents'].forEach(n => assert.match(idx, new RegExp(`exports\\.${n} =`)));
+  assert.equal((idx.match(/exports\.\w+ =/g) || []).length, 8, 'ninguna función de más (las de FRAME viven en su repo)');
   assert.match(idx, /document: 'loopa_integration_events\/\{eventId\}'/);
   assert.doesNotMatch(idx, /\.delete\(|recursiveDelete/);
   const fb = JSON.parse(fs.readFileSync(path.join(root, 'firebase.json'), 'utf8'));
@@ -275,4 +283,122 @@ test('errores transitorios: la app sabe que puede reintentar', () => {
     assert.equal(server.toServerError(Object.assign(new Error('x'), { code })).kind, 'unavailable', code);
   }
   assert.equal(server.toServerError(Object.assign(new Error('demasiado grande'), { code: 'invalid-argument' })).kind, 'invalid-argument');
+});
+
+// ── Tanda 3.2: las líneas salen del catálogo ──────────────────────
+
+test('nadie inventa la plantilla de producción: las líneas se arman del catálogo', async () => {
+  const store = seeded();
+  const draft = draftOf('paquete-mismo-dia');
+  const falsa = { ...draft, lines: draft.lines.map(l => ({ ...l, executionPlan: { enabled: true, version: 99, templates: [] } })) };
+  assert.equal(await kindOf(server.createSale(store, U, { draft: falsa }, { now })), 'invalid-argument:', 'campos no permitidos en la línea');
+  const conSnapshot = { ...draft, lines: draft.lines.map(l => ({ ...l, snapshot: { nombre: 'X' } })) };
+  assert.equal(await kindOf(server.createSale(store, U, { draft: conSnapshot }, { now })), 'invalid-argument:');
+  assert.equal(await kindOf(server.createSale(store, U, { draft: { ...draft, lines: [{ lineId: 'l1', serviceId: 'SRV-NO-EXISTE', quantity: 1 }] } }, { now })), 'failed-precondition:service_unknown');
+  const svc = fx.services[0];
+  store.seed('loopa_services', svc.id, { ...svc, activo: false });
+  assert.equal(await kindOf(server.createSale(store, U, { draft: { ...draft, lines: [{ lineId: 'l1', serviceId: svc.id, quantity: 1 }] } }, { now })), 'failed-precondition:service_unknown', 'archivado no se vende');
+  assert.equal(await kindOf(server.createSale(store, U, { draft: { ...draft, lines: [] } }, { now })), 'invalid-argument:');
+  assert.equal(store.list(COLLECTIONS.sales).length, 0);
+  // La venta válida guarda la plantilla del CATÁLOGO, con su versión.
+  await server.createSale(store, U, { draft }, { now });
+  const sale = await store.get(COLLECTIONS.sales, draft.id);
+  sale.lines.forEach(l => {
+    const cat = fx.services.find(sv => sv.id === l.serviceId);
+    assert.deepEqual(l.executionPlan, cat.executionPlan || null);
+    assert.equal(l.snapshot.nombre, cat.nombre);
+  });
+});
+
+test('editar una venta: las líneas existentes conservan su plantilla congelada; las nuevas toman la vigente', async () => {
+  const store = seeded();
+  const draft = draftOf('fechas-distintas');
+  await server.createSale(store, U, { draft }, { now });
+  const before = await store.get(COLLECTIONS.sales, draft.id);
+  // El catálogo cambia después de vender.
+  const conPlan = fx.services.filter(sv => sv.executionPlan);
+  conPlan.forEach(sv => store.seed('loopa_services', sv.id, { ...sv, nombre: `${sv.nombre} (nuevo)`, executionPlan: { ...sv.executionPlan, version: sv.executionPlan.version + 1 } }));
+  const first = before.lines[0];
+  const nueva = { lineId: 'l-nueva', serviceId: conPlan[0].id, quantity: 1 };
+  const lines = [...before.lines.map(l => ({ lineId: l.lineId, serviceId: l.serviceId, quantity: l.quantity + (l.lineId === first.lineId ? 1 : 0), precio: l.snapshot.precio })), nueva];
+  const upd = await server.updateSale(store, U, { saleId: draft.id, patch: { lines }, expectedVersion: before.version }, { now });
+  assert.equal(upd.status, 'updated');
+  const after = await store.get(COLLECTIONS.sales, draft.id);
+  const viejo = after.lines.find(l => l.lineId === first.lineId);
+  assert.equal(viejo.quantity, first.quantity + 1);
+  assert.deepEqual([viejo.snapshot.nombre, viejo.executionTemplateVersion], [first.snapshot.nombre, first.executionTemplateVersion], 'conserva lo que se vendió');
+  const agregada = after.lines.find(l => l.lineId === 'l-nueva');
+  assert.equal(agregada.executionTemplateVersion, conPlan[0].executionPlan.version + 1, 'la línea nueva toma la plantilla vigente');
+});
+
+// ── Tanda 3.2: clientes, servicios y avance desde LOOPA ───────────
+
+test('cliente nuevo desde LOOPA: lo crea el servidor, en el tablero por defecto, una sola vez', async () => {
+  const store = seeded();
+  const id = '0c11e000-0000-4000-8000-000000000001';
+  const datos = { id, nombre: '  Panadería Sol  ', empresa: 'Sol S.A.', telefono: '9999-1234', email: 'hola@sol.hn', canal: 'WhatsApp' };
+  assert.deepEqual(await server.saveClient(store, U, { client: datos }, { now }), { status: 'created', clientId: id });
+  const doc = await store.get('frame_clients', id);
+  assert.equal(doc.workspaceId, fx.context.defaultWorkspaceId);
+  assert.equal(doc.name, 'Panadería Sol');
+  assert.deepEqual([doc.commercial.telefono, doc.commercial.email, doc.createdBy], ['9999-1234', 'hola@sol.hn', 'u-com']);
+  // Repetir (doble clic) no duplica: actualiza lo comercial.
+  assert.equal((await server.saveClient(store, U, { client: { ...datos, telefono: '8888-0000' } }, { now })).status, 'updated');
+  assert.equal((await store.get('frame_clients', id)).commercial.telefono, '8888-0000');
+  assert.equal((await store.get('frame_clients', id)).name, 'Panadería Sol', 'el nombre de la ficha no cambia desde LOOPA');
+  // Y se le puede vender enseguida.
+  const draft = draftOf('paquete-mismo-dia', { client: { clientId: id, nombre: 'Panadería Sol', empresa: 'Sol S.A.' } });
+  assert.equal((await server.createSale(store, U, { draft }, { now })).status, 'created');
+});
+
+test('clientes: ajenos, sin nombre o con id no-UUID se rechazan; sólo comerciales', async () => {
+  const store = seeded();
+  assert.equal(await kindOf(server.saveClient(store, U, { client: { id: 'cli-demo-cliente-ajeno', nombre: 'X' } }, { now })), 'failed-precondition:client_unknown');
+  assert.equal(await kindOf(server.saveClient(store, U, { client: { id: 'CL-123', nombre: 'Nuevo' } }, { now })), 'failed-precondition:client_unknown', 'alta exige UUID; mismo error que una ajena (no revela ids)');
+  assert.equal(await kindOf(server.saveClient(store, U, { client: { id: '0c11e000-0000-4000-8000-000000000002', nombre: '  ' } }, { now })), 'invalid-argument:');
+  assert.equal(await kindOf(server.saveClient(store, { uid: 'u-prod' }, { client: { id: '0c11e000-0000-4000-8000-000000000003', nombre: 'X' } }, { now })), 'permission-denied:');
+  // Una ficha migrada (id viejo) sí se edita.
+  assert.equal((await server.saveClient(store, U, { client: { id: 'cli-demo-cafe-aurora', nombre: 'Café Aurora', telefono: '2222-0000' } }, { now })).status, 'updated');
+});
+
+test('servicios desde LOOPA: lo comercial sí, la plantilla de producción no', async () => {
+  const store = seeded();
+  const conPlan = fx.services.find(sv => sv.executionPlan);
+  const r = await server.saveService(store, U, { service: { ...conPlan, nombre: 'Renombrado', precio: 123, executionPlan: { enabled: true, version: 999, templates: [] } } }, { now });
+  assert.equal(r.status, 'updated');
+  const doc = await store.get('loopa_services', conPlan.id);
+  assert.deepEqual([doc.nombre, doc.precio, doc.updatedBy], ['Renombrado', 123, 'u-com']);
+  assert.deepEqual(doc.executionPlan, conPlan.executionPlan, 'la plantilla no viaja desde LOOPA');
+  const nuevo = await server.saveService(store, U, { service: { id: 'SRV-NUEVO-1', nombre: 'Fotos producto', modelo: 'unitario', precio: 50, costo: 10 } }, { now });
+  assert.equal(nuevo.status, 'created');
+  assert.equal((await store.get('loopa_services', 'SRV-NUEVO-1')).executionPlan, null, 'nace sin plantilla: vende, no genera producción');
+  assert.equal(await kindOf(server.saveService(store, U, { service: { id: 'otra/cosa', nombre: 'X', modelo: 'unitario', precio: 1, costo: 0 } }, { now })), 'invalid-argument:');
+  assert.equal(await kindOf(server.saveService(store, U, { service: { id: 'SRV-X', nombre: 'X', modelo: 'raro', precio: 1, costo: 0 } }, { now })), 'invalid-argument:');
+  assert.equal(await kindOf(server.saveService(store, U, { service: { id: 'SRV-X', nombre: 'X', modelo: 'unitario', precio: -1, costo: 0 } }, { now })), 'invalid-argument:');
+  assert.equal(await kindOf(server.saveService(store, U, { service: { id: 'SRV-X', nombre: 'X', modelo: 'especial', precio: 1, costo: 0, specialClientId: 'cli-demo-cliente-ajeno' } }, { now })), 'failed-precondition:client_unknown');
+  assert.equal(await kindOf(server.saveService(store, { uid: 'u-prod' }, { service: { id: 'SRV-X', nombre: 'X', modelo: 'unitario', precio: 1, costo: 0 } }, { now })), 'permission-denied:');
+});
+
+test('avance comercial (D17): se guarda, no genera eventos y sólo con valores conocidos', async () => {
+  const store = seeded();
+  const draft = draftOf('paquete-mismo-dia');
+  await server.createSale(store, U, { draft }, { now });
+  const eventos = () => store.list(COLLECTIONS.events).length;
+  const antes = eventos();
+  const r = await server.updateSale(store, U, { saleId: draft.id, patch: { legacyProductionState: 'en-proceso' }, expectedVersion: 1 }, { now });
+  assert.deepEqual([r.status, r.eventId], ['updated', null]);
+  assert.equal(eventos(), antes, 'no toca producción');
+  const sale = await store.get(COLLECTIONS.sales, draft.id);
+  assert.deepEqual([sale.legacyProductionState, sale.revision], ['en-proceso', 1]);
+  assert.equal(await kindOf(server.updateSale(store, U, { saleId: draft.id, patch: { legacyProductionState: 'cancelado' }, expectedVersion: 2 }, { now })), 'invalid-argument:invalid', 'cancelar es cambiar el estado de la venta, no el avance');
+});
+
+test('al crear, el avance sólo acepta valores conocidos', async () => {
+  const store = seeded();
+  for (const malo of ['cancelado', 'listo', 7]) {
+    assert.equal(await kindOf(server.createSale(store, U, { draft: draftOf('paquete-mismo-dia', { legacyProductionState: malo }) }, { now })), 'invalid-argument:invalid', String(malo));
+  }
+  const ok = draftOf('paquete-mismo-dia', { legacyProductionState: 'revision' });
+  await server.createSale(store, U, { draft: ok }, { now });
+  assert.equal((await store.get(COLLECTIONS.sales, ok.id)).legacyProductionState, 'revision');
 });

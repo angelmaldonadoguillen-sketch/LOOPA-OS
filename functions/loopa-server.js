@@ -64,6 +64,46 @@ async function assertSellableClient(store, clientId) {
   }
 }
 
+// ── Líneas desde el catálogo ─────────────────────────────────────
+// Del navegador sólo se aceptan { lineId, serviceId, quantity, precio,
+// costo }. La descripción y la PLANTILLA DE PRODUCCIÓN (executionPlan) salen
+// del catálogo (loopa_services), congeladas por buildSaleLine: nadie puede
+// inventar desde la consola qué tarjetas genera una venta.
+// Al editar, una línea que ya existía (mismo lineId y servicio) conserva su
+// snapshot y su plantilla congelada: editar el catálogo sólo afecta ventas
+// futuras; de la línea cambian sólo cantidad, precio y costo.
+// descripcion: el alcance acordado con el cliente para esa línea (LOOPA lo
+// deja editar). Producción lo ve como alcance; la plantilla no cambia.
+const LINE_INPUT = new Set(['lineId', 'serviceId', 'quantity', 'precio', 'costo', 'descripcion']);
+const UNCATALOGUED = 'SRV-SIN-CATALOGO';
+const finiteOr = (v, fallback) => (v === undefined ? fallback : (typeof v === 'number' && Number.isFinite(v) ? v : NaN));
+// clientId: el cliente de la venta. Un servicio de acuerdo especial sólo se
+// vende a SU cliente (la pantalla ya lo filtra; el servidor lo exige).
+async function linesFromCatalog(store, input, currentLines = [], clientId = null) {
+  if (!Array.isArray(input) || input.length === 0 || input.length > 50) throw new ServerError('invalid-argument', 'La venta necesita entre 1 y 50 líneas');
+  const current = new Map((currentLines || []).map(l => [l.lineId, l]));
+  const out = [];
+  for (const l of input) {
+    if (!isPlain(l) || Object.keys(l).some(k => !LINE_INPUT.has(k))) throw new ServerError('invalid-argument', 'Línea con campos no permitidos');
+    requireId(l.lineId, 'el id de la línea');
+    requireId(l.serviceId, 'el servicio de la línea');
+    if (!Number.isInteger(l.quantity) || l.quantity < 1 || l.quantity > 1000) throw new ServerError('invalid-argument', 'La cantidad debe ser un entero entre 1 y 1000');
+    if (l.descripcion !== undefined && typeof l.descripcion !== 'string') throw new ServerError('invalid-argument', 'Descripción inválida');
+    const alcance = l.descripcion === undefined ? undefined : l.descripcion.trim().slice(0, 2000);
+    const prev = current.get(l.lineId);
+    if (prev && prev.serviceId === l.serviceId) {
+      out.push({ ...prev, quantity: l.quantity, snapshot: { ...prev.snapshot, precio: finiteOr(l.precio, prev.snapshot.precio), costo: finiteOr(l.costo, prev.snapshot.costo), ...(alcance !== undefined ? { alcance } : {}) } });
+      continue;
+    }
+    const svc = await store.get('loopa_services', l.serviceId);
+    if (!svc || svc.activo === false || l.serviceId === UNCATALOGUED) throw Object.assign(new Error('El servicio no existe o está archivado'), { code: 'service_unknown' });
+    if (svc.modelo === 'especial' && svc.specialClientId !== clientId) throw Object.assign(new Error('Ese acuerdo especial es de otro cliente'), { code: 'service_not_for_client' });
+    const line = core.buildSaleLine(svc, { lineId: l.lineId, quantity: l.quantity, precio: finiteOr(l.precio, undefined), costo: finiteOr(l.costo, undefined) });
+    out.push(alcance !== undefined ? { ...line, snapshot: { ...line.snapshot, alcance } } : line);
+  }
+  return out;
+}
+
 // Errores del dominio → ServerError con un kind estable para la app.
 const KIND = {
   contract_invalid: 'invalid-argument', invalid: 'invalid-argument', field_not_editable: 'invalid-argument',
@@ -76,6 +116,7 @@ const KIND = {
   config_missing: 'failed-precondition',
   invalid_transition: 'failed-precondition', sale_cancelled: 'failed-precondition',
   payment_conflict: 'failed-precondition', payment_exceeds_total: 'failed-precondition',
+  service_unknown: 'failed-precondition', service_not_for_client: 'failed-precondition',
   // Transitorios: la app puede reintentar (crear es idempotente por UUID).
   unavailable: 'unavailable', 'deadline-exceeded': 'unavailable', 'resource-exhausted': 'unavailable',
 };
@@ -104,7 +145,9 @@ const createSale = asCall(async (store, auth, data, { now } = {}) => {
   requirePlain(data, 'los datos');
   requirePlain(data.draft, 'la venta');
   if (isPlain(data.draft.client)) await assertSellableClient(store, data.draft.client.clientId);
-  const r = await repo.createSale(store, data.draft, { actor: uid, ...(now ? { now } : {}) });
+  const clientId = isPlain(data.draft.client) ? data.draft.client.clientId : null;
+  const draft = { ...data.draft, lines: await linesFromCatalog(store, data.draft.lines, [], clientId) };
+  const r = await repo.createSale(store, draft, { actor: uid, ...(now ? { now } : {}) });
   return { status: r.status, saleId: r.sale.id, n: r.sale.n, version: r.sale.version, eventId: r.eventId || null };
 });
 
@@ -114,7 +157,15 @@ const updateSale = asCall(async (store, auth, data, { now } = {}) => {
   requireId(data.saleId, 'la venta');
   requirePlain(data.patch, 'el cambio');
   if (isPlain(data.patch.client)) await assertSellableClient(store, data.patch.client.clientId);
-  const r = await repo.updateSale(store, data.saleId, data.patch, { expectedVersion: data.expectedVersion, actor: uid, ...(now ? { now } : {}) });
+  let patch = data.patch;
+  if (Object.prototype.hasOwnProperty.call(patch, 'lines')) {
+    // Lectura fuera de la transacción: si la venta cambió entre medio,
+    // expectedVersion lo detecta y la edición falla con version_conflict.
+    const current = await store.get(COLLECTIONS.sales, data.saleId);
+    const clientId = isPlain(patch.client) ? patch.client.clientId : (current && current.client ? current.client.clientId : null);
+    patch = { ...patch, lines: await linesFromCatalog(store, patch.lines, current ? current.lines : [], clientId) };
+  }
+  const r = await repo.updateSale(store, data.saleId, patch, { expectedVersion: data.expectedVersion, actor: uid, ...(now ? { now } : {}) });
   return { status: r.status, saleId: data.saleId, version: r.version !== undefined ? r.version : r.sale.version, eventId: r.eventId || null };
 });
 
@@ -125,6 +176,102 @@ const addPayment = asCall(async (store, auth, data) => {
   requirePlain(data.abono, 'el cobro');
   const r = await repo.addPayment(store, data.saleId, data.abono, { actor: uid });
   return { status: r.status, saleId: data.saleId, version: r.version !== undefined ? r.version : null };
+});
+
+const removePayment = asCall(async (store, auth, data, { now } = {}) => {
+  const uid = await authorizeCommercial(store, auth);
+  requirePlain(data, 'los datos');
+  requireId(data.saleId, 'la venta');
+  requireId(data.abonoId, 'el cobro');
+  const r = await repo.removePayment(store, data.saleId, data.abonoId, { actor: uid, motivo: typeof data.motivo === 'string' ? data.motivo : '', ...(now ? { now } : {}) });
+  return { status: r.status, saleId: data.saleId, version: r.version };
+});
+
+// ── Fichas de cliente desde LOOPA (onCall) ───────────────────────
+// Los datos comerciales (teléfono, email, canal, notas) los escribe sólo el
+// servidor (reglas: «commercial» es del servidor). Alta: una ficha nueva en
+// el tablero de producción por defecto, con id que genera el navegador al
+// empezar a vender (UUID): repetir la llamada no duplica. Edición: sólo de
+// fichas de los tableros habilitados, y sólo su parte comercial (el nombre
+// y la configuración de FRAME de la ficha no se tocan desde LOOPA).
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const texto = (v, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+const COMMERCIAL_FIELDS = [['nombre', 'nombreLoopa', 200], ['empresa', 'empresa', 200], ['telefono', 'telefono', 40], ['email', 'email', 120], ['canal', 'canal', 60], ['notas', 'notas', 2000]];
+const commercialFrom = (c) => Object.fromEntries(COMMERCIAL_FIELDS.map(([from, to, max]) => [to, texto(c[from], max)]));
+// Al editar, sólo cambian los campos que vienen (vender sin cargar el email
+// no borra el que la ficha ya tenía).
+const commercialPatch = (c) => Object.fromEntries(COMMERCIAL_FIELDS.filter(([from]) => Object.prototype.hasOwnProperty.call(c, from)).map(([from, to, max]) => [to, texto(c[from], max)]));
+const initialsOf = (name) => (String(name).trim().split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('') || '?').toUpperCase().slice(0, 4);
+
+const saveClient = asCall(async (store, auth, data, { now = () => new Date().toISOString() } = {}) => {
+  const uid = await authorizeCommercial(store, auth);
+  requirePlain(data, 'los datos');
+  requirePlain(data.client, 'el cliente');
+  const c = data.client;
+  requireId(c.id, 'el id del cliente');
+  if (!texto(c.nombre)) throw new ServerError('invalid-argument', 'El cliente necesita nombre');
+  const cfg = await productionConfig(store);
+  return store.transaction(async tx => {
+    const existing = await tx.get('frame_clients', c.id);
+    const unknown = () => Object.assign(new Error('El cliente no existe en la ficha única'), { code: 'client_unknown' });
+    if (existing) {
+      if (!cfg.allowedWorkspaceIds.includes(existing.workspaceId)) throw unknown();
+      const commercial = { ...(existing.commercial || {}), ...commercialPatch(c), creadoEnLoopa: (existing.commercial && existing.commercial.creadoEnLoopa) || '' };
+      tx.update('frame_clients', c.id, { commercial, updatedBy: uid });
+      return { status: 'updated', clientId: c.id };
+    }
+    // Sólo el alta exige UUID (los ids viejos ya existen). Un id viejo que no
+    // existe da el mismo error que uno ajeno: no revela qué ids hay.
+    if (!UUID.test(c.id)) throw unknown();
+    const at = now();
+    tx.create('frame_clients', c.id, {
+      id: c.id, name: texto(c.nombre), workspaceId: cfg.defaultWorkspaceId,
+      industry: 'Sin categoría', color: 'var(--resource-neutral)', initials: initialsOf(c.nombre),
+      contact: { name: '—', email: texto(c.email, 120) || '—', phone: texto(c.telefono, 40) || '—' },
+      tags: [], notes: '', portalToken: '', portalPublished: false,
+      commercial: { ...commercialFrom(c), creadoEnLoopa: at.slice(0, 10) },
+      createdBy: uid, createdAt: at,
+    });
+    return { status: 'created', clientId: c.id };
+  });
+});
+
+// ── Catálogo desde LOOPA (onCall) ────────────────────────────────
+// El equipo comercial edita la parte COMERCIAL del servicio. La plantilla de
+// producción (executionPlan) no viaja desde LOOPA: se conserva la que tenga
+// el servicio (la administra producción; editarla sólo afecta ventas
+// futuras, porque cada venta la congela al venderse).
+const SERVICE_MODELS = ['plan', 'unitario', 'proyecto', 'especial'];
+const saveService = asCall(async (store, auth, data, { now = () => new Date().toISOString() } = {}) => {
+  const uid = await authorizeCommercial(store, auth);
+  requirePlain(data, 'los datos');
+  requirePlain(data.service, 'el servicio');
+  const s = data.service;
+  requireId(s.id, 'el id del servicio');
+  if (!/^SRV-[A-Za-z0-9_-]{1,60}$/.test(s.id) || s.id === UNCATALOGUED) throw new ServerError('invalid-argument', 'Id de servicio inválido');
+  if (!texto(s.nombre)) throw new ServerError('invalid-argument', 'El servicio necesita nombre');
+  if (!SERVICE_MODELS.includes(s.modelo)) throw new ServerError('invalid-argument', 'Modelo de servicio desconocido');
+  const precio = Number(s.precio), costo = Number(s.costo);
+  if (!Number.isFinite(precio) || precio < 0 || !Number.isFinite(costo) || costo < 0) throw new ServerError('invalid-argument', 'Precio y costo deben ser números ≥ 0');
+  let specialClientId = null;
+  if (s.modelo === 'especial') {
+    await assertSellableClient(store, s.specialClientId);
+    specialClientId = s.specialClientId;
+  }
+  return store.transaction(async tx => {
+    const existing = await tx.get('loopa_services', s.id);
+    const commercial = {
+      nombre: texto(s.nombre), categoria: texto(s.categoria, 80) || 'Otro', unidad: texto(s.unidad, 40) || 'proyecto', modelo: s.modelo,
+      descripcion: texto(s.descripcion, 2000), precio, costo, activo: s.activo !== false,
+      recomendado: s.modelo === 'plan' && s.recomendado === true, specialClientId,
+    };
+    if (existing) {
+      tx.update('loopa_services', s.id, { ...commercial, updatedBy: uid });
+      return { status: 'updated', serviceId: s.id };
+    }
+    tx.create('loopa_services', s.id, { schemaVersion: core.SCHEMA_VERSION || 1, id: s.id, ...commercial, executionPlan: null, createdAt: now(), createdBy: uid });
+    return { status: 'created', serviceId: s.id };
+  });
 });
 
 // ── Contexto del planificador ────────────────────────────────────
@@ -235,4 +382,4 @@ async function sweep(store, { now = () => new Date().toISOString(), workerId = '
   return { due: due.length, sales: results };
 }
 
-module.exports = { ServerError, toServerError, authorizeCommercial, createSale, updateSale, addPayment, loadContext, onEventCreated, sweep };
+module.exports = { ServerError, toServerError, authorizeCommercial, createSale, updateSale, addPayment, removePayment, saveClient, saveService, loadContext, onEventCreated, sweep };

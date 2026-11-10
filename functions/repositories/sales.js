@@ -29,8 +29,16 @@ const { COLLECTIONS, outboxDoc } = require('../production-plan/executor');
 const COUNTERS = 'loopa_counters';
 const CLIENTS = 'frame_clients';
 const PRODUCTION_FIELDS = ['status', 'fecha', 'entrega', 'client', 'lines'];
-const EDITABLE = new Set([...PRODUCTION_FIELDS, 'commercial']);
-const DRAFT_FIELDS = ['id', 'status', 'fecha', 'entrega', 'client', 'lines', 'commercial'];
+// legacyProductionState (D17, transitorio): el avance que LOOPA mostraba
+// (pendiente/en-proceso/revision/entregado). Es sólo para la pantalla de
+// ventas: no genera eventos ni toca producción, que lleva FRAME.
+const LEGACY_STATES = ['pendiente', 'en-proceso', 'revision', 'entregado'];
+const EDITABLE = new Set([...PRODUCTION_FIELDS, 'commercial', 'legacyProductionState']);
+const DRAFT_FIELDS = ['id', 'status', 'fecha', 'entrega', 'client', 'lines', 'commercial', 'legacyProductionState'];
+// Lo que puede venir de la app dentro de commercial. abonosAnulados y el
+// autor de cada cobro los escribe sólo el servidor (D18).
+const COMMERCIAL_INPUT = ['subtotal', 'descuento', 'total', 'pay', 'abonos', 'canal', 'nota', 'contacto'];
+const PAYMENT_INPUT = ['id', 'fecha', 'monto', 'metodo'];
 // Transiciones válidas. Volver a borrador desde confirmada o cancelada no
 // existe: dejaría trabajo en Producción sin ningún evento que lo explique.
 const TRANSITIONS = {
@@ -124,6 +132,10 @@ function untouchedLegacy(problem, legacyIssues, patch) {
 
 function validatePayment(a, path = 'abono') {
   const out = [];
+  if (a && typeof a === 'object') {
+    const extra = Object.keys(a).filter(k => !PAYMENT_INPUT.includes(k));
+    if (extra.length) out.push(issue('payment.fields', path, `Campos no permitidos en el cobro: ${extra.join(', ')}`));
+  }
   if (!a || !isStableId(a.id)) out.push(issue('payment.id', `${path}.id`, 'El cobro necesita un id estable'));
   if (!a || typeof a.monto !== 'number' || !(a.monto > 0)) out.push(issue('payment.monto', `${path}.monto`, 'El monto debe ser mayor que 0'));
   if (!a || !isValidYmd(a.fecha)) out.push(issue('payment.fecha', `${path}.fecha`, 'La fecha del cobro debe ser YYYY-MM-DD'));
@@ -146,6 +158,15 @@ function eventTypeFor(before, after) {
 async function createSale(store, draft, { now = () => new Date().toISOString(), actor } = {}) {
   if (!draft || !isUuid(draft.id)) throw repoError('sale.id', 'La venta necesita un UUID generado al empezar a vender');
   const extra = Object.keys(draft).filter(k => !DRAFT_FIELDS.includes(k));
+  const commercialExtra = draft && draft.commercial && typeof draft.commercial === 'object' ? Object.keys(draft.commercial).filter(k => !COMMERCIAL_INPUT.includes(k)) : [];
+  if (commercialExtra.length) throw repoError('field_not_editable', `Campos comerciales no permitidos: ${commercialExtra.join(', ')}`);
+  if (draft && Object.hasOwn(draft, 'legacyProductionState') && draft.legacyProductionState !== null && !LEGACY_STATES.includes(draft.legacyProductionState)) {
+    throw repoError('invalid', 'Estado de avance desconocido');
+  }
+  // registradoPor de la app se descarta: el autor lo pone el servidor.
+  if (draft && draft.commercial && Array.isArray(draft.commercial.abonos)) {
+    draft = { ...draft, commercial: { ...draft.commercial, abonos: draft.commercial.abonos.map(a => { if (!a || typeof a !== 'object') return a; const { registradoPor: _x, ...rest } = a; return rest; }) } };
+  }
   if (extra.length) throw repoError('field_not_editable', `Campos no permitidos al crear: ${extra.join(', ')}`);
   const probe = { schemaVersion: SCHEMA_VERSION, ...draft, n: 1, revision: 1 };
   const problems = [...validateSale(productionView(probe)), ...validateCommercial(draft.commercial, { lines: draft.lines })];
@@ -162,6 +183,7 @@ async function createSale(store, draft, { now = () => new Date().toISOString(), 
     const at = now();
     const doc = {
       ...draft,
+      ...(actor && draft.commercial && Array.isArray(draft.commercial.abonos) ? { commercial: { ...draft.commercial, abonos: draft.commercial.abonos.map(a => ({ ...a, registradoPor: actor })) } } : {}),
       schemaVersion: SCHEMA_VERSION,
       entrega: draft.entrega || '',
       n: counter.next,
@@ -212,6 +234,13 @@ async function updateSale(store, saleId, patch, { expectedVersion, now = () => n
   if (forbidden.length) throw repoError('field_not_editable', `Campos no editables: ${forbidden.join(', ')}`);
   if (!Number.isInteger(expectedVersion)) throw repoError('expected_version', 'Falta la versión esperada de la venta');
   if (patch.commercial && Object.hasOwn(patch.commercial, 'abonos')) throw repoError('use_add_payment', 'Los cobros se registran con addPayment, no editando la venta');
+  if (patch.commercial && typeof patch.commercial === 'object') {
+    const bad = Object.keys(patch.commercial).filter(k => !COMMERCIAL_INPUT.includes(k));
+    if (bad.length) throw repoError('field_not_editable', `Campos comerciales no permitidos: ${bad.join(', ')}`);
+  }
+  if (Object.hasOwn(patch, 'legacyProductionState') && patch.legacyProductionState !== null && !LEGACY_STATES.includes(patch.legacyProductionState)) {
+    throw repoError('invalid', 'Estado de avance desconocido');
+  }
 
   return store.transaction(async tx => {
     const current = await tx.get(COLLECTIONS.sales, saleId);
@@ -226,7 +255,8 @@ async function updateSale(store, saleId, patch, { expectedVersion, now = () => n
       throw repoError('invalid_transition', `No se puede pasar de ${current.status} a ${next.status}`);
     }
     const productionChanged = PRODUCTION_FIELDS.some(k => canonicalJson(current[k]) !== canonicalJson(next[k]));
-    const commercialChanged = canonicalJson(current.commercial) !== canonicalJson(next.commercial);
+    const commercialChanged = canonicalJson(current.commercial) !== canonicalJson(next.commercial)
+      || (current.legacyProductionState ?? null) !== (next.legacyProductionState ?? null);
     if (!productionChanged && !commercialChanged) return { status: 'unchanged', sale: current };
     // Una venta cancelada sólo admite re-confirmarse: no se editan sus
     // líneas o fechas mientras siga cancelada (aunque el patch repita el estado).
@@ -244,7 +274,13 @@ async function updateSale(store, saleId, patch, { expectedVersion, now = () => n
     const update = { version: next.version };
     keys.forEach(k => { update[k] = next[k]; });
     if (productionChanged) update.revision = next.revision;
-    if (patch.status && patch.status !== current.status) update.estadoLog = [...(current.estadoLog || []), { estado: patch.status, ts: at, ...(actor ? { by: actor } : {}) }];
+    // Historial: cambios de estado de la venta y del avance comercial (D17).
+    const log = [];
+    if (patch.status && patch.status !== current.status) log.push({ estado: patch.status, ts: at, ...(actor ? { by: actor } : {}) });
+    if (Object.hasOwn(patch, 'legacyProductionState') && (patch.legacyProductionState ?? null) !== (current.legacyProductionState ?? null) && patch.legacyProductionState) {
+      log.push({ estado: patch.legacyProductionState, ts: at, ...(actor ? { by: actor } : {}) });
+    }
+    if (log.length) update.estadoLog = [...(current.estadoLog || []), ...log];
     if (actor) update.updatedBy = actor;
     tx.update(COLLECTIONS.sales, saleId, update);
     if (clientChanged && newClient.hasSales !== true) tx.update(CLIENTS, patch.client.clientId, { hasSales: true });
@@ -288,6 +324,8 @@ async function addPayment(store, saleId, abonoIn, { allowOverpayment = false, ac
     if (!current) throw repoError('not_found', 'La venta no existe');
     if (current.status === 'cancelled') throw repoError('sale_cancelled', 'No se registran cobros en una venta cancelada');
     const abonos = current.commercial.abonos || [];
+    // Un id anulado no se reutiliza: sería otro cobro con el mismo id.
+    if ((current.commercial.abonosAnulados || []).some(a => a.id === abono.id)) throw repoError('payment_conflict', 'Ese id de cobro ya se usó y fue anulado');
     const same = abonos.find(a => a.id === abono.id);
     if (same) {
       const { registradoPor: _quien, ...sameSinQuien } = same;
@@ -304,4 +342,31 @@ async function addPayment(store, saleId, abonoIn, { allowOverpayment = false, ac
   });
 }
 
-module.exports = { createSale, updateSale, addPayment, productionView, validateCommercial, PRODUCTION_FIELDS, COUNTERS, TRANSITIONS };
+/**
+ * Anula un cobro registrado por error. No se borra: pasa a
+ * commercial.abonosAnulados con quién y cuándo, y deja de sumar. Idempotente:
+ * anular uno ya anulado devuelve 'existing'.
+ */
+async function removePayment(store, saleId, abonoId, { now = () => new Date().toISOString(), actor, motivo = '' } = {}) {
+  if (!isStableId(abonoId)) throw repoError('invalid', 'Falta el id del cobro');
+  return store.transaction(async tx => {
+    const current = await tx.get(COLLECTIONS.sales, saleId);
+    if (!current) throw repoError('not_found', 'La venta no existe');
+    const abonos = current.commercial.abonos || [];
+    const anulados = current.commercial.abonosAnulados || [];
+    const target = abonos.find(a => a.id === abonoId);
+    if (!target) {
+      if (anulados.some(a => a.id === abonoId)) return { status: 'existing', version: current.version };
+      throw repoError('not_found', 'El cobro no existe');
+    }
+    const anulado = { ...target, anuladoEn: now(), ...(actor ? { anuladoPor: actor } : {}), ...(motivo ? { motivo: String(motivo).slice(0, 300) } : {}) };
+    tx.update(COLLECTIONS.sales, saleId, {
+      commercial: { ...current.commercial, abonos: abonos.filter(a => a.id !== abonoId), abonosAnulados: [...anulados, anulado] },
+      version: current.version + 1,
+      ...(actor ? { updatedBy: actor } : {}),
+    });
+    return { status: 'removed', version: current.version + 1 };
+  });
+}
+
+module.exports = { createSale, updateSale, addPayment, removePayment, productionView, validateCommercial, PRODUCTION_FIELDS, COUNTERS, TRANSITIONS };

@@ -104,3 +104,55 @@ Sólo lectura, con aprobación:
 2. **Invocación de las funciones `onCall`.** La función `reservePortfolioAsset` de FRAME responde 403 (`FIREBASE-PENDIENTE.md` §1). Las de LOOPA probablemente necesitan el permiso `run.invoker` para `allUsers`. Puede haber una política de la organización que lo bloquee.
 3. **Reglas activas.** Confirmar que hoy niegan escribir `loopa_config` y `frame_users.status` desde el navegador: los controles del servidor se apoyan en eso.
 4. **Respaldo** de las reglas activas, y la lista de funciones de FRAME para verificar que siguen después de publicar.
+
+## 8. Tanda 3.2 · Servidor para las pantallas de LOOPA y traductor del navegador (hecha)
+
+- **Hueco de seguridad cerrado.** `createSale` aceptaba las líneas tal como llegaban del navegador, incluida la plantilla de producción. Ahora el servidor arma cada línea desde el catálogo (`loopa_services`) y del navegador sólo toma servicio, cantidad, precio y costo.
+  - Al editar, una línea existente conserva lo que se vendió (su snapshot y su plantilla congelada); una línea nueva toma el catálogo vigente.
+  - Un servicio inexistente o archivado no se vende.
+- **Funciones nuevas:**
+  - `loopaSaveClient`: alta con UUID del navegador en el tablero por defecto, o edición parcial de lo comercial de una ficha habilitada.
+  - `loopaSaveService`: lo comercial del servicio; la plantilla nunca viaja desde LOOPA.
+  - `loopaRemovePayment`: anula un cobro.
+- **Decisiones (por defecto):**
+  - **D16 · «Eliminar venta» cancela.** Nada se borra y su trabajo de producción queda marcado, no desaparece.
+  - **D17 · El avance de LOOPA** (pendiente, en proceso, revisión, entregado) queda como dato comercial transitorio (`legacyProductionState`): no genera eventos ni toca producción, que lleva FRAME. «Cancelado» es cambiar el estado de la venta. Reconfirmar desde cancelado vuelve con el avance elegido.
+  - **D18 · Anular un cobro, no borrarlo.** Pasa a `abonosAnulados` con quién, cuándo y el motivo; deja de sumar, y su id no se reutiliza.
+- **Traductor del navegador** (`_fuente/datos/fusion.js`): es puro y se prueba con Node.
+  - Lee los documentos del modelo nuevo con la forma que ya usan las pantallas, con paridad con el lector de la migración. Agrega la versión del documento (para no pisar ediciones ajenas) y el estado de producción.
+  - Traduce cada acción de las pantallas a llamadas al servidor: nueva venta (cliente y venta), cambios de estado, líneas, fechas, nota, pago, anular un cobro, «eliminar», servicio y cliente.
+  - Al vender a una ficha existente, los campos vacíos no borran sus datos.
+  - Todavía no está conectado a la app: eso es la tanda 3.3.
+- **Reglas en borrador:** el catálogo lo lee el equipo comercial y nadie lo escribe desde el navegador. La auditoría de las fichas (`createdBy`, `updatedBy`, `createdAt`) es sólo del servidor.
+- **Verificación:** 172 pruebas sin red, LOOPA 6/6 y 21/21 en el emulador (11 del almacén y el servidor, 10 de reglas).
+
+**Revisión independiente de la tanda 3.2:** no lista para el commit tal como estaba. La corrección principal funcionaba: una plantilla falsificada, campos de línea de más o `__proto__` se rechazaban. Todo lo que encontró está corregido, con prueba:
+
+1. **Las reglas en borrador rechazaban el «Nuevo cliente» de FRAME,** que crea sus fichas con `createdAt`.
+   - Ahora `createdAt` se acepta al crear y después no cambia. El autor (`createdBy`, `updatedBy`) sólo lo pone el servidor.
+   - Hay una prueba con la forma exacta de FRAME (crear y editar con `set` completo).
+2. **El registro de cobros anulados (D18) se podía falsificar o borrar desde la app,** y los cobros cargados al vender no tenían autor.
+   - Ahora `commercial` acepta una lista cerrada de campos al crear y al editar: `abonosAnulados` nunca viene de la app.
+   - Cada cobro tiene forma fija (id, fecha, monto, método).
+   - El autor de los cobros iniciales lo pone el servidor; el que mande la app se descarta.
+3. **Una venta migrada con una línea fuera del catálogo no se podía editar.** Ahora esa línea conserva su servicio marcador y se edita su cantidad o precio. Una línea NUEVA sin catálogo se rechaza, y el id marcador no se puede crear como servicio.
+4. **Se perdía el avance elegido al vender.** Ahora viaja en la venta nueva y se valida.
+5. **Se perdía la descripción editada por línea** (el alcance acordado). Ahora se guarda al vender y al editar; la plantilla no cambia.
+6. **Un acuerdo especial se podía vender a cualquier cliente.** Ahora el servidor exige que sea el suyo.
+7. **Reintentar varias llamadas era inseguro:** repetir un cambio ya hecho daba `version_conflict`. Ahora `ejecutarOperaciones` recuerda cuántas se confirmaron, y reintentar con las mismas operaciones retoma desde la que falló.
+8. **Historial.** Los cambios de avance quedan en `estadoLog` con su autor, y reconfirmar muestra el avance elegido.
+9. **Un error revelaba si un id de cliente existía.** Ahora un id viejo inexistente da el mismo error que uno ajeno.
+10. **La cantidad debe ser entera** (1 a 1000) desde que se vende, no recién en el worker.
+11. **Pruebas:** 17 mutaciones de la tanda hacen fallar la suite. Entre ellas están las 5 que antes pasaban:
+    - conservar la línea vieja al cambiar de servicio;
+    - anular un cobro sin idempotencia;
+    - anular sin subir la versión;
+    - pisar el nombre de la ficha;
+    - perder la fecha de alta.
+
+**Requisitos para la tanda 3.3 (conectar las pantallas):**
+- Guardar la lista de operaciones y su progreso, y reintentar con ellos (no armar operaciones nuevas, que generarían ids nuevos).
+- Un servicio creado en medio de una venta se guarda antes (`loopaSaveService`) de crear la venta.
+- La pantalla muestra el número de venta que devuelve el servidor, no el que calculaba LOOPA.
+
+**Verificación:** 182 pruebas sin red, LOOPA 6/6 y 22/22 en el emulador, en dos corridas.

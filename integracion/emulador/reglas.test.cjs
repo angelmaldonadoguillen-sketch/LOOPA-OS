@@ -84,6 +84,8 @@ async function seed() {
     await put('loopa_integration_events', 'e1', { eventId: 'e1', status: 'done' });
     await put('loopa_counters', 'sales', { next: 1043 });
     await put('loopa_migrations', 'run-a', { status: 'done' });
+    await put('loopa_services', 'SRV-1', { id: 'SRV-1', nombre: 'Reel', precio: 1500, executionPlan: null });
+    await put('frame_clients', 'cl-audit', { id: 'cl-audit', name: 'Con auditoría', workspaceId: 'ws1', createdBy: 'u1' });
   });
 }
 
@@ -213,4 +215,31 @@ test('fichas de cliente: lo comercial lo escribe el servidor; con historial no s
   await ok(fsMod.setDoc(ref(db, 'frame_clients', 'cm'), { ...cur, notes: 'set completo' }), 'set completo que conserva lo comercial');
   const { commercial, ...sinComercial } = cur;
   await no(fsMod.setDoc(ref(db, 'frame_clients', 'cm'), sinComercial), 'set que pierde lo comercial');
+});
+
+test('catálogo: el equipo comercial lo lee; nadie lo escribe desde el navegador', { skip }, async () => {
+  await ok(fsMod.getDoc(ref(as('u1'), 'loopa_services', 'SRV-1')), 'comercial lee');
+  await no(fsMod.getDoc(ref(as('u2'), 'loopa_services', 'SRV-1')), 'producción no ve precios');
+  await no(fsMod.updateDoc(ref(as('u1'), 'loopa_services', 'SRV-1'), { precio: 1 }), 'precio: sólo el servidor');
+  await no(fsMod.updateDoc(ref(as('u1'), 'loopa_services', 'SRV-1'), { executionPlan: { enabled: true } }), 'plantilla: nunca desde el navegador');
+  await no(fsMod.setDoc(ref(as('u1'), 'loopa_services', 'SRV-2'), { id: 'SRV-2' }), 'crear: sólo el servidor');
+});
+
+test('auditoría de fichas: quién creó o editó lo escribe sólo el servidor', { skip }, async () => {
+  const db = as('u2');
+  await no(fsMod.updateDoc(ref(db, 'frame_clients', 'cl-audit'), { createdBy: 'u2' }), 'no se reescribe quién creó');
+  await no(fsMod.updateDoc(ref(db, 'frame_clients', 'cl-audit'), { updatedBy: 'u2' }), 'ni quién editó');
+  await no(fsMod.setDoc(ref(db, 'frame_clients', 'cl-nuevo'), { id: 'cl-nuevo', name: 'N', workspaceId: 'ws1', createdBy: 'u2' }), 'ni se crea con autor falso');
+  await ok(fsMod.updateDoc(ref(db, 'frame_clients', 'cl-audit'), { notes: 'ok' }), 'el resto de la ficha sí');
+});
+
+test('FRAME sigue creando y editando fichas con su forma real (createdAt incluido)', { skip }, async () => {
+  const db = as('u2');
+  // Forma exacta de clients.jsx (Nuevo cliente) después de stampWs.
+  const frame = { id: 'cl1731300000abc', name: 'Cliente FRAME', industry: 'Sin categoría', color: 'var(--resource-blue)', initials: 'CF',
+    contact: { name: '—', email: '—', phone: '—' }, tags: [], notes: '', createdAt: '2026-11-10', workspaceId: 'ws1' };
+  await ok(fsMod.setDoc(ref(db, 'frame_clients', frame.id), frame), 'FRAME crea su ficha');
+  await ok(fsMod.setDoc(ref(db, 'frame_clients', frame.id), { ...frame, notes: 'editada' }), 'FRAME la edita con set completo');
+  await no(fsMod.setDoc(ref(db, 'frame_clients', frame.id), { ...frame, createdAt: '2020-01-01' }), 'createdAt no se reescribe');
+  await no(fsMod.setDoc(ref(db, 'frame_clients', 'cl-otra'), { ...frame, id: 'cl-otra', createdBy: 'u1' }), 'el autor lo pone sólo el servidor');
 });
