@@ -716,3 +716,23 @@ test('tanda 3.8: gastos y configuración entre FRAME y LOOPA (sólo lo que cambi
   assert.deepEqual(LoopaFuente.cambioConfig(srv, { ...srv, categorias: ['A', 'B'], otra: 1 }), { categorias: ['A', 'B'] });
   assert.deepEqual(LoopaFuente.cambioConfig(null, { moneda: 'L' }), { moneda: 'L' });
 });
+
+test('tanda 3.9: un solo programa (Producción = FRAME dentro de LOOPA)', () => {
+  const app = fs.readFileSync(path.join(ROOT, '_fuente', 'app.jsx'), 'utf8');
+  // Con datos reales, Producción es FRAME y se ve siempre (sin ?produccion=).
+  assert.match(app, /const PRODUCCION_FRAME = DATOS_FUSION === 'real';/);
+  assert.match(app, /const PROD_ON = PRODUCCION_FRAME \? 'frame' : PROD_FLAG;/);
+  assert.match(app, /\.\.\/frame-studio-manager\/' : 'https:\/\/angelmaldonadoguillen-sketch\.github\.io\/frame-studio-manager\/'\) \+ '\?embebido=1'/);
+  // Misma app de Firebase que FRAME ([DEFAULT]): una sola sesión.
+  assert.match(app, /firebase\.apps\.length \? firebase\.app\(\) : firebase\.initializeApp\(FRAME_WEB\)/);
+  assert.doesNotMatch(app, /initializeApp\(FRAME_WEB, 'loopa-fusion'\)/);
+  // FRAME queda montado (no se recarga al ir y volver).
+  assert.match(app, /\{PROD_ON === 'frame' && <FrameEmbebido visible=\{route === 'produccion'\} \/>\}/);
+  // Sin acceso comercial: sólo Producción, sin ventas ni montos.
+  assert.match(app, /if \(PRODUCCION_FRAME && n\.tipo === 'permission-denied'\) \{\s*setSoloProduccion\(true\); setRoute\('produccion'\); setReady\(true\);/);
+  assert.match(app, /const modules = soloProduccion \? \[\{ id: 'produccion'/);
+  assert.match(app, /\{!soloProduccion && <div className="ticker">/);
+  assert.match(app, /if \(!ready \|\| soloProduccion \|\| !FUSION_API/);
+  // Desde FRAME se llega con ?ruta=produccion.
+  assert.match(app, /get\('ruta'\)/);
+});

@@ -27,19 +27,20 @@ test('el build incluye los módulos de Producción antes de app.jsx', () => {
   assert.match(html, /\.pr-grilla \{/, 'el CSS de Producción sobrevive a la poda');
 });
 
-test('sin bandera, Producción no aparece ni deja una pantalla vacía', () => {
+test('sin Producción (ni bandera ni FRAME), no aparece ni deja una pantalla vacía', () => {
   const app = read('_fuente/app.jsx');
-  assert.match(app, /\.\.\.\(PROD_FLAG \? \[\{ id: 'produccion', label: 'Producción', icon: 'calendar' \}\] : \[\]\)/);
-  assert.match(app, /route === 'produccion' && PROD_FLAG && <ProduccionModulo/);
-  assert.match(app, /return r === 'produccion' && !PROD_FLAG \? 'nueva' : r;/);
+  // Tanda 3.9: PROD_ON = FRAME (modo real) o la bandera de pruebas.
+  assert.match(app, /\.\.\.\(PROD_ON \? \[\{ id: 'produccion', label: 'Producción', icon: 'calendar' \}\] : \[\]\)/);
+  assert.match(app, /route === 'produccion' && PROD_ON && PROD_ON !== 'frame' && <ProduccionModulo/);
+  assert.match(app, /return r === 'produccion' && !PROD_ON \? 'nueva' : r;/);
   const cal = read('_fuente/produccion/calendario.jsx');
   assert.match(cal, /return stored === 'demo' \|\| stored === '1' \? stored : null;/, 'sólo demo o 1 encienden el módulo');
   assert.match(cal, /\['0', 'off', 'false', 'no'\]\.includes\(v\)/, '?produccion=0/off/false/no lo apagan');
 });
 
-test('sin bandera, el menú es el original (la navegación agrupada sólo con bandera)', () => {
+test('sin Producción, el menú es el original (la navegación agrupada sólo con Producción)', () => {
   const app = read('_fuente/app.jsx');
-  assert.match(app, /\{PROD_FLAG \? <NavAgrupada modules=\{modules\} route=\{route\}/);
+  assert.match(app, /\{PROD_ON && !soloProduccion \? <NavAgrupada modules=\{modules\} route=\{route\}/);
   assert.match(app, /<nav className="nav" style=\{\{ marginTop: 8 \}\}>\s*\{modules\.map\(m => \(/, 'el menú original sigue intacto en la otra rama');
   const nav = read('_fuente/shell/navegacion.jsx');
   ['nueva', 'ventas', 'servicios', 'clientes', 'produccion', 'metricas', 'gastos', 'config'].forEach(id => assert.match(nav, new RegExp(`'${id}'`), id));

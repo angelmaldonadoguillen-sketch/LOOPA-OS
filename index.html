@@ -1184,6 +1184,9 @@ button.pr-barra-label { background: none; padding: 0; text-align: left; font-siz
 .nav-agrupada .nav-secundario { display: none; }
 .nav-agrupada .nav-mas { display: flex; }
 }
+.content.content-frame { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+.frame-embebido { flex: 1; min-height: 0; height: 100%; }
+.frame-embebido iframe { display: block; width: 100%; height: 100%; border: 0; background: #131315; }
 
 </style>
 </head>
@@ -3818,8 +3821,16 @@ const FRAME_WEB = {
   messagingSenderId: '336293390648',
   appId: '1:336293390648:web:b2feefaf19b11ceee679cd',
 };
-// Una app de Firebase APARTE, nunca la de la colección «loopa»: en el
-// emulador, un proyecto demo-* que no existe en la nube; en real, FRAME.
+// Un solo programa (tanda 3.9): en modo real, Producción ES FRAME completo,
+// dentro de LOOPA. FRAME se publica en el mismo origen (github.io), así que
+// comparte la sesión con LOOPA (misma app de Firebase: [DEFAULT]).
+const PRODUCCION_FRAME = DATOS_FUSION === 'real';
+const FRAME_APP_URL = (/\.github\.io$/.test(window.location.hostname) ? '../frame-studio-manager/' : 'https://angelmaldonadoguillen-sketch.github.io/frame-studio-manager/') + '?embebido=1';
+// Producción visible: con FRAME (real) o con la bandera de pruebas (?produccion=).
+const PROD_ON = PRODUCCION_FRAME ? 'frame' : PROD_FLAG;
+// Una app de Firebase APARTE de la colección «loopa»: en el emulador, un
+// proyecto demo-* que no existe en la nube; en real, FRAME como app por
+// defecto (la misma que usa FRAME: una sola sesión para los dos).
 const FUSION_FB = DATOS_FUSION === 'emulador' ? (() => {
   const app = firebase.initializeApp({ projectId: 'demo-loopa', apiKey: 'demo-api-key', authDomain: 'demo-loopa.firebaseapp.com' }, 'loopa-fusion');
   app.auth().useEmulator('http://127.0.0.1:9099');
@@ -3829,7 +3840,9 @@ const FUSION_FB = DATOS_FUSION === 'emulador' ? (() => {
   functions.useEmulator('127.0.0.1', 5001);
   return { app, auth: app.auth(), db, functions };
 })() : DATOS_FUSION === 'real' ? (() => {
-  const app = firebase.initializeApp(FRAME_WEB, 'loopa-fusion');
+  // Nunca convive con la app de tooned-os (USE_FB es false en modo real).
+  const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(FRAME_WEB);
+  if (app.options.projectId !== FRAME_WEB.projectId) throw new Error('La app de Firebase por defecto no es la de FRAME');
   return { app, auth: app.auth(), db: app.firestore(), functions: app.functions('us-central1') };
 })() : null;
 const planoFb = (d) => ({ id: d.id, ...d.data() });
@@ -6386,14 +6399,34 @@ function PeriodFilter({ value, onChange }) {
   );
 }
 
+// ─── Producción = FRAME completo (tanda 3.9: un solo programa) ───
+// Se monta la primera vez que se abre Producción y queda vivo: ir a Ventas y
+// volver no lo recarga. Misma sesión que LOOPA (mismo origen y misma app de
+// Firebase), así que no pide iniciar sesión otra vez.
+function FrameEmbebido({ visible }) {
+  const [montado, setMontado] = useState(visible);
+  useEffect(() => { if (visible) setMontado(true); }, [visible]);
+  if (!montado) return null;
+  return (
+    <div className="frame-embebido" style={{ display: visible ? 'block' : 'none' }}>
+      <iframe title="Producción (FRAME)" src={FRAME_APP_URL} allow="clipboard-read; clipboard-write" />
+    </div>
+  );
+}
+
 function App({ onLogout, usuarioFusion = null }) {
   const [route, setRoute] = useState(() => {
     try {
-      const r = localStorage.getItem('loopa-route') || 'nueva';
-      // Sin la bandera, Producción no existe: no se vuelve a una pantalla vacía.
-      return r === 'produccion' && !PROD_FLAG ? 'nueva' : r;
+      // ?ruta=produccion: desde FRAME, que ahora abre LOOPA en Producción.
+      const pedida = new URLSearchParams(window.location.search).get('ruta');
+      const r = pedida || localStorage.getItem('loopa-route') || 'nueva';
+      // Sin Producción, no se vuelve a una pantalla vacía.
+      return r === 'produccion' && !PROD_ON ? 'nueva' : r;
     } catch (e) { return 'nueva'; }
   });
+  // Quien no es del equipo comercial (no ve ventas ni montos) usa LOOPA sólo
+  // para Producción.
+  const [soloProduccion, setSoloProduccion] = useState(false);
   const [ventas, setVentas] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [servicios, setServicios] = useState([]);
@@ -6486,7 +6519,16 @@ function App({ onLogout, usuarioFusion = null }) {
         const e0 = cola.current.estado().error;
         if (e0 && ['unauthenticated', 'permission-denied'].includes(e0.tipo) && e0.codigo !== 'workspace_forbidden') cola.current.reintentar();
         else cola.current.procesar();
-      }).catch(e => { console.error('Carga (fusión):', e); setLoadError(LoopaFuente.normalizarError(e).mensaje); });
+      }).catch(e => {
+        // Sin acceso a ventas (no es del equipo comercial): con FRAME, LOOPA
+        // sigue siendo su programa, sólo con Producción.
+        const n = LoopaFuente.normalizarError(e);
+        if (PRODUCCION_FRAME && n.tipo === 'permission-denied') {
+          setSoloProduccion(true); setRoute('produccion'); setReady(true);
+          return;
+        }
+        console.error('Carga (fusión):', e); setLoadError(n.mensaje);
+      });
       return;
     }
     Promise.race([Store.loadAll(), timeout]).then(d => {
@@ -6618,7 +6660,7 @@ function App({ onLogout, usuarioFusion = null }) {
   // al vaciarse la cola se recarga todo).
   const [vivoCaido, setVivoCaido] = useState(0);
   useEffect(() => {
-    if (!ready || !FUSION_API || !FUSION_API.escucharVentas) return undefined;
+    if (!ready || soloProduccion || !FUSION_API || !FUSION_API.escucharVentas) return undefined;
     let reintento = null;
     const dejar = FUSION_API.escucharVentas(sales => {
       if (cola.current.estado().pendientes) return;
@@ -6816,12 +6858,12 @@ function App({ onLogout, usuarioFusion = null }) {
     showToast('✓ Respaldo restaurado');
   };
 
-  const modules = [
+  const modules = soloProduccion ? [{ id: 'produccion', label: 'Producción', icon: 'calendar' }] : [
     { id: 'nueva',     label: 'Nueva Venta',   icon: 'plus' },
     { id: 'ventas',    label: 'Ventas',        icon: 'list' },
     { id: 'servicios', label: 'Servicios',     icon: 'tag' },
     { id: 'clientes',  label: 'Clientes',      icon: 'user' },
-    ...(PROD_FLAG ? [{ id: 'produccion', label: 'Producción', icon: 'calendar' }] : []),
+    ...(PROD_ON ? [{ id: 'produccion', label: 'Producción', icon: 'calendar' }] : []),
     { id: 'metricas',  label: 'Métricas',      icon: 'chart' },
     { id: 'gastos',    label: 'Gastos',        icon: 'money' },
     { id: 'config',    label: 'Configuración', icon: 'settings' },
@@ -6859,7 +6901,7 @@ function App({ onLogout, usuarioFusion = null }) {
           <LoopaMark height={26} />
         </div>
 
-        <div className="gsearch-wrap">
+        {!soloProduccion && <div className="gsearch-wrap">
           <div className={`gsearch ${gOpen ? 'on' : ''}`}>
             <Icon name="search" size={12} />
             <input placeholder="Buscar venta, cliente…" value={gSearch}
@@ -6884,9 +6926,9 @@ function App({ onLogout, usuarioFusion = null }) {
               ))}
             </div>
           )}
-        </div>
+        </div>}
 
-        {PROD_FLAG ? <NavAgrupada modules={modules} route={route} onGo={(id) => (id === 'nueva' && route === 'nueva' ? goNueva(null) : setRoute(id))} /> : (
+        {PROD_ON && !soloProduccion ? <NavAgrupada modules={modules} route={route} onGo={(id) => (id === 'nueva' && route === 'nueva' ? goNueva(null) : setRoute(id))} /> : (
         <nav className="nav" style={{ marginTop: 8 }}>
           {modules.map(m => (
             <button key={m.id} className={`nav-item ${route === m.id ? 'active' : ''}`} onClick={() => m.id === 'nueva' && route === 'nueva' ? goNueva(null) : setRoute(m.id)} title={m.label}>
@@ -6900,7 +6942,7 @@ function App({ onLogout, usuarioFusion = null }) {
       </aside>
 
       <div className="main">
-        <div className="ticker">
+        {!soloProduccion && <div className="ticker">
           <span className="item">● LOOPA OS</span>
           <span className="item">Próx. venta <span className="v">{numProx(nextN)}</span></span>
           <span className="item"><PeriodFilter value={tickerPeriod} onChange={setTickerPeriod} /></span>
@@ -6910,7 +6952,7 @@ function App({ onLogout, usuarioFusion = null }) {
           <span className="item">Por cobrar <span className="v" style={{ color: ticker.porCobrar > 0 ? 'var(--warn)' : 'var(--muted)' }}>{L(ticker.porCobrar)}</span></span>
           <span className="item">En curso <span className="v">{ticker.enCurso}</span></span>
           <span className="item">Tipos <span className="v">{servicios.filter(s => s.activo !== false).length}</span></span>
-        </div>
+        </div>}
 
         <div className="topbar">
           <div className="breadcrumb"><span className="cur">{current.label}</span></div>
@@ -6926,7 +6968,7 @@ function App({ onLogout, usuarioFusion = null }) {
           </div>
         </div>
 
-        <div className="content">
+        <div className={`content${PROD_ON === 'frame' && route === 'produccion' ? ' content-frame' : ''}`}>
           {route === 'nueva' && (
             <NuevaVenta key={ventaKey} nextN={nextN} clientes={clientes} servicios={servicios} ventas={ventas} stats={stats} config={config}
               onCreate={handleCreate} onCreateServicio={handleCreateServicio} onUpdateServicio={handleUpdateServicio}
@@ -6959,7 +7001,9 @@ function App({ onLogout, usuarioFusion = null }) {
               }}
               onNuevaVenta={(c) => goNueva({ cliente: clientePrefill(c) })} onOpenVenta={openVenta} />
           )}
-          {route === 'produccion' && PROD_FLAG && <ProduccionModulo modo={PROD_FLAG} onAbrirVenta={openVenta} conexion={conexionProduccion} />}
+          {route === 'produccion' && PROD_ON && PROD_ON !== 'frame' && <ProduccionModulo modo={PROD_FLAG} onAbrirVenta={openVenta} conexion={conexionProduccion} />}
+          {/* FRAME completo: se monta la primera vez y queda vivo (no se recarga al ir y volver). */}
+          {PROD_ON === 'frame' && <FrameEmbebido visible={route === 'produccion'} />}
           {route === 'metricas' && <Metricas ventas={ventas} gastos={gastos} config={config} />}
           {route === 'gastos' && <Gastos gastos={gastos} setGastos={setGastos} config={config} setConfig={setConfig} />}
           {route === 'config' && (
