@@ -821,3 +821,19 @@ El detalle y el orden del corte están en `integracion/puesta-en-marcha/PUNTO-B-
 - Producción sigue montada una sola vez: el panel se reordena con CSS (`order`), no se vuelve a crear.
 - **Pruebas:** 264 sin red (1 nueva), 20 de Producción y 34 en el emulador.
 - **Verificado en el navegador (emulador):** Métricas y Configuración en escritorio y teléfono, sin recortes ni desborde; el Tablero sigue igual; la cuenta que sólo produce no ve montos ni ajustes comerciales.
+## 26. Fase 4.5: FRAME retirado (2026-11-10)
+
+- **Portfolio (crear páginas): queda fuera de LOOPA.** El usuario lo deja para otro proyecto. Sus páginas ya publicadas (`?portfolio=`) siguen abriendo en el sitio de FRAME; sus funciones, reglas y datos quedan como están (no se borra nada).
+- **El sitio de FRAME sólo redirige** (FRAME `a60d9c7`, publicado):
+  - `?portal=…` → `LOOPA-OS/?portal=…`;
+  - todo lo demás → `LOOPA-OS/?ruta=produccion`;
+  - ya no existen `?solo=1` ni el modo dentro de un iframe.
+- **Desde FRAME ya no se publica.** Su `firebase.json` tiene un `predeploy` que falla en funciones, Firestore y Storage. Probado con `--dry-run`: falla.
+- **Se publica desde LOOPA.** Comandos en `integracion/puesta-en-marcha/PUBLICAR.md`.
+  - Codebase `loopa`: `firebase.json` de la raíz.
+  - Reglas, Storage y codebase `default`: `servidor-produccion/firebase.json`.
+  - El `--dry-run` de reglas y Storage desde LOOPA compila bien.
+- **Nada que publicar ahora.** `servidor-produccion/` es idéntico a lo activo: reglas y Storage contra el respaldo de las 14:28, funciones contra el repo de FRAME. Las reglas coinciden con el borrador (`reglas-para-frame.cjs servidor-produccion`).
+- **Pruebas:**
+  - 264 sin red y 20 de Producción.
+  - FRAME: 45. `board-motion` falla sólo con toda la suite en paralelo; sola pasa, con y sin el cambio.
