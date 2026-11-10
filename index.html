@@ -41,7 +41,7 @@
   // ═══════════════════════════════════════════════════════════════
   // El corte (tanda 3.7): con LOOPA_FUSION_REAL los datos viven en FRAME
   // (frame-studio-3a18f) y la colección «loopa» de tooned-os queda de archivo.
-  window.LOOPA_FUSION_REAL = false;
+  window.LOOPA_FUSION_REAL = true;
   // Con ?datos=fusion o después del corte, la app de Firebase de siempre NI
   // se inicia: nada escribe en la colección «loopa».
   window.USE_FB = !window.LOOPA_FUSION_REAL && !!(window.LOOPA_FIREBASE.apiKey && window.firebase) && !/[?&]datos=fusion(&|$)/.test(window.location.search);
