@@ -1,0 +1,201 @@
+{
+  "_nota": "Catálogo sintético. La descripción comercial (nombre, descripcion, precio) y la plantilla operativa (executionPlan) son independientes.",
+  "services": [
+    {
+      "id": "SRV-DEMO-PLAN-SOCIAL",
+      "nombre": "Plan Social Starter",
+      "categoria": "Redes sociales",
+      "unidad": "mes",
+      "modelo": "plan",
+      "descripcion": "Gestión mensual: 4 sesiones de contenido y programación.",
+      "precio": 9000,
+      "costo": 3500,
+      "activo": true,
+      "executionPlan": {
+        "schemaVersion": 1,
+        "enabled": true,
+        "version": 2,
+        "workspaceId": null,
+        "grouping": { "strategy": "client_day_package", "groupKey": "produccion" },
+        "templates": [
+          {
+            "templateId": "sesion-contenido",
+            "label": "Sesión de contenido",
+            "title": "{cliente} · Sesión {ocurrencia}/{ocurrencias}",
+            "type": "reel",
+            "initialStatus": "briefing",
+            "priority": "medium",
+            "tags": ["plan-mensual"],
+            "quantityMode": "repeat_schedule",
+            "checklist": [
+              { "itemId": "pauta", "text": "Pauta y guiones de la sesión", "perUnit": false },
+              { "itemId": "grabacion", "text": "Grabación", "perUnit": false },
+              { "itemId": "edicion", "text": "Edición de piezas", "perUnit": false },
+              { "itemId": "programacion", "text": "Programar publicaciones", "perUnit": false }
+            ],
+            "schedule": { "sessionAnchor": "sale_date", "sessionOffsetDays": 2, "deadlineAnchor": "session_date", "deadlineOffsetDays": 5 },
+            "recurrence": { "unit": "week", "interval": 1, "count": 4 }
+          }
+        ]
+      }
+    },
+    {
+      "id": "SRV-DEMO-REEL",
+      "nombre": "Reel unitario",
+      "categoria": "Video / Reels",
+      "unidad": "pieza",
+      "modelo": "unitario",
+      "descripcion": "Reel vertical de hasta 30 s.",
+      "precio": 1800,
+      "costo": 600,
+      "activo": true,
+      "executionPlan": {
+        "schemaVersion": 1,
+        "enabled": true,
+        "version": 1,
+        "workspaceId": null,
+        "grouping": { "strategy": "client_day_package", "groupKey": "produccion" },
+        "templates": [
+          {
+            "templateId": "reels",
+            "label": "Reels",
+            "title": "{cliente} · {cantidad} reel(s)",
+            "type": "reel",
+            "initialStatus": "briefing",
+            "priority": "high",
+            "tags": ["reels"],
+            "quantityMode": "expand_checklist",
+            "checklist": [
+              { "itemId": "guion", "text": "Guion del reel", "perUnit": true },
+              { "itemId": "grabacion", "text": "Grabación del reel", "perUnit": true },
+              { "itemId": "edicion", "text": "Edición del reel", "perUnit": true },
+              { "itemId": "entrega", "text": "Entregar {cantidad} reel(s) a {cliente}", "perUnit": false }
+            ],
+            "schedule": { "sessionAnchor": "delivery_date", "sessionOffsetDays": -3, "deadlineAnchor": "delivery_date", "deadlineOffsetDays": 0 },
+            "recurrence": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "SRV-DEMO-FOTO",
+      "nombre": "Sesión de fotos de producto",
+      "categoria": "Fotografía",
+      "unidad": "proyecto",
+      "modelo": "proyecto",
+      "descripcion": "Hasta 20 fotos retocadas.",
+      "precio": 4500,
+      "costo": 1500,
+      "activo": true,
+      "executionPlan": {
+        "schemaVersion": 1,
+        "enabled": true,
+        "version": 1,
+        "workspaceId": null,
+        "grouping": { "strategy": "client_day_package", "groupKey": "produccion" },
+        "templates": [
+          {
+            "templateId": "fotos",
+            "label": "Fotografía",
+            "title": "{cliente} · Fotos de producto",
+            "type": "photo",
+            "initialStatus": "briefing",
+            "priority": "medium",
+            "tags": ["foto"],
+            "quantityMode": "ignore",
+            "checklist": [
+              { "itemId": "shotlist", "text": "Shot list aprobado", "perUnit": false },
+              { "itemId": "sesion", "text": "Sesión de fotos", "perUnit": false },
+              { "itemId": "retoque", "text": "Selección y retoque", "perUnit": false },
+              { "itemId": "entrega", "text": "Entregar galería", "perUnit": false }
+            ],
+            "schedule": { "sessionAnchor": "delivery_date", "sessionOffsetDays": -3, "deadlineAnchor": "delivery_date", "deadlineOffsetDays": 0 },
+            "recurrence": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "SRV-DEMO-BRANDING",
+      "nombre": "Branding completo",
+      "categoria": "Branding",
+      "unidad": "proyecto",
+      "modelo": "proyecto",
+      "descripcion": "Descubrimiento, propuesta y manual de marca.",
+      "precio": 25000,
+      "costo": 8000,
+      "activo": true,
+      "executionPlan": {
+        "schemaVersion": 1,
+        "enabled": true,
+        "version": 1,
+        "workspaceId": null,
+        "grouping": { "strategy": "separate", "groupKey": "branding" },
+        "templates": [
+          {
+            "templateId": "descubrimiento",
+            "label": "Descubrimiento",
+            "title": "{cliente} · Branding: descubrimiento",
+            "type": "campaign",
+            "initialStatus": "briefing",
+            "priority": "medium",
+            "tags": ["branding"],
+            "quantityMode": "ignore",
+            "checklist": [
+              { "itemId": "entrevista", "text": "Entrevista con {cliente}", "perUnit": false },
+              { "itemId": "referentes", "text": "Moodboard y referentes", "perUnit": false }
+            ],
+            "schedule": { "sessionAnchor": "sale_date", "sessionOffsetDays": 1, "deadlineAnchor": "session_date", "deadlineOffsetDays": 7 },
+            "recurrence": null
+          },
+          {
+            "templateId": "propuesta",
+            "label": "Propuesta",
+            "title": "{cliente} · Branding: propuesta final",
+            "type": "campaign",
+            "initialStatus": "briefing",
+            "priority": "high",
+            "tags": ["branding"],
+            "quantityMode": "ignore",
+            "checklist": [
+              { "itemId": "propuesta", "text": "Propuesta de identidad", "perUnit": false },
+              { "itemId": "manual", "text": "Manual de marca", "perUnit": false }
+            ],
+            "schedule": { "sessionAnchor": "delivery_date", "sessionOffsetDays": -7, "deadlineAnchor": "delivery_date", "deadlineOffsetDays": 0 },
+            "recurrence": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "SRV-DEMO-ASESORIA",
+      "nombre": "Asesoría de marketing",
+      "categoria": "Otro",
+      "unidad": "hora",
+      "modelo": "unitario",
+      "descripcion": "Servicio anterior a las plantillas operativas: vende igual, no genera trabajo.",
+      "precio": 800,
+      "costo": 0,
+      "activo": true
+    },
+    {
+      "id": "SRV-DEMO-PAUTA",
+      "nombre": "Pauta digital",
+      "categoria": "Pauta digital",
+      "unidad": "campaña",
+      "modelo": "proyecto",
+      "descripcion": "Gestión de pauta. La producción en FRAME está deshabilitada.",
+      "precio": 3000,
+      "costo": 0,
+      "activo": true,
+      "executionPlan": {
+        "schemaVersion": 1,
+        "enabled": false,
+        "version": 1,
+        "workspaceId": null,
+        "grouping": { "strategy": "client_day_package", "groupKey": "produccion" },
+        "templates": []
+      }
+    }
+  ]
+}

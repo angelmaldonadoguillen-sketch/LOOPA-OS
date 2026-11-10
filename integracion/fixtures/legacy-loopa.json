@@ -1,0 +1,33 @@
+{
+  "_nota": "Forma real de los documentos loopa/ventas, loopa/clientes y loopa/servicios ({items:[...]}) con datos sintéticos.",
+  "ventas": { "items": [
+    {
+      "n": 1003, "fecha": "2026-10-02", "cliente": "Café Aurora", "empresa": "", "telefono": "", "email": "", "canal": "WhatsApp",
+      "clienteId": "CL-DEMO-AURORA",
+      "items": [
+        { "tipoId": "SRV-DEMO-REEL", "nombre": "Reel unitario", "categoria": "Video / Reels", "unidad": "pieza", "descripcion": "", "modelo": "unitario", "recomendado": false, "clienteIdEspecial": "", "precio": 1800, "costo": 600, "q": 2 }
+      ],
+      "subtotal": 3600, "descuento": 0, "total": 3600, "pay": "bac", "abonos": [], "estado": "entregado", "entrega": "2026-10-10", "nota": "",
+      "creado": "2026-10-02T21:14:03.120Z", "estadoLog": []
+    },
+    {
+      "n": 1002, "fecha": "2026-09-28", "cliente": "Ferretería Norte", "empresa": "", "telefono": "", "email": "", "canal": "Referido",
+      "clienteId": "CL-DEMO-FERRE",
+      "items": [
+        { "tipoId": "SRV-DEMO-PLAN-SOCIAL", "nombre": "Plan Social", "categoria": "Redes sociales", "unidad": "mes", "precio": "9,000", "costo": "3500", "q": 1 },
+        { "nombre": "Ajuste sin tipo", "precio": 200, "costo": 0, "q": 1 }
+      ],
+      "subtotal": 9200, "descuento": 0, "total": 9200, "pay": "efectivo", "abonos": [], "estado": "cancelado", "entrega": "", "nota": "",
+      "creado": "2026-09-28T14:00:00.000Z", "estadoLog": []
+    },
+    {
+      "n": 1001, "fecha": "2026-09-20", "cliente": "Estudio Lienzo", "empresa": "", "canal": "Instagram",
+      "clienteId": "CL-DEMO-LIENZO",
+      "items": [
+        { "tipoId": "SRV-DEMO-FOTO", "nombre": "Fotos", "unidad": "proyecto", "precio": 4500, "costo": 1500, "q": 1 }
+      ],
+      "subtotal": 4500, "descuento": 0, "total": 4500, "pay": "bac", "abonos": [], "estado": "en-proceso", "entrega": "2026-09-30", "nota": ""
+    }
+  ] },
+  "clientMap": { "CL-DEMO-AURORA": "cli-demo-cafe-aurora" }
+}

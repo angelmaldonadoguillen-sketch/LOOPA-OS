@@ -1,0 +1,2397 @@
+{
+  "_nota": "DATOS DE EJEMPLO generados por integracion/preview/generar-demo.cjs. No son datos reales.",
+  "hoy": "2026-11-17",
+  "columnas": [
+    {
+      "id": "briefing",
+      "label": "Briefing",
+      "isDone": false
+    },
+    {
+      "id": "producing",
+      "label": "En producción",
+      "isDone": false
+    },
+    {
+      "id": "editing",
+      "label": "Edición",
+      "isDone": false
+    },
+    {
+      "id": "review",
+      "label": "Revisión cliente",
+      "isDone": false
+    },
+    {
+      "id": "delivered",
+      "label": "Entregado",
+      "isDone": true,
+      "requiresChecklist": true
+    }
+  ],
+  "tareas": [
+    {
+      "id": "loopa_eeace9464c4e2d46c2a821c155af",
+      "title": "Café Aurora · Branding: descubrimiento",
+      "client": "Café Aurora",
+      "clientId": "cli-demo-cafe-aurora",
+      "type": "campaign",
+      "status": "delivered",
+      "priority": "high",
+      "assignees": [
+        "uid-demo-beto"
+      ],
+      "startDate": "2026-11-10",
+      "sessionDate": "2026-11-11",
+      "deadline": "2026-11-18",
+      "tags": [
+        "branding",
+        "loopa"
+      ],
+      "cover": {
+        "type": "color",
+        "value": "var(--surface-2)"
+      },
+      "description": [
+        {
+          "type": "p",
+          "text": "Generado desde la venta #1045 de LOOPA."
+        },
+        {
+          "type": "b",
+          "text": "Servicios vendidos"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Branding completo ×1"
+          ]
+        }
+      ],
+      "checklist": [
+        {
+          "id": "ck_a46aaf323169f80cd5fe",
+          "text": "Entrevista con Café Aurora",
+          "done": true
+        },
+        {
+          "id": "ck_1571571b42dbca31ebd1",
+          "text": "Moodboard y referentes",
+          "done": true
+        }
+      ],
+      "deliverables": [],
+      "timeline": [],
+      "comments": [],
+      "clientVisible": false,
+      "workspaceId": "ws-loopa-produccion",
+      "workspaceIds": [
+        "ws-loopa-produccion"
+      ],
+      "viewerIds": [
+        "uid-demo-ana",
+        "uid-demo-beto",
+        "uid-demo-carla"
+      ],
+      "sourceSystem": "loopa",
+      "sourceSaleId": "8d69f9b4-edd9-4c2a-92e1-fdbc466d2a6c",
+      "sourceSaleNumber": 1045,
+      "sourceSaleStatus": "confirmed",
+      "sourceLineIds": [
+        "c6e91b3c-0559-4736-ac95-524898a36b3b"
+      ],
+      "sourceEventId": "evt_5b18706fc3026ecd6aea330caf7f8955",
+      "sourceTemplateVersions": [
+        "SRV-DEMO-BRANDING#descubrimiento@1"
+      ],
+      "sourceWorkItems": [
+        {
+          "workItemKey": "wi_e4a1e80c6ee9581076aa94d5d4e47c3f",
+          "lineId": "c6e91b3c-0559-4736-ac95-524898a36b3b",
+          "serviceId": "SRV-DEMO-BRANDING",
+          "templateId": "descubrimiento",
+          "templateVersion": 1,
+          "occurrence": 1,
+          "occurrences": 1,
+          "sessionDate": "2026-11-11",
+          "deadline": "2026-11-18"
+        }
+      ],
+      "idempotencyKey": "pkg_8008d0a0abe55d15ce9c09dab1190466",
+      "integration": {
+        "schemaVersion": 1,
+        "generatedFingerprint": "c6fd5869ba9196037d74ba4cd6f3d6b6"
+      }
+    },
+    {
+      "id": "loopa_140bc964964b4d59f8a336038bdd",
+      "title": "Estudio Lienzo · Sesión 1/12",
+      "client": "Estudio Lienzo",
+      "clientId": "cli-demo-estudio-lienzo",
+      "type": "reel",
+      "status": "producing",
+      "priority": "medium",
+      "assignees": [
+        "uid-demo-beto"
+      ],
+      "startDate": "2026-11-10",
+      "sessionDate": "2026-11-12",
+      "deadline": "2026-11-17",
+      "tags": [
+        "loopa",
+        "plan-mensual"
+      ],
+      "cover": {
+        "type": "color",
+        "value": "var(--surface-2)"
+      },
+      "description": [
+        {
+          "type": "p",
+          "text": "Generado desde la venta #1044 de LOOPA."
+        },
+        {
+          "type": "b",
+          "text": "Servicios vendidos"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Plan Social Starter ×3"
+          ]
+        }
+      ],
+      "checklist": [
+        {
+          "id": "ck_ee52e53554d618db5704",
+          "text": "Pauta y guiones de la sesión",
+          "done": true
+        },
+        {
+          "id": "ck_0c7d715433e630710dbb",
+          "text": "Grabación",
+          "done": true
+        },
+        {
+          "id": "ck_cfa672a1b53df01354e5",
+          "text": "Edición de piezas",
+          "done": true
+        },
+        {
+          "id": "ck_a7ec708ecc98f342a82a",
+          "text": "Programar publicaciones",
+          "done": false
+        }
+      ],
+      "deliverables": [],
+      "timeline": [],
+      "comments": [],
+      "clientVisible": false,
+      "workspaceId": "ws-loopa-produccion",
+      "workspaceIds": [
+        "ws-loopa-produccion"
+      ],
+      "viewerIds": [
+        "uid-demo-ana",
+        "uid-demo-beto",
+        "uid-demo-carla"
+      ],
+      "sourceSystem": "loopa",
+      "sourceSaleId": "a6414d75-0725-4e6f-8bb9-bd1eff3e29bd",
+      "sourceSaleNumber": 1044,
+      "sourceSaleStatus": "confirmed",
+      "sourceLineIds": [
+        "d877db5d-9682-44ea-b005-8f70ee64dc3e"
+      ],
+      "sourceEventId": "evt_ceb0ec5e49cc2ad01a1fc7df05ac8c5f",
+      "sourceTemplateVersions": [
+        "SRV-DEMO-PLAN-SOCIAL#sesion-contenido@2"
+      ],
+      "sourceWorkItems": [
+        {
+          "workItemKey": "wi_95c974f527ec9d1017fbd8b7a4c03482",
+          "lineId": "d877db5d-9682-44ea-b005-8f70ee64dc3e",
+          "serviceId": "SRV-DEMO-PLAN-SOCIAL",
+          "templateId": "sesion-contenido",
+          "templateVersion": 2,
+          "occurrence": 1,
+          "occurrences": 12,
+          "sessionDate": "2026-11-12",
+          "deadline": "2026-11-17"
+        }
+      ],
+      "idempotencyKey": "pkg_a3b05ea5203de0b513292b8d0defe191",
+      "integration": {
+        "schemaVersion": 1,
+        "generatedFingerprint": "fd8497a55be21c4c550bf34110f8b535"
+      }
+    },
+    {
+      "id": "loopa_8ed6d5de97f5ebee3487b538422d",
+      "title": "Ferretería Norte · Sesión 1/4",
+      "client": "Ferretería Norte",
+      "clientId": "cli-demo-ferreteria-norte",
+      "type": "reel",
+      "status": "producing",
+      "priority": "medium",
+      "assignees": [
+        "uid-demo-ana"
+      ],
+      "startDate": "2026-11-10",
+      "sessionDate": "2026-11-12",
+      "deadline": "2026-11-17",
+      "tags": [
+        "loopa",
+        "plan-mensual"
+      ],
+      "cover": {
+        "type": "color",
+        "value": "var(--surface-2)"
+      },
+      "description": [
+        {
+          "type": "p",
+          "text": "Generado desde la venta #1043 de LOOPA."
+        },
+        {
+          "type": "b",
+          "text": "Servicios vendidos"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Plan Social Starter ×1"
+          ]
+        }
+      ],
+      "checklist": [
+        {
+          "id": "ck_6b42b32d3feffd3684a3",
+          "text": "Pauta y guiones de la sesión",
+          "done": true
+        },
+        {
+          "id": "ck_6f8daa171d51bb1beff6",
+          "text": "Grabación",
+          "done": true
+        },
+        {
+          "id": "ck_b09918b554a64bc18311",
+          "text": "Edición de piezas",
+          "done": true
+        },
+        {
+          "id": "ck_205a6f5144468b4f7191",
+          "text": "Programar publicaciones",
+          "done": false
+        }
+      ],
+      "deliverables": [],
+      "timeline": [],
+      "comments": [],
+      "clientVisible": false,
+      "workspaceId": "ws-loopa-produccion",
+      "workspaceIds": [
+        "ws-loopa-produccion"
+      ],
+      "viewerIds": [
+        "uid-demo-ana",
+        "uid-demo-beto",
+        "uid-demo-carla"
+      ],
+      "sourceSystem": "loopa",
+      "sourceSaleId": "a399d400-451a-488b-bf09-27b070851b38",
+      "sourceSaleNumber": 1043,
+      "sourceSaleStatus": "confirmed",
+      "sourceLineIds": [
+        "8071da35-7730-440a-a29c-556b33fb74f5"
+      ],
+      "sourceEventId": "evt_68963fa4ec6fae47fc17996d14bb75c4",
+      "sourceTemplateVersions": [
+        "SRV-DEMO-PLAN-SOCIAL#sesion-contenido@2"
+      ],
+      "sourceWorkItems": [
+        {
+          "workItemKey": "wi_10615a13405f55bc462979609c92b125",
+          "lineId": "8071da35-7730-440a-a29c-556b33fb74f5",
+          "serviceId": "SRV-DEMO-PLAN-SOCIAL",
+          "templateId": "sesion-contenido",
+          "templateVersion": 2,
+          "occurrence": 1,
+          "occurrences": 4,
+          "sessionDate": "2026-11-12",
+          "deadline": "2026-11-17"
+        }
+      ],
+      "idempotencyKey": "pkg_5b9284bd298c6d353d61e6823bd4c759",
+      "integration": {
+        "schemaVersion": 1,
+        "generatedFingerprint": "241aecdb9a1255e4b464d240ce7e88a2"
+      }
+    },
+    {
+      "id": "loopa_8959e5aa8ad01ac2a6fb2bf50153",
+      "title": "Café Aurora · Reels + Fotografía",
+      "client": "Café Aurora",
+      "clientId": "cli-demo-cafe-aurora",
+      "type": "reel",
+      "status": "producing",
+      "priority": "high",
+      "assignees": [
+        "uid-demo-carla"
+      ],
+      "startDate": "2026-11-10",
+      "sessionDate": "2026-11-17",
+      "deadline": "2026-11-20",
+      "tags": [
+        "foto",
+        "loopa",
+        "reels"
+      ],
+      "cover": {
+        "type": "color",
+        "value": "var(--surface-2)"
+      },
+      "description": [
+        {
+          "type": "p",
+          "text": "Generado desde la venta #1042 de LOOPA."
+        },
+        {
+          "type": "b",
+          "text": "Servicios vendidos"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Reel unitario ×3",
+            "Sesión de fotos de producto ×1"
+          ]
+        }
+      ],
+      "checklist": [
+        {
+          "id": "ck_d9e7ae8b9a6829a899e7",
+          "text": "Reels · Guion del reel (1/3)",
+          "done": true
+        },
+        {
+          "id": "ck_90207fe2d287023344d8",
+          "text": "Reels · Guion del reel (2/3)",
+          "done": false
+        },
+        {
+          "id": "ck_25e0507cba79dd52532b",
+          "text": "Reels · Guion del reel (3/3)",
+          "done": false
+        },
+        {
+          "id": "ck_7c950336e0c2ea3d8dc9",
+          "text": "Reels · Grabación del reel (1/3)",
+          "done": false
+        },
+        {
+          "id": "ck_12f27c492e9a3d8c35a6",
+          "text": "Reels · Grabación del reel (2/3)",
+          "done": false
+        },
+        {
+          "id": "ck_a1c0f667879e7bc09df3",
+          "text": "Reels · Grabación del reel (3/3)",
+          "done": false
+        },
+        {
+          "id": "ck_593f36cd66814d55d00b",
+          "text": "Reels · Edición del reel (1/3)",
+          "done": false
+        },
+        {
+          "id": "ck_1b7be2037a095b577dc6",
+          "text": "Reels · Edición del reel (2/3)",
+          "done": false
+        },
+        {
+          "id": "ck_5880d939380a01a2667f",
+          "text": "Reels · Edición del reel (3/3)",
+          "done": false
+        },
+        {
+          "id": "ck_ac6f97a0d10089cefeee",
+          "text": "Reels · Entregar 3 reel(s) a Café Aurora",
+          "done": false
+        },
+        {
+          "id": "ck_5e4201e012d4f602aba0",
+          "text": "Fotografía · Shot list aprobado",
+          "done": false
+        },
+        {
+          "id": "ck_a5ff63fe31f111fa3cf2",
+          "text": "Fotografía · Sesión de fotos",
+          "done": false
+        },
+        {
+          "id": "ck_0f310cb5ec754a974710",
+          "text": "Fotografía · Selección y retoque",
+          "done": false
+        },
+        {
+          "id": "ck_1c021ad26525f8096be3",
+          "text": "Fotografía · Entregar galería",
+          "done": false
+        }
+      ],
+      "deliverables": [],
+      "timeline": [],
+      "comments": [],
+      "clientVisible": true,
+      "workspaceId": "ws-loopa-produccion",
+      "workspaceIds": [
+        "ws-loopa-produccion"
+      ],
+      "viewerIds": [
+        "uid-demo-ana",
+        "uid-demo-beto",
+        "uid-demo-carla"
+      ],
+      "sourceSystem": "loopa",
+      "sourceSaleId": "cac82f31-d6f6-4683-9b7f-67930296acdb",
+      "sourceSaleNumber": 1042,
+      "sourceSaleStatus": "confirmed",
+      "sourceLineIds": [
+        "803d47c6-4367-4c7b-b176-8331bc3abc49",
+        "bc48672a-7b42-4e52-99ff-778b5e575476"
+      ],
+      "sourceEventId": "evt_10e2753288988c93886bb414a3c34c21",
+      "sourceTemplateVersions": [
+        "SRV-DEMO-FOTO#fotos@1",
+        "SRV-DEMO-REEL#reels@1"
+      ],
+      "sourceWorkItems": [
+        {
+          "workItemKey": "wi_e8d3914c142b2d31194b70accbbe1486",
+          "lineId": "bc48672a-7b42-4e52-99ff-778b5e575476",
+          "serviceId": "SRV-DEMO-REEL",
+          "templateId": "reels",
+          "templateVersion": 1,
+          "occurrence": 1,
+          "occurrences": 1,
+          "sessionDate": "2026-11-17",
+          "deadline": "2026-11-20"
+        },
+        {
+          "workItemKey": "wi_d6e1f0331bc70ea9134b854affa78ae8",
+          "lineId": "803d47c6-4367-4c7b-b176-8331bc3abc49",
+          "serviceId": "SRV-DEMO-FOTO",
+          "templateId": "fotos",
+          "templateVersion": 1,
+          "occurrence": 1,
+          "occurrences": 1,
+          "sessionDate": "2026-11-17",
+          "deadline": "2026-11-20"
+        }
+      ],
+      "idempotencyKey": "pkg_07a69da9896fd1196f294ce5080b8aef",
+      "integration": {
+        "schemaVersion": 1,
+        "generatedFingerprint": "bf5d112c0acfa22bdea9ae648318b113"
+      }
+    },
+    {
+      "id": "loopa_a4de0e5abfea01314282e138f62e",
+      "title": "Estudio Lienzo · Sesión 2/12",
+      "client": "Estudio Lienzo",
+      "clientId": "cli-demo-estudio-lienzo",
+      "type": "reel",
+      "status": "briefing",
+      "priority": "medium",
+      "assignees": [
+        "uid-demo-carla"
+      ],
+      "startDate": "2026-11-10",
+      "sessionDate": "2026-11-19",
+      "deadline": "2026-11-24",
+      "tags": [
+        "loopa",
+        "plan-mensual"
+      ],
+      "cover": {
+        "type": "color",
+        "value": "var(--surface-2)"
+      },
+      "description": [
+        {
+          "type": "p",
+          "text": "Generado desde la venta #1044 de LOOPA."
+        },
+        {
+          "type": "b",
+          "text": "Servicios vendidos"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Plan Social Starter ×3"
+          ]
+        }
+      ],
+      "checklist": [
+        {
+          "id": "ck_c21e6ff9350cd34a74bb",
+          "text": "Pauta y guiones de la sesión",
+          "done": false
+        },
+        {
+          "id": "ck_8572618f89df577aa3ec",
+          "text": "Grabación",
+          "done": false
+        },
+        {
+          "id": "ck_96426397f3a9f4d3c58b",
+          "text": "Edición de piezas",
+          "done": false
+        },
+        {
+          "id": "ck_ff629e3c8c599f138c2f",
+          "text": "Programar publicaciones",
+          "done": false
+        }
+      ],
+      "deliverables": [],
+      "timeline": [],
+      "comments": [],
+      "clientVisible": false,
+      "workspaceId": "ws-loopa-produccion",
+      "workspaceIds": [
+        "ws-loopa-produccion"
+      ],
+      "viewerIds": [
+        "uid-demo-ana",
+        "uid-demo-beto",
+        "uid-demo-carla"
+      ],
+      "sourceSystem": "loopa",
+      "sourceSaleId": "a6414d75-0725-4e6f-8bb9-bd1eff3e29bd",
+      "sourceSaleNumber": 1044,
+      "sourceSaleStatus": "confirmed",
+      "sourceLineIds": [
+        "d877db5d-9682-44ea-b005-8f70ee64dc3e"
+      ],
+      "sourceEventId": "evt_ceb0ec5e49cc2ad01a1fc7df05ac8c5f",
+      "sourceTemplateVersions": [
+        "SRV-DEMO-PLAN-SOCIAL#sesion-contenido@2"
+      ],
+      "sourceWorkItems": [
+        {
+          "workItemKey": "wi_0d18cd158bbc67f01dd1e55c276a516e",
+          "lineId": "d877db5d-9682-44ea-b005-8f70ee64dc3e",
+          "serviceId": "SRV-DEMO-PLAN-SOCIAL",
+          "templateId": "sesion-contenido",
+          "templateVersion": 2,
+          "occurrence": 2,
+          "occurrences": 12,
+          "sessionDate": "2026-11-19",
+          "deadline": "2026-11-24"
+        }
+      ],
+      "idempotencyKey": "pkg_662ff4256cee75da00d89ea49e217ed6",
+      "integration": {
+        "schemaVersion": 1,
+        "generatedFingerprint": "e29ce8fa9067f74a8034dcaa60e12fac"
+      }
+    },
+    {
+      "id": "loopa_e30487a1a4eb190fa66e54d07d4c",
+      "title": "Ferretería Norte · Sesión 2/4",
+      "client": "Ferretería Norte",
+      "clientId": "cli-demo-ferreteria-norte",
+      "type": "reel",
+      "status": "briefing",
+      "priority": "medium",
+      "assignees": [
+        "uid-demo-beto"
+      ],
+      "startDate": "2026-11-10",
+      "sessionDate": "2026-11-19",
+      "deadline": "2026-11-24",
+      "tags": [
+        "loopa",
+        "plan-mensual"
+      ],
+      "cover": {
+        "type": "color",
+        "value": "var(--surface-2)"
+      },
+      "description": [
+        {
+          "type": "p",
+          "text": "Generado desde la venta #1043 de LOOPA."
+        },
+        {
+          "type": "b",
+          "text": "Servicios vendidos"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Plan Social Starter ×1"
+          ]
+        }
+      ],
+      "checklist": [
+        {
+          "id": "ck_8d3ce65baca8aa20891a",
+          "text": "Pauta y guiones de la sesión",
+          "done": false
+        },
+        {
+          "id": "ck_802bad48365102465a09",
+          "text": "Grabación",
+          "done": false
+        },
+        {
+          "id": "ck_5604c418134f4a90b9e8",
+          "text": "Edición de piezas",
+          "done": false
+        },
+        {
+          "id": "ck_762ff268147d5bd8fc94",
+          "text": "Programar publicaciones",
+          "done": false
+        }
+      ],
+      "deliverables": [],
+      "timeline": [],
+      "comments": [],
+      "clientVisible": false,
+      "workspaceId": "ws-loopa-produccion",
+      "workspaceIds": [
+        "ws-loopa-produccion"
+      ],
+      "viewerIds": [
+        "uid-demo-ana",
+        "uid-demo-beto",
+        "uid-demo-carla"
+      ],
+      "sourceSystem": "loopa",
+      "sourceSaleId": "a399d400-451a-488b-bf09-27b070851b38",
+      "sourceSaleNumber": 1043,
+      "sourceSaleStatus": "confirmed",
+      "sourceLineIds": [
+        "8071da35-7730-440a-a29c-556b33fb74f5"
+      ],
+      "sourceEventId": "evt_68963fa4ec6fae47fc17996d14bb75c4",
+      "sourceTemplateVersions": [
+        "SRV-DEMO-PLAN-SOCIAL#sesion-contenido@2"
+      ],
+      "sourceWorkItems": [
+        {
+          "workItemKey": "wi_f3fc78c798395b30557401f82b64941c",
+          "lineId": "8071da35-7730-440a-a29c-556b33fb74f5",
+          "serviceId": "SRV-DEMO-PLAN-SOCIAL",
+          "templateId": "sesion-contenido",
+          "templateVersion": 2,
+          "occurrence": 2,
+          "occurrences": 4,
+          "sessionDate": "2026-11-19",
+          "deadline": "2026-11-24"
+        }
+      ],
+      "idempotencyKey": "pkg_cf3f58a39a54a06f4189f9060f576576",
+      "integration": {
+        "schemaVersion": 1,
+        "generatedFingerprint": "d0d79e7cedd18d893efdcfaf5a4631b7"
+      }
+    },
+    {
+      "id": "p-demo-manual",
+      "title": "Ordenar el archivo de material de noviembre",
+      "client": "LOOPA (interno)",
+      "type": "other",
+      "status": "briefing",
+      "priority": "low",
+      "sessionDate": "2026-11-19",
+      "deadline": "2026-11-21",
+      "checklist": [
+        {
+          "id": "c1",
+          "text": "Respaldar tarjetas de memoria",
+          "done": false
+        },
+        {
+          "id": "c2",
+          "text": "Nombrar carpetas por cliente",
+          "done": false
+        }
+      ],
+      "workspaceId": "ws-loopa-produccion",
+      "workspaceIds": [
+        "ws-loopa-produccion"
+      ]
+    },
+    {
+      "id": "loopa_154e6eedc1cde2154d24751ce7a1",
+      "title": "Estudio Lienzo · 3 reel(s)",
+      "client": "Estudio Lienzo",
+      "clientId": "cli-demo-estudio-lienzo",
+      "type": "reel",
+      "status": "briefing",
+      "priority": "high",
+      "assignees": [
+        "uid-demo-beto"
+      ],
+      "startDate": "2026-11-10",
+      "sessionDate": "2026-11-21",
+      "deadline": "2026-11-24",
+      "tags": [
+        "loopa",
+        "reels"
+      ],
+      "cover": {
+        "type": "color",
+        "value": "var(--surface-2)"
+      },
+      "description": [
+        {
+          "type": "p",
+          "text": "Generado desde la venta #1046 de LOOPA."
+        },
+        {
+          "type": "b",
+          "text": "Servicios vendidos"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Reel unitario ×3"
+          ]
+        }
+      ],
+      "checklist": [
+        {
+          "id": "ck_0225903713f28e9f81fc",
+          "text": "Guion del reel (1/3)",
+          "done": false
+        },
+        {
+          "id": "ck_7bb1a379db73c58c81f8",
+          "text": "Guion del reel (2/3)",
+          "done": false
+        },
+        {
+          "id": "ck_b1e2efe95376a819657f",
+          "text": "Guion del reel (3/3)",
+          "done": false
+        },
+        {
+          "id": "ck_f69b0616a892b5f2105e",
+          "text": "Grabación del reel (1/3)",
+          "done": false
+        },
+        {
+          "id": "ck_25f6759c14edec426820",
+          "text": "Grabación del reel (2/3)",
+          "done": false
+        },
+        {
+          "id": "ck_3c7c02f15b009300cc95",
+          "text": "Grabación del reel (3/3)",
+          "done": false
+        },
+        {
+          "id": "ck_da8c38de86fdf4408521",
+          "text": "Edición del reel (1/3)",
+          "done": false
+        },
+        {
+          "id": "ck_419030e998cbf1cdaebd",
+          "text": "Edición del reel (2/3)",
+          "done": false
+        },
+        {
+          "id": "ck_52ca63d6891845c86986",
+          "text": "Edición del reel (3/3)",
+          "done": false
+        },
+        {
+          "id": "ck_acef595a53cd5a665624",
+          "text": "Entregar 3 reel(s) a Estudio Lienzo",
+          "done": false
+        }
+      ],
+      "deliverables": [],
+      "timeline": [],
+      "comments": [],
+      "clientVisible": false,
+      "workspaceId": "ws-loopa-produccion",
+      "workspaceIds": [
+        "ws-loopa-produccion"
+      ],
+      "viewerIds": [
+        "uid-demo-ana",
+        "uid-demo-beto",
+        "uid-demo-carla"
+      ],
+      "sourceSystem": "loopa",
+      "sourceSaleId": "2fee7692-1771-409d-8db7-95729aea3195",
+      "sourceSaleNumber": 1046,
+      "sourceSaleStatus": "cancelled",
+      "sourceLineIds": [
+        "6ca09e3b-988f-45a2-bbf5-fbff1fe65658"
+      ],
+      "sourceEventId": "evt_e68a541682fb67b435fc13704e921a07",
+      "sourceTemplateVersions": [
+        "SRV-DEMO-REEL#reels@1"
+      ],
+      "sourceWorkItems": [
+        {
+          "workItemKey": "wi_57a29554f0792095385c3c1b30a02ce0",
+          "lineId": "6ca09e3b-988f-45a2-bbf5-fbff1fe65658",
+          "serviceId": "SRV-DEMO-REEL",
+          "templateId": "reels",
+          "templateVersion": 1,
+          "occurrence": 1,
+          "occurrences": 1,
+          "sessionDate": "2026-11-21",
+          "deadline": "2026-11-24"
+        }
+      ],
+      "idempotencyKey": "pkg_3162c68a53d93e827a1b5ea03765819e",
+      "integration": {
+        "schemaVersion": 1,
+        "generatedFingerprint": "8e98aea77792053d6cfedb517669234b"
+      }
+    },
+    {
+      "id": "loopa_02d97a2236a311dbd5cd983b187f",
+      "title": "Estudio Lienzo · Sesión 3/12",
+      "client": "Estudio Lienzo",
+      "clientId": "cli-demo-estudio-lienzo",
+      "type": "reel",
+      "status": "briefing",
+      "priority": "medium",
+      "assignees": [
+        "uid-demo-ana"
+      ],
+      "startDate": "2026-11-10",
+      "sessionDate": "2026-11-26",
+      "deadline": "2026-12-01",
+      "tags": [
+        "loopa",
+        "plan-mensual"
+      ],
+      "cover": {
+        "type": "color",
+        "value": "var(--surface-2)"
+      },
+      "description": [
+        {
+          "type": "p",
+          "text": "Generado desde la venta #1044 de LOOPA."
+        },
+        {
+          "type": "b",
+          "text": "Servicios vendidos"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Plan Social Starter ×3"
+          ]
+        }
+      ],
+      "checklist": [
+        {
+          "id": "ck_dd40efcf88eab5be1c07",
+          "text": "Pauta y guiones de la sesión",
+          "done": false
+        },
+        {
+          "id": "ck_487cb6867289ea0a7d82",
+          "text": "Grabación",
+          "done": false
+        },
+        {
+          "id": "ck_ccbbf2c00ed483a2882e",
+          "text": "Edición de piezas",
+          "done": false
+        },
+        {
+          "id": "ck_978f37231d08c83abbf3",
+          "text": "Programar publicaciones",
+          "done": false
+        }
+      ],
+      "deliverables": [],
+      "timeline": [],
+      "comments": [],
+      "clientVisible": false,
+      "workspaceId": "ws-loopa-produccion",
+      "workspaceIds": [
+        "ws-loopa-produccion"
+      ],
+      "viewerIds": [
+        "uid-demo-ana",
+        "uid-demo-beto",
+        "uid-demo-carla"
+      ],
+      "sourceSystem": "loopa",
+      "sourceSaleId": "a6414d75-0725-4e6f-8bb9-bd1eff3e29bd",
+      "sourceSaleNumber": 1044,
+      "sourceSaleStatus": "confirmed",
+      "sourceLineIds": [
+        "d877db5d-9682-44ea-b005-8f70ee64dc3e"
+      ],
+      "sourceEventId": "evt_ceb0ec5e49cc2ad01a1fc7df05ac8c5f",
+      "sourceTemplateVersions": [
+        "SRV-DEMO-PLAN-SOCIAL#sesion-contenido@2"
+      ],
+      "sourceWorkItems": [
+        {
+          "workItemKey": "wi_14f0b75e929ed6624f4e3e993377fe1f",
+          "lineId": "d877db5d-9682-44ea-b005-8f70ee64dc3e",
+          "serviceId": "SRV-DEMO-PLAN-SOCIAL",
+          "templateId": "sesion-contenido",
+          "templateVersion": 2,
+          "occurrence": 3,
+          "occurrences": 12,
+          "sessionDate": "2026-11-26",
+          "deadline": "2026-12-01"
+        }
+      ],
+      "idempotencyKey": "pkg_814d0a4d351ff25bd9b7635207375885",
+      "integration": {
+        "schemaVersion": 1,
+        "generatedFingerprint": "0f3d1668a49a9308676d947eefb1b025"
+      }
+    },
+    {
+      "id": "loopa_4cea2210efdc575c41d8123426eb",
+      "title": "Ferretería Norte · Sesión 3/4",
+      "client": "Ferretería Norte",
+      "clientId": "cli-demo-ferreteria-norte",
+      "type": "reel",
+      "status": "briefing",
+      "priority": "high",
+      "assignees": [
+        "uid-demo-carla"
+      ],
+      "startDate": "2026-11-10",
+      "sessionDate": "2026-11-26",
+      "deadline": "2026-12-01",
+      "tags": [
+        "loopa",
+        "plan-mensual"
+      ],
+      "cover": {
+        "type": "color",
+        "value": "var(--surface-2)"
+      },
+      "description": [
+        {
+          "type": "p",
+          "text": "Generado desde la venta #1043 de LOOPA."
+        },
+        {
+          "type": "b",
+          "text": "Servicios vendidos"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Plan Social Starter ×1"
+          ]
+        }
+      ],
+      "checklist": [
+        {
+          "id": "ck_9114783d1a662da75bc9",
+          "text": "Pauta y guiones de la sesión",
+          "done": false
+        },
+        {
+          "id": "ck_103f900f6336e196d057",
+          "text": "Grabación",
+          "done": false
+        },
+        {
+          "id": "ck_65df7bc729289df9cbd3",
+          "text": "Edición de piezas",
+          "done": false
+        },
+        {
+          "id": "ck_3a646b7f88ec3c0ca689",
+          "text": "Programar publicaciones",
+          "done": false
+        }
+      ],
+      "deliverables": [],
+      "timeline": [],
+      "comments": [],
+      "clientVisible": false,
+      "workspaceId": "ws-loopa-produccion",
+      "workspaceIds": [
+        "ws-loopa-produccion"
+      ],
+      "viewerIds": [
+        "uid-demo-ana",
+        "uid-demo-beto",
+        "uid-demo-carla"
+      ],
+      "sourceSystem": "loopa",
+      "sourceSaleId": "a399d400-451a-488b-bf09-27b070851b38",
+      "sourceSaleNumber": 1043,
+      "sourceSaleStatus": "confirmed",
+      "sourceLineIds": [
+        "8071da35-7730-440a-a29c-556b33fb74f5"
+      ],
+      "sourceEventId": "evt_68963fa4ec6fae47fc17996d14bb75c4",
+      "sourceTemplateVersions": [
+        "SRV-DEMO-PLAN-SOCIAL#sesion-contenido@2"
+      ],
+      "sourceWorkItems": [
+        {
+          "workItemKey": "wi_48b3f71e3fa5d4c0efe11b23bad20ad5",
+          "lineId": "8071da35-7730-440a-a29c-556b33fb74f5",
+          "serviceId": "SRV-DEMO-PLAN-SOCIAL",
+          "templateId": "sesion-contenido",
+          "templateVersion": 2,
+          "occurrence": 3,
+          "occurrences": 4,
+          "sessionDate": "2026-11-26",
+          "deadline": "2026-12-01"
+        }
+      ],
+      "idempotencyKey": "pkg_03abda21dc92a48f6be68cab853d3308",
+      "integration": {
+        "schemaVersion": 1,
+        "generatedFingerprint": "3db1f34eed6d3b0ddeff2232ad8a507f"
+      }
+    },
+    {
+      "id": "loopa_75c74f76eea1925694f1e5ef4343",
+      "title": "Ferretería Norte · Sesión 4/4",
+      "client": "Ferretería Norte",
+      "clientId": "cli-demo-ferreteria-norte",
+      "type": "reel",
+      "status": "briefing",
+      "priority": "medium",
+      "assignees": [
+        "uid-demo-ana"
+      ],
+      "startDate": "2026-11-10",
+      "sessionDate": "2026-12-03",
+      "deadline": "2026-12-08",
+      "tags": [
+        "loopa",
+        "plan-mensual"
+      ],
+      "cover": {
+        "type": "color",
+        "value": "var(--surface-2)"
+      },
+      "description": [
+        {
+          "type": "p",
+          "text": "Generado desde la venta #1043 de LOOPA."
+        },
+        {
+          "type": "b",
+          "text": "Servicios vendidos"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Plan Social Starter ×1"
+          ]
+        }
+      ],
+      "checklist": [
+        {
+          "id": "ck_2d62d0f7ea10da48a25f",
+          "text": "Pauta y guiones de la sesión",
+          "done": false
+        },
+        {
+          "id": "ck_0fd51e79719f57345748",
+          "text": "Grabación",
+          "done": false
+        },
+        {
+          "id": "ck_eff8708ec6f551d0edff",
+          "text": "Edición de piezas",
+          "done": false
+        },
+        {
+          "id": "ck_133e740853e8394dcb73",
+          "text": "Programar publicaciones",
+          "done": false
+        }
+      ],
+      "deliverables": [],
+      "timeline": [],
+      "comments": [],
+      "clientVisible": false,
+      "workspaceId": "ws-loopa-produccion",
+      "workspaceIds": [
+        "ws-loopa-produccion"
+      ],
+      "viewerIds": [
+        "uid-demo-ana",
+        "uid-demo-beto",
+        "uid-demo-carla"
+      ],
+      "sourceSystem": "loopa",
+      "sourceSaleId": "a399d400-451a-488b-bf09-27b070851b38",
+      "sourceSaleNumber": 1043,
+      "sourceSaleStatus": "confirmed",
+      "sourceLineIds": [
+        "8071da35-7730-440a-a29c-556b33fb74f5"
+      ],
+      "sourceEventId": "evt_68963fa4ec6fae47fc17996d14bb75c4",
+      "sourceTemplateVersions": [
+        "SRV-DEMO-PLAN-SOCIAL#sesion-contenido@2"
+      ],
+      "sourceWorkItems": [
+        {
+          "workItemKey": "wi_4197ab111bd5c3be20d345565c630e23",
+          "lineId": "8071da35-7730-440a-a29c-556b33fb74f5",
+          "serviceId": "SRV-DEMO-PLAN-SOCIAL",
+          "templateId": "sesion-contenido",
+          "templateVersion": 2,
+          "occurrence": 4,
+          "occurrences": 4,
+          "sessionDate": "2026-12-03",
+          "deadline": "2026-12-08"
+        }
+      ],
+      "idempotencyKey": "pkg_c3ae6eb1bdf7efa7466043a89acad3bf",
+      "integration": {
+        "schemaVersion": 1,
+        "generatedFingerprint": "104b5d4a00d3e8e75d987afae05e11e7"
+      }
+    },
+    {
+      "id": "loopa_ffbd7cbe7499aa6fa4da104835dc",
+      "title": "Estudio Lienzo · Sesión 4/12",
+      "client": "Estudio Lienzo",
+      "clientId": "cli-demo-estudio-lienzo",
+      "type": "reel",
+      "status": "briefing",
+      "priority": "medium",
+      "assignees": [
+        "uid-demo-beto"
+      ],
+      "startDate": "2026-11-10",
+      "sessionDate": "2026-12-03",
+      "deadline": "2026-12-08",
+      "tags": [
+        "loopa",
+        "plan-mensual"
+      ],
+      "cover": {
+        "type": "color",
+        "value": "var(--surface-2)"
+      },
+      "description": [
+        {
+          "type": "p",
+          "text": "Generado desde la venta #1044 de LOOPA."
+        },
+        {
+          "type": "b",
+          "text": "Servicios vendidos"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Plan Social Starter ×3"
+          ]
+        }
+      ],
+      "checklist": [
+        {
+          "id": "ck_a7ed887600b5e89ca101",
+          "text": "Pauta y guiones de la sesión",
+          "done": false
+        },
+        {
+          "id": "ck_19edb3a2aabb79aa70d9",
+          "text": "Grabación",
+          "done": false
+        },
+        {
+          "id": "ck_a5d8c56e59b0218391ab",
+          "text": "Edición de piezas",
+          "done": false
+        },
+        {
+          "id": "ck_fce9f6eb1421f06b5a68",
+          "text": "Programar publicaciones",
+          "done": false
+        }
+      ],
+      "deliverables": [],
+      "timeline": [],
+      "comments": [],
+      "clientVisible": false,
+      "workspaceId": "ws-loopa-produccion",
+      "workspaceIds": [
+        "ws-loopa-produccion"
+      ],
+      "viewerIds": [
+        "uid-demo-ana",
+        "uid-demo-beto",
+        "uid-demo-carla"
+      ],
+      "sourceSystem": "loopa",
+      "sourceSaleId": "a6414d75-0725-4e6f-8bb9-bd1eff3e29bd",
+      "sourceSaleNumber": 1044,
+      "sourceSaleStatus": "confirmed",
+      "sourceLineIds": [
+        "d877db5d-9682-44ea-b005-8f70ee64dc3e"
+      ],
+      "sourceEventId": "evt_ceb0ec5e49cc2ad01a1fc7df05ac8c5f",
+      "sourceTemplateVersions": [
+        "SRV-DEMO-PLAN-SOCIAL#sesion-contenido@2"
+      ],
+      "sourceWorkItems": [
+        {
+          "workItemKey": "wi_925f4b6dc81ac019ebe2a2a073741c94",
+          "lineId": "d877db5d-9682-44ea-b005-8f70ee64dc3e",
+          "serviceId": "SRV-DEMO-PLAN-SOCIAL",
+          "templateId": "sesion-contenido",
+          "templateVersion": 2,
+          "occurrence": 4,
+          "occurrences": 12,
+          "sessionDate": "2026-12-03",
+          "deadline": "2026-12-08"
+        }
+      ],
+      "idempotencyKey": "pkg_fe43c5836442a6b81232c468b838d557",
+      "integration": {
+        "schemaVersion": 1,
+        "generatedFingerprint": "30dd7fc2c4137e9520b7275fc9ba65df"
+      }
+    },
+    {
+      "id": "loopa_c88f9032eff19007ff5744ecec20",
+      "title": "Café Aurora · Branding: propuesta final",
+      "client": "Café Aurora",
+      "clientId": "cli-demo-cafe-aurora",
+      "type": "campaign",
+      "status": "briefing",
+      "priority": "high",
+      "assignees": [
+        "uid-demo-carla"
+      ],
+      "startDate": "2026-11-10",
+      "sessionDate": "2026-12-08",
+      "deadline": "2026-12-15",
+      "tags": [
+        "branding",
+        "loopa"
+      ],
+      "cover": {
+        "type": "color",
+        "value": "var(--surface-2)"
+      },
+      "description": [
+        {
+          "type": "p",
+          "text": "Generado desde la venta #1045 de LOOPA."
+        },
+        {
+          "type": "b",
+          "text": "Servicios vendidos"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Branding completo ×1"
+          ]
+        }
+      ],
+      "checklist": [
+        {
+          "id": "ck_084f22a633f9dc63b975",
+          "text": "Propuesta de identidad",
+          "done": false
+        },
+        {
+          "id": "ck_2119fa1e0f471252290b",
+          "text": "Manual de marca",
+          "done": false
+        }
+      ],
+      "deliverables": [],
+      "timeline": [],
+      "comments": [],
+      "clientVisible": false,
+      "workspaceId": "ws-loopa-produccion",
+      "workspaceIds": [
+        "ws-loopa-produccion"
+      ],
+      "viewerIds": [
+        "uid-demo-ana",
+        "uid-demo-beto",
+        "uid-demo-carla"
+      ],
+      "sourceSystem": "loopa",
+      "sourceSaleId": "8d69f9b4-edd9-4c2a-92e1-fdbc466d2a6c",
+      "sourceSaleNumber": 1045,
+      "sourceSaleStatus": "confirmed",
+      "sourceLineIds": [
+        "c6e91b3c-0559-4736-ac95-524898a36b3b"
+      ],
+      "sourceEventId": "evt_5b18706fc3026ecd6aea330caf7f8955",
+      "sourceTemplateVersions": [
+        "SRV-DEMO-BRANDING#propuesta@1"
+      ],
+      "sourceWorkItems": [
+        {
+          "workItemKey": "wi_f25a5672fd2a54ffd2fdb08edb18116d",
+          "lineId": "c6e91b3c-0559-4736-ac95-524898a36b3b",
+          "serviceId": "SRV-DEMO-BRANDING",
+          "templateId": "propuesta",
+          "templateVersion": 1,
+          "occurrence": 1,
+          "occurrences": 1,
+          "sessionDate": "2026-12-08",
+          "deadline": "2026-12-15"
+        }
+      ],
+      "idempotencyKey": "pkg_e2105828cccbd8b91f11d98774051d34",
+      "integration": {
+        "schemaVersion": 1,
+        "generatedFingerprint": "019c5b9b4df8303e6c255f429f28da7f"
+      }
+    },
+    {
+      "id": "loopa_585b2236aa722b196087860f5095",
+      "title": "Estudio Lienzo · Sesión 5/12",
+      "client": "Estudio Lienzo",
+      "clientId": "cli-demo-estudio-lienzo",
+      "type": "reel",
+      "status": "briefing",
+      "priority": "medium",
+      "assignees": [
+        "uid-demo-carla"
+      ],
+      "startDate": "2026-11-10",
+      "sessionDate": "2026-12-10",
+      "deadline": "2026-12-15",
+      "tags": [
+        "loopa",
+        "plan-mensual"
+      ],
+      "cover": {
+        "type": "color",
+        "value": "var(--surface-2)"
+      },
+      "description": [
+        {
+          "type": "p",
+          "text": "Generado desde la venta #1044 de LOOPA."
+        },
+        {
+          "type": "b",
+          "text": "Servicios vendidos"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Plan Social Starter ×3"
+          ]
+        }
+      ],
+      "checklist": [
+        {
+          "id": "ck_718bd048bb880d4211fd",
+          "text": "Pauta y guiones de la sesión",
+          "done": false
+        },
+        {
+          "id": "ck_de7c9ceb26ebbac7839f",
+          "text": "Grabación",
+          "done": false
+        },
+        {
+          "id": "ck_a8b7b6d5bb111618d4ea",
+          "text": "Edición de piezas",
+          "done": false
+        },
+        {
+          "id": "ck_1614ee7623fc2c456321",
+          "text": "Programar publicaciones",
+          "done": false
+        }
+      ],
+      "deliverables": [],
+      "timeline": [],
+      "comments": [],
+      "clientVisible": false,
+      "workspaceId": "ws-loopa-produccion",
+      "workspaceIds": [
+        "ws-loopa-produccion"
+      ],
+      "viewerIds": [
+        "uid-demo-ana",
+        "uid-demo-beto",
+        "uid-demo-carla"
+      ],
+      "sourceSystem": "loopa",
+      "sourceSaleId": "a6414d75-0725-4e6f-8bb9-bd1eff3e29bd",
+      "sourceSaleNumber": 1044,
+      "sourceSaleStatus": "confirmed",
+      "sourceLineIds": [
+        "d877db5d-9682-44ea-b005-8f70ee64dc3e"
+      ],
+      "sourceEventId": "evt_ceb0ec5e49cc2ad01a1fc7df05ac8c5f",
+      "sourceTemplateVersions": [
+        "SRV-DEMO-PLAN-SOCIAL#sesion-contenido@2"
+      ],
+      "sourceWorkItems": [
+        {
+          "workItemKey": "wi_23c3dc8768b1c970da647683ac4396e9",
+          "lineId": "d877db5d-9682-44ea-b005-8f70ee64dc3e",
+          "serviceId": "SRV-DEMO-PLAN-SOCIAL",
+          "templateId": "sesion-contenido",
+          "templateVersion": 2,
+          "occurrence": 5,
+          "occurrences": 12,
+          "sessionDate": "2026-12-10",
+          "deadline": "2026-12-15"
+        }
+      ],
+      "idempotencyKey": "pkg_4f0da0421506b9d861404365c69f4d28",
+      "integration": {
+        "schemaVersion": 1,
+        "generatedFingerprint": "f40407e186981c3eea84498146529b8c"
+      }
+    },
+    {
+      "id": "loopa_786edd3748384d35f7094a1008d9",
+      "title": "Café Aurora · 1 reel(s)",
+      "client": "Café Aurora",
+      "clientId": "cli-demo-cafe-aurora",
+      "type": "reel",
+      "status": "briefing",
+      "priority": "high",
+      "assignees": [
+        "uid-demo-ana"
+      ],
+      "startDate": "2026-11-10",
+      "sessionDate": "2026-12-12",
+      "deadline": "2026-12-15",
+      "tags": [
+        "loopa",
+        "reels"
+      ],
+      "cover": {
+        "type": "color",
+        "value": "var(--surface-2)"
+      },
+      "description": [
+        {
+          "type": "p",
+          "text": "Generado desde la venta #1045 de LOOPA."
+        },
+        {
+          "type": "b",
+          "text": "Servicios vendidos"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Reel unitario ×1"
+          ]
+        }
+      ],
+      "checklist": [
+        {
+          "id": "ck_66fc98f0f35716fbfc70",
+          "text": "Guion del reel",
+          "done": false
+        },
+        {
+          "id": "ck_7a8cada4bbb0574de857",
+          "text": "Grabación del reel",
+          "done": false
+        },
+        {
+          "id": "ck_da89bf0b213d43c85b02",
+          "text": "Edición del reel",
+          "done": false
+        },
+        {
+          "id": "ck_f74d16c1a4b73c21d019",
+          "text": "Entregar 1 reel(s) a Café Aurora",
+          "done": false
+        }
+      ],
+      "deliverables": [],
+      "timeline": [],
+      "comments": [],
+      "clientVisible": true,
+      "workspaceId": "ws-loopa-produccion",
+      "workspaceIds": [
+        "ws-loopa-produccion"
+      ],
+      "viewerIds": [
+        "uid-demo-ana",
+        "uid-demo-beto",
+        "uid-demo-carla"
+      ],
+      "sourceSystem": "loopa",
+      "sourceSaleId": "8d69f9b4-edd9-4c2a-92e1-fdbc466d2a6c",
+      "sourceSaleNumber": 1045,
+      "sourceSaleStatus": "confirmed",
+      "sourceLineIds": [
+        "c1e6113c-43fb-4066-92ca-1f425d967d18"
+      ],
+      "sourceEventId": "evt_5b18706fc3026ecd6aea330caf7f8955",
+      "sourceTemplateVersions": [
+        "SRV-DEMO-REEL#reels@1"
+      ],
+      "sourceWorkItems": [
+        {
+          "workItemKey": "wi_6655a7c112e99cc6121e33ae9d600895",
+          "lineId": "c1e6113c-43fb-4066-92ca-1f425d967d18",
+          "serviceId": "SRV-DEMO-REEL",
+          "templateId": "reels",
+          "templateVersion": 1,
+          "occurrence": 1,
+          "occurrences": 1,
+          "sessionDate": "2026-12-12",
+          "deadline": "2026-12-15"
+        }
+      ],
+      "idempotencyKey": "pkg_76854364d6d2ffd03bda2617fecda0d0",
+      "integration": {
+        "schemaVersion": 1,
+        "generatedFingerprint": "f700e311be6ff67137b3961c5a24f0af"
+      }
+    },
+    {
+      "id": "loopa_8c0b0971766fe18e9d1575ee748b",
+      "title": "Estudio Lienzo · Sesión 6/12",
+      "client": "Estudio Lienzo",
+      "clientId": "cli-demo-estudio-lienzo",
+      "type": "reel",
+      "status": "briefing",
+      "priority": "high",
+      "assignees": [
+        "uid-demo-ana"
+      ],
+      "startDate": "2026-11-10",
+      "sessionDate": "2026-12-17",
+      "deadline": "2026-12-22",
+      "tags": [
+        "loopa",
+        "plan-mensual"
+      ],
+      "cover": {
+        "type": "color",
+        "value": "var(--surface-2)"
+      },
+      "description": [
+        {
+          "type": "p",
+          "text": "Generado desde la venta #1044 de LOOPA."
+        },
+        {
+          "type": "b",
+          "text": "Servicios vendidos"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Plan Social Starter ×3"
+          ]
+        }
+      ],
+      "checklist": [
+        {
+          "id": "ck_3286529c97eeb3e79a81",
+          "text": "Pauta y guiones de la sesión",
+          "done": false
+        },
+        {
+          "id": "ck_b01d0929824aebb7f405",
+          "text": "Grabación",
+          "done": false
+        },
+        {
+          "id": "ck_d9d3b39ca88be416eff6",
+          "text": "Edición de piezas",
+          "done": false
+        },
+        {
+          "id": "ck_adca14c65f3ea09c356a",
+          "text": "Programar publicaciones",
+          "done": false
+        }
+      ],
+      "deliverables": [],
+      "timeline": [],
+      "comments": [],
+      "clientVisible": false,
+      "workspaceId": "ws-loopa-produccion",
+      "workspaceIds": [
+        "ws-loopa-produccion"
+      ],
+      "viewerIds": [
+        "uid-demo-ana",
+        "uid-demo-beto",
+        "uid-demo-carla"
+      ],
+      "sourceSystem": "loopa",
+      "sourceSaleId": "a6414d75-0725-4e6f-8bb9-bd1eff3e29bd",
+      "sourceSaleNumber": 1044,
+      "sourceSaleStatus": "confirmed",
+      "sourceLineIds": [
+        "d877db5d-9682-44ea-b005-8f70ee64dc3e"
+      ],
+      "sourceEventId": "evt_ceb0ec5e49cc2ad01a1fc7df05ac8c5f",
+      "sourceTemplateVersions": [
+        "SRV-DEMO-PLAN-SOCIAL#sesion-contenido@2"
+      ],
+      "sourceWorkItems": [
+        {
+          "workItemKey": "wi_52aaa36a254fdd53f7acca54dd54283a",
+          "lineId": "d877db5d-9682-44ea-b005-8f70ee64dc3e",
+          "serviceId": "SRV-DEMO-PLAN-SOCIAL",
+          "templateId": "sesion-contenido",
+          "templateVersion": 2,
+          "occurrence": 6,
+          "occurrences": 12,
+          "sessionDate": "2026-12-17",
+          "deadline": "2026-12-22"
+        }
+      ],
+      "idempotencyKey": "pkg_fda12e660938d2c8d2c898150a7028ba",
+      "integration": {
+        "schemaVersion": 1,
+        "generatedFingerprint": "dafa561fe82b11e998975ea46c1a3197"
+      }
+    },
+    {
+      "id": "loopa_ee40fb744f74be45f475ce6c7c89",
+      "title": "Estudio Lienzo · Sesión 7/12",
+      "client": "Estudio Lienzo",
+      "clientId": "cli-demo-estudio-lienzo",
+      "type": "reel",
+      "status": "briefing",
+      "priority": "medium",
+      "assignees": [
+        "uid-demo-beto"
+      ],
+      "startDate": "2026-11-10",
+      "sessionDate": "2026-12-24",
+      "deadline": "2026-12-29",
+      "tags": [
+        "loopa",
+        "plan-mensual"
+      ],
+      "cover": {
+        "type": "color",
+        "value": "var(--surface-2)"
+      },
+      "description": [
+        {
+          "type": "p",
+          "text": "Generado desde la venta #1044 de LOOPA."
+        },
+        {
+          "type": "b",
+          "text": "Servicios vendidos"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Plan Social Starter ×3"
+          ]
+        }
+      ],
+      "checklist": [
+        {
+          "id": "ck_babc34ecd92e8798c8a4",
+          "text": "Pauta y guiones de la sesión",
+          "done": false
+        },
+        {
+          "id": "ck_31cef85538acd2cadbac",
+          "text": "Grabación",
+          "done": false
+        },
+        {
+          "id": "ck_17f3ae5db6adabeb103a",
+          "text": "Edición de piezas",
+          "done": false
+        },
+        {
+          "id": "ck_32d628c325d9ad2e1571",
+          "text": "Programar publicaciones",
+          "done": false
+        }
+      ],
+      "deliverables": [],
+      "timeline": [],
+      "comments": [],
+      "clientVisible": false,
+      "workspaceId": "ws-loopa-produccion",
+      "workspaceIds": [
+        "ws-loopa-produccion"
+      ],
+      "viewerIds": [
+        "uid-demo-ana",
+        "uid-demo-beto",
+        "uid-demo-carla"
+      ],
+      "sourceSystem": "loopa",
+      "sourceSaleId": "a6414d75-0725-4e6f-8bb9-bd1eff3e29bd",
+      "sourceSaleNumber": 1044,
+      "sourceSaleStatus": "confirmed",
+      "sourceLineIds": [
+        "d877db5d-9682-44ea-b005-8f70ee64dc3e"
+      ],
+      "sourceEventId": "evt_ceb0ec5e49cc2ad01a1fc7df05ac8c5f",
+      "sourceTemplateVersions": [
+        "SRV-DEMO-PLAN-SOCIAL#sesion-contenido@2"
+      ],
+      "sourceWorkItems": [
+        {
+          "workItemKey": "wi_e34c0f46cd248335ea97e9db454247d0",
+          "lineId": "d877db5d-9682-44ea-b005-8f70ee64dc3e",
+          "serviceId": "SRV-DEMO-PLAN-SOCIAL",
+          "templateId": "sesion-contenido",
+          "templateVersion": 2,
+          "occurrence": 7,
+          "occurrences": 12,
+          "sessionDate": "2026-12-24",
+          "deadline": "2026-12-29"
+        }
+      ],
+      "idempotencyKey": "pkg_64d6770f0f6fa5bd70e46e84f38f4dcc",
+      "integration": {
+        "schemaVersion": 1,
+        "generatedFingerprint": "e09885459b3d5edceda7369cba066f79"
+      }
+    },
+    {
+      "id": "loopa_c196af7108d53b40c174e333069d",
+      "title": "Estudio Lienzo · Sesión 8/12",
+      "client": "Estudio Lienzo",
+      "clientId": "cli-demo-estudio-lienzo",
+      "type": "reel",
+      "status": "briefing",
+      "priority": "medium",
+      "assignees": [
+        "uid-demo-carla"
+      ],
+      "startDate": "2026-11-10",
+      "sessionDate": "2026-12-31",
+      "deadline": "2027-01-05",
+      "tags": [
+        "loopa",
+        "plan-mensual"
+      ],
+      "cover": {
+        "type": "color",
+        "value": "var(--surface-2)"
+      },
+      "description": [
+        {
+          "type": "p",
+          "text": "Generado desde la venta #1044 de LOOPA."
+        },
+        {
+          "type": "b",
+          "text": "Servicios vendidos"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Plan Social Starter ×3"
+          ]
+        }
+      ],
+      "checklist": [
+        {
+          "id": "ck_32668d94e52638ea1349",
+          "text": "Pauta y guiones de la sesión",
+          "done": false
+        },
+        {
+          "id": "ck_912b8be2f919933fc1b9",
+          "text": "Grabación",
+          "done": false
+        },
+        {
+          "id": "ck_75e1c7da7b8bcc3a9def",
+          "text": "Edición de piezas",
+          "done": false
+        },
+        {
+          "id": "ck_5600d3bdd0d9b1f191ea",
+          "text": "Programar publicaciones",
+          "done": false
+        }
+      ],
+      "deliverables": [],
+      "timeline": [],
+      "comments": [],
+      "clientVisible": false,
+      "workspaceId": "ws-loopa-produccion",
+      "workspaceIds": [
+        "ws-loopa-produccion"
+      ],
+      "viewerIds": [
+        "uid-demo-ana",
+        "uid-demo-beto",
+        "uid-demo-carla"
+      ],
+      "sourceSystem": "loopa",
+      "sourceSaleId": "a6414d75-0725-4e6f-8bb9-bd1eff3e29bd",
+      "sourceSaleNumber": 1044,
+      "sourceSaleStatus": "confirmed",
+      "sourceLineIds": [
+        "d877db5d-9682-44ea-b005-8f70ee64dc3e"
+      ],
+      "sourceEventId": "evt_ceb0ec5e49cc2ad01a1fc7df05ac8c5f",
+      "sourceTemplateVersions": [
+        "SRV-DEMO-PLAN-SOCIAL#sesion-contenido@2"
+      ],
+      "sourceWorkItems": [
+        {
+          "workItemKey": "wi_bdab6af6d9723802c06aa1c5a4e7d894",
+          "lineId": "d877db5d-9682-44ea-b005-8f70ee64dc3e",
+          "serviceId": "SRV-DEMO-PLAN-SOCIAL",
+          "templateId": "sesion-contenido",
+          "templateVersion": 2,
+          "occurrence": 8,
+          "occurrences": 12,
+          "sessionDate": "2026-12-31",
+          "deadline": "2027-01-05"
+        }
+      ],
+      "idempotencyKey": "pkg_dda713a40d714cadc71faf494bf171d2",
+      "integration": {
+        "schemaVersion": 1,
+        "generatedFingerprint": "fc3860865af1ea5dcc5ee24937d9fe2b"
+      }
+    },
+    {
+      "id": "loopa_0d4b6081a5806df97cf4e1e85806",
+      "title": "Estudio Lienzo · Sesión 9/12",
+      "client": "Estudio Lienzo",
+      "clientId": "cli-demo-estudio-lienzo",
+      "type": "reel",
+      "status": "briefing",
+      "priority": "medium",
+      "assignees": [
+        "uid-demo-ana"
+      ],
+      "startDate": "2026-11-10",
+      "sessionDate": "2027-01-07",
+      "deadline": "2027-01-12",
+      "tags": [
+        "loopa",
+        "plan-mensual"
+      ],
+      "cover": {
+        "type": "color",
+        "value": "var(--surface-2)"
+      },
+      "description": [
+        {
+          "type": "p",
+          "text": "Generado desde la venta #1044 de LOOPA."
+        },
+        {
+          "type": "b",
+          "text": "Servicios vendidos"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Plan Social Starter ×3"
+          ]
+        }
+      ],
+      "checklist": [
+        {
+          "id": "ck_3ac9dd13a6c81edb5a9d",
+          "text": "Pauta y guiones de la sesión",
+          "done": false
+        },
+        {
+          "id": "ck_43d2a39c1fa19603b14b",
+          "text": "Grabación",
+          "done": false
+        },
+        {
+          "id": "ck_a8c909d44ee7ee39749b",
+          "text": "Edición de piezas",
+          "done": false
+        },
+        {
+          "id": "ck_942c6e3efcd54b42ffee",
+          "text": "Programar publicaciones",
+          "done": false
+        }
+      ],
+      "deliverables": [],
+      "timeline": [],
+      "comments": [],
+      "clientVisible": false,
+      "workspaceId": "ws-loopa-produccion",
+      "workspaceIds": [
+        "ws-loopa-produccion"
+      ],
+      "viewerIds": [
+        "uid-demo-ana",
+        "uid-demo-beto",
+        "uid-demo-carla"
+      ],
+      "sourceSystem": "loopa",
+      "sourceSaleId": "a6414d75-0725-4e6f-8bb9-bd1eff3e29bd",
+      "sourceSaleNumber": 1044,
+      "sourceSaleStatus": "confirmed",
+      "sourceLineIds": [
+        "d877db5d-9682-44ea-b005-8f70ee64dc3e"
+      ],
+      "sourceEventId": "evt_ceb0ec5e49cc2ad01a1fc7df05ac8c5f",
+      "sourceTemplateVersions": [
+        "SRV-DEMO-PLAN-SOCIAL#sesion-contenido@2"
+      ],
+      "sourceWorkItems": [
+        {
+          "workItemKey": "wi_69e826c20b98870ce7f44074c5e57a17",
+          "lineId": "d877db5d-9682-44ea-b005-8f70ee64dc3e",
+          "serviceId": "SRV-DEMO-PLAN-SOCIAL",
+          "templateId": "sesion-contenido",
+          "templateVersion": 2,
+          "occurrence": 9,
+          "occurrences": 12,
+          "sessionDate": "2027-01-07",
+          "deadline": "2027-01-12"
+        }
+      ],
+      "idempotencyKey": "pkg_df83e22aa3b6abebf4af87669fa6d073",
+      "integration": {
+        "schemaVersion": 1,
+        "generatedFingerprint": "b120452e4e788dee8f91df26e3e2b1f0"
+      }
+    },
+    {
+      "id": "loopa_ed3e7cbd38ea0f49ce9862ee4ea7",
+      "title": "Estudio Lienzo · Sesión 10/12",
+      "client": "Estudio Lienzo",
+      "clientId": "cli-demo-estudio-lienzo",
+      "type": "reel",
+      "status": "briefing",
+      "priority": "medium",
+      "assignees": [
+        "uid-demo-beto"
+      ],
+      "startDate": "2026-11-10",
+      "sessionDate": "2027-01-14",
+      "deadline": "2027-01-19",
+      "tags": [
+        "loopa",
+        "plan-mensual"
+      ],
+      "cover": {
+        "type": "color",
+        "value": "var(--surface-2)"
+      },
+      "description": [
+        {
+          "type": "p",
+          "text": "Generado desde la venta #1044 de LOOPA."
+        },
+        {
+          "type": "b",
+          "text": "Servicios vendidos"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Plan Social Starter ×3"
+          ]
+        }
+      ],
+      "checklist": [
+        {
+          "id": "ck_3059da013c3daeae6a73",
+          "text": "Pauta y guiones de la sesión",
+          "done": false
+        },
+        {
+          "id": "ck_69c6416c03374fb9f0ef",
+          "text": "Grabación",
+          "done": false
+        },
+        {
+          "id": "ck_8e5f8e7f0b036b83bc08",
+          "text": "Edición de piezas",
+          "done": false
+        },
+        {
+          "id": "ck_4e2100b1b4f5c60d809a",
+          "text": "Programar publicaciones",
+          "done": false
+        }
+      ],
+      "deliverables": [],
+      "timeline": [],
+      "comments": [],
+      "clientVisible": false,
+      "workspaceId": "ws-loopa-produccion",
+      "workspaceIds": [
+        "ws-loopa-produccion"
+      ],
+      "viewerIds": [
+        "uid-demo-ana",
+        "uid-demo-beto",
+        "uid-demo-carla"
+      ],
+      "sourceSystem": "loopa",
+      "sourceSaleId": "a6414d75-0725-4e6f-8bb9-bd1eff3e29bd",
+      "sourceSaleNumber": 1044,
+      "sourceSaleStatus": "confirmed",
+      "sourceLineIds": [
+        "d877db5d-9682-44ea-b005-8f70ee64dc3e"
+      ],
+      "sourceEventId": "evt_ceb0ec5e49cc2ad01a1fc7df05ac8c5f",
+      "sourceTemplateVersions": [
+        "SRV-DEMO-PLAN-SOCIAL#sesion-contenido@2"
+      ],
+      "sourceWorkItems": [
+        {
+          "workItemKey": "wi_333ebad71b242aef6b68c8a5a142b785",
+          "lineId": "d877db5d-9682-44ea-b005-8f70ee64dc3e",
+          "serviceId": "SRV-DEMO-PLAN-SOCIAL",
+          "templateId": "sesion-contenido",
+          "templateVersion": 2,
+          "occurrence": 10,
+          "occurrences": 12,
+          "sessionDate": "2027-01-14",
+          "deadline": "2027-01-19"
+        }
+      ],
+      "idempotencyKey": "pkg_ab37b334cee4acf39bf4c14798f44e39",
+      "integration": {
+        "schemaVersion": 1,
+        "generatedFingerprint": "07b39dc37360bcaa6995b0f4a0294da3"
+      }
+    },
+    {
+      "id": "loopa_c118e7bc106a2660d9d76c9a71ad",
+      "title": "Estudio Lienzo · Sesión 11/12",
+      "client": "Estudio Lienzo",
+      "clientId": "cli-demo-estudio-lienzo",
+      "type": "reel",
+      "status": "briefing",
+      "priority": "medium",
+      "assignees": [
+        "uid-demo-carla"
+      ],
+      "startDate": "2026-11-10",
+      "sessionDate": "2027-01-21",
+      "deadline": "2027-01-26",
+      "tags": [
+        "loopa",
+        "plan-mensual"
+      ],
+      "cover": {
+        "type": "color",
+        "value": "var(--surface-2)"
+      },
+      "description": [
+        {
+          "type": "p",
+          "text": "Generado desde la venta #1044 de LOOPA."
+        },
+        {
+          "type": "b",
+          "text": "Servicios vendidos"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Plan Social Starter ×3"
+          ]
+        }
+      ],
+      "checklist": [
+        {
+          "id": "ck_bf1662333874cc4458f5",
+          "text": "Pauta y guiones de la sesión",
+          "done": false
+        },
+        {
+          "id": "ck_e54eb6a17165a43853a3",
+          "text": "Grabación",
+          "done": false
+        },
+        {
+          "id": "ck_966289b96f5de43a9c7e",
+          "text": "Edición de piezas",
+          "done": false
+        },
+        {
+          "id": "ck_08e8d788a43262f3da2c",
+          "text": "Programar publicaciones",
+          "done": false
+        }
+      ],
+      "deliverables": [],
+      "timeline": [],
+      "comments": [],
+      "clientVisible": false,
+      "workspaceId": "ws-loopa-produccion",
+      "workspaceIds": [
+        "ws-loopa-produccion"
+      ],
+      "viewerIds": [
+        "uid-demo-ana",
+        "uid-demo-beto",
+        "uid-demo-carla"
+      ],
+      "sourceSystem": "loopa",
+      "sourceSaleId": "a6414d75-0725-4e6f-8bb9-bd1eff3e29bd",
+      "sourceSaleNumber": 1044,
+      "sourceSaleStatus": "confirmed",
+      "sourceLineIds": [
+        "d877db5d-9682-44ea-b005-8f70ee64dc3e"
+      ],
+      "sourceEventId": "evt_ceb0ec5e49cc2ad01a1fc7df05ac8c5f",
+      "sourceTemplateVersions": [
+        "SRV-DEMO-PLAN-SOCIAL#sesion-contenido@2"
+      ],
+      "sourceWorkItems": [
+        {
+          "workItemKey": "wi_b3c2f31ae1eac23d465c0d4978753cfd",
+          "lineId": "d877db5d-9682-44ea-b005-8f70ee64dc3e",
+          "serviceId": "SRV-DEMO-PLAN-SOCIAL",
+          "templateId": "sesion-contenido",
+          "templateVersion": 2,
+          "occurrence": 11,
+          "occurrences": 12,
+          "sessionDate": "2027-01-21",
+          "deadline": "2027-01-26"
+        }
+      ],
+      "idempotencyKey": "pkg_d353f32dd7b57cf9cd55b835c5ea8b69",
+      "integration": {
+        "schemaVersion": 1,
+        "generatedFingerprint": "18574daab32e96d1c768ae708a944493"
+      }
+    },
+    {
+      "id": "loopa_99e6e9490de73faa963f77be627f",
+      "title": "Estudio Lienzo · Sesión 12/12",
+      "client": "Estudio Lienzo",
+      "clientId": "cli-demo-estudio-lienzo",
+      "type": "reel",
+      "status": "briefing",
+      "priority": "medium",
+      "assignees": [
+        "uid-demo-ana"
+      ],
+      "startDate": "2026-11-10",
+      "sessionDate": "2027-01-28",
+      "deadline": "2027-02-02",
+      "tags": [
+        "loopa",
+        "plan-mensual"
+      ],
+      "cover": {
+        "type": "color",
+        "value": "var(--surface-2)"
+      },
+      "description": [
+        {
+          "type": "p",
+          "text": "Generado desde la venta #1044 de LOOPA."
+        },
+        {
+          "type": "b",
+          "text": "Servicios vendidos"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Plan Social Starter ×3"
+          ]
+        }
+      ],
+      "checklist": [
+        {
+          "id": "ck_c1462213c1bf9c06a4c3",
+          "text": "Pauta y guiones de la sesión",
+          "done": false
+        },
+        {
+          "id": "ck_12b324fb5dfd11414ecb",
+          "text": "Grabación",
+          "done": false
+        },
+        {
+          "id": "ck_5d64fcec385c1b5d2ead",
+          "text": "Edición de piezas",
+          "done": false
+        },
+        {
+          "id": "ck_1d383d0a08c35f5a2915",
+          "text": "Programar publicaciones",
+          "done": false
+        }
+      ],
+      "deliverables": [],
+      "timeline": [],
+      "comments": [],
+      "clientVisible": false,
+      "workspaceId": "ws-loopa-produccion",
+      "workspaceIds": [
+        "ws-loopa-produccion"
+      ],
+      "viewerIds": [
+        "uid-demo-ana",
+        "uid-demo-beto",
+        "uid-demo-carla"
+      ],
+      "sourceSystem": "loopa",
+      "sourceSaleId": "a6414d75-0725-4e6f-8bb9-bd1eff3e29bd",
+      "sourceSaleNumber": 1044,
+      "sourceSaleStatus": "confirmed",
+      "sourceLineIds": [
+        "d877db5d-9682-44ea-b005-8f70ee64dc3e"
+      ],
+      "sourceEventId": "evt_ceb0ec5e49cc2ad01a1fc7df05ac8c5f",
+      "sourceTemplateVersions": [
+        "SRV-DEMO-PLAN-SOCIAL#sesion-contenido@2"
+      ],
+      "sourceWorkItems": [
+        {
+          "workItemKey": "wi_110da17c158743337cccd51629bfe861",
+          "lineId": "d877db5d-9682-44ea-b005-8f70ee64dc3e",
+          "serviceId": "SRV-DEMO-PLAN-SOCIAL",
+          "templateId": "sesion-contenido",
+          "templateVersion": 2,
+          "occurrence": 12,
+          "occurrences": 12,
+          "sessionDate": "2027-01-28",
+          "deadline": "2027-02-02"
+        }
+      ],
+      "idempotencyKey": "pkg_8d7400d279b19a6fd406cb44638a6855",
+      "integration": {
+        "schemaVersion": 1,
+        "generatedFingerprint": "7d5befff88185230d6f6b12076df6e86"
+      }
+    }
+  ],
+  "equipo": [
+    {
+      "id": "uid-demo-carla",
+      "name": "Carla (ejemplo)",
+      "status": "active"
+    },
+    {
+      "id": "uid-demo-ana",
+      "name": "Ana (ejemplo)",
+      "status": "active"
+    },
+    {
+      "id": "uid-demo-beto",
+      "name": "Beto (ejemplo)",
+      "status": "active"
+    }
+  ],
+  "clientes": [
+    {
+      "id": "cli-demo-cafe-aurora",
+      "name": "Café Aurora",
+      "workspaceId": "ws-loopa-produccion",
+      "initials": "CA",
+      "portalPublished": true
+    },
+    {
+      "id": "cli-demo-ferreteria-norte",
+      "name": "Ferretería Norte",
+      "workspaceId": "ws-loopa-produccion",
+      "initials": "FE",
+      "portalPublished": false
+    },
+    {
+      "id": "cli-demo-estudio-lienzo",
+      "name": "Estudio Lienzo",
+      "workspaceId": "ws-loopa-produccion",
+      "initials": "ES",
+      "portalPublished": false
+    }
+  ],
+  "workspace": {
+    "id": "ws-loopa-produccion",
+    "name": "LOOPA · Producción"
+  },
+  "rutina": {
+    "tasks": [
+      {
+        "id": "r1",
+        "text": "Revisar entregas del día",
+        "assignee": "uid-demo-carla"
+      },
+      {
+        "id": "r2",
+        "text": "Responder mensajes de clientes",
+        "assignee": "uid-demo-ana"
+      },
+      {
+        "id": "r3",
+        "text": "Respaldar material grabado",
+        "assignee": "uid-demo-beto"
+      },
+      {
+        "id": "r4",
+        "text": "Actualizar el tablero",
+        "assignee": null
+      }
+    ],
+    "today": {
+      "date": "2026-11-16",
+      "checks": {
+        "r1": true,
+        "r2": true,
+        "r4": true
+      },
+      "debt": {
+        "r3": 1
+      }
+    },
+    "history": [
+      {
+        "date": "2026-11-15",
+        "completed": 3,
+        "total": 4
+      },
+      {
+        "date": "2026-11-14",
+        "completed": 4,
+        "total": 4
+      },
+      {
+        "date": "2026-11-13",
+        "completed": 4,
+        "total": 4
+      }
+    ],
+    "config": {
+      "carryOver": true
+    }
+  }
+}

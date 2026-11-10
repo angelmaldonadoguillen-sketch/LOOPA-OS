@@ -23,8 +23,14 @@ const TINT = {
 const tint = (s) => s.replace(/#([0-9a-f]{6}|[0-9a-f]{3})(?![0-9a-f])/gi, (m, h) => TINT[h.toLowerCase()] ? '#' + TINT[h.toLowerCase()] : m);
 baseCss = tint(baseCss);
 
-let extraCss = tint(fs.readFileSync(path.join(here, 'extra.css'), 'utf8'));
-const app = tint(fs.readFileSync(path.join(here, 'app.jsx'), 'utf8'));
+// Módulos de la fusión (Fase 2): se arman ANTES de app.jsx en el mismo
+// script de Babel, en este orden fijo. Producción sólo aparece en el menú con
+// la bandera ?produccion (ver produccion/calendario.jsx).
+const MODULES = ['produccion/nucleo.js', 'produccion/calendario.jsx', 'produccion/tablero.jsx', 'produccion/resumen.jsx', 'produccion/cliente.jsx', 'shell/navegacion.jsx'];
+const MODULE_CSS = ['produccion/produccion.css', 'shell/navegacion.css'];
+const modulesSrc = MODULES.map(f => `// ── módulo: ${f} ──\n${fs.readFileSync(path.join(here, f), 'utf8')}`).join('\n');
+let extraCss = tint([fs.readFileSync(path.join(here, 'extra.css'), 'utf8'), ...MODULE_CSS.map(f => fs.readFileSync(path.join(here, f), 'utf8'))].join('\n'));
+const app = tint(`${modulesSrc}\n// ── app.jsx ──\n${fs.readFileSync(path.join(here, 'app.jsx'), 'utf8')}`);
 
 // ── Poda: TOONED trae estilos de inventario, tallas, DTF, envíos, etc. que
 // LOOPA no usa. Se descarta toda regla cuyos selectores usen una clase que

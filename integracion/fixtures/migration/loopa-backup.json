@@ -1,0 +1,91 @@
+{
+  "app": "LOOPA OS",
+  "version": 1,
+  "exportado": "2026-11-09T22:00:00.000Z",
+  "_nota": "Respaldo SINTÉTICO con la forma exacta que exporta Configuración → Respaldo. Incluye los casos difíciles: teléfonos con formatos distintos, email en mayúsculas, cliente sólo por nombre, duplicado interno, varios candidatos, venta sin creado, línea sin tipo, correlativo repetido, importes con coma de miles.",
+  "clientes": [
+    { "id": "CL-M-AURORA", "nombre": "Café Aurora", "empresa": "Café Aurora S. de R.L.", "telefono": "+504 9988-7766", "email": "hola@cafeaurora.example", "canal": "WhatsApp", "notas": "Renueva plan cada mes", "creado": "2026-08-01" },
+    { "id": "CL-M-DUP", "nombre": "Café Aurora (sucursal)", "empresa": "", "telefono": "9988 7766", "email": "", "canal": "WhatsApp", "notas": "", "creado": "2026-09-12" },
+    { "id": "CL-M-FERRE", "nombre": "Ferretería Norte", "empresa": "", "telefono": "", "email": "ventas@ferrenorte.example", "canal": "Referido", "notas": "", "creado": "2026-08-15" },
+    { "id": "CL-M-LIENZO", "nombre": "Estudio Lienzo", "empresa": "", "telefono": "", "email": "", "canal": "Instagram", "notas": "", "creado": "2026-09-01" },
+    { "id": "CL-M-MULTI", "nombre": "Grupo Delta", "empresa": "Grupo Delta", "telefono": "2222-3333", "email": "info@delta.example", "canal": "Web", "notas": "", "creado": "2026-09-20" },
+    { "id": "CL-M-NUEVO", "nombre": "Panadería Sol", "empresa": "", "telefono": "3311-2244", "email": "", "canal": "Facebook", "notas": "", "creado": "2026-10-05" }
+  ],
+  "servicios": [
+    { "id": "SRV-M-REEL", "nombre": "Reel unitario", "categoria": "Video / Reels", "unidad": "pieza", "precio": 1800, "costo": 600, "descripcion": "Reel vertical de hasta 30 s.", "activo": true, "creado": "2026-07-01", "modelo": "unitario", "recomendado": false, "clienteIdEspecial": "" },
+    { "id": "SRV-M-PLAN", "nombre": "Plan Social", "categoria": "Redes sociales", "unidad": "mes", "precio": "9,000", "costo": 3500, "descripcion": "Gestión mensual.", "activo": true, "creado": "2026-07-01", "modelo": "plan", "recomendado": true, "clienteIdEspecial": "" },
+    { "id": "SRV-M-ESP", "nombre": "Acuerdo Aurora", "categoria": "Otro", "unidad": "paquete", "precio": 5000, "costo": 1000, "descripcion": "Paquete negociado.", "activo": true, "creado": "2026-08-02", "modelo": "especial", "recomendado": false, "clienteIdEspecial": "CL-M-AURORA" },
+    { "id": "SRV-M-OLD", "nombre": "Foto vieja", "categoria": "Fotografía", "unidad": "proyecto", "precio": 3000, "costo": 900, "descripcion": "", "activo": false, "creado": "2026-06-01" }
+  ],
+  "ventas": [
+    {
+      "n": 1001, "fecha": "2026-09-02", "cliente": "Café Aurora", "empresa": "Café Aurora S. de R.L.", "telefono": "+504 9988-7766", "email": "hola@cafeaurora.example", "canal": "WhatsApp",
+      "clienteId": "CL-M-AURORA",
+      "items": [
+        { "tipoId": "SRV-M-PLAN", "nombre": "Plan Social", "categoria": "Redes sociales", "unidad": "mes", "descripcion": "Gestión mensual.", "modelo": "plan", "recomendado": true, "clienteIdEspecial": "", "precio": 9000, "costo": 3500, "q": 1 },
+        { "tipoId": "SRV-M-REEL", "nombre": "Reel unitario", "categoria": "Video / Reels", "unidad": "pieza", "descripcion": "", "modelo": "unitario", "precio": 1800, "costo": 600, "q": 2 }
+      ],
+      "subtotal": 12600, "descuento": 600, "total": 12000, "pay": "bac",
+      "abonos": [{ "id": "AB-M-1", "fecha": "2026-09-02", "monto": 6000, "metodo": "bac" }, { "id": "AB-M-2", "fecha": "2026-09-20", "monto": 6000, "metodo": "bac" }],
+      "estado": "entregado", "entrega": "2026-09-30", "nota": "",
+      "creado": "2026-09-02T16:10:00.000Z", "estadoLog": [{ "estado": "pendiente", "ts": "2026-09-02T16:10:00.000Z" }, { "estado": "entregado", "ts": "2026-09-30T20:00:00.000Z" }]
+    },
+    {
+      "n": 1002, "fecha": "2026-09-10", "cliente": "Ferretería Norte", "empresa": "", "telefono": "", "email": "ventas@ferrenorte.example", "canal": "Referido",
+      "clienteId": "CL-M-FERRE",
+      "items": [{ "tipoId": "SRV-M-OLD", "nombre": "Foto vieja", "unidad": "proyecto", "precio": "3,000", "costo": 900, "q": 1 }],
+      "subtotal": 3000, "descuento": 0, "total": "3,000", "pay": "efectivo",
+      "abonos": [{ "fecha": "2026-09-10", "monto": "1,500", "metodo": "efectivo" }],
+      "estado": "en-proceso", "entrega": "2026-09-25", "nota": "Anticipo en efectivo",
+      "creado": "2026-09-10T15:00:00.000Z", "estadoLog": []
+    },
+    {
+      "n": 1003, "fecha": "2026-09-15", "cliente": "Estudio Lienzo", "empresa": "", "canal": "Instagram",
+      "clienteId": "CL-M-LIENZO",
+      "items": [{ "tipoId": "SRV-M-REEL", "nombre": "Reel unitario", "unidad": "pieza", "precio": 1800, "costo": 600, "q": 1 }, { "nombre": "Ajuste sin tipo", "precio": 200, "costo": 0, "q": 1 }],
+      "subtotal": 2000, "descuento": 0, "total": 2000, "pay": "bac", "abonos": [],
+      "estado": "cancelado", "entrega": "", "nota": "",
+      "creado": "2026-09-15T14:00:00.000Z", "estadoLog": []
+    },
+    {
+      "n": 1004, "fecha": "2026-09-22", "cliente": "Grupo Delta", "empresa": "Grupo Delta", "telefono": "2222-3333", "email": "info@delta.example", "canal": "Web",
+      "clienteId": "CL-M-MULTI",
+      "items": [{ "tipoId": "SRV-M-PLAN", "nombre": "Plan Social", "unidad": "mes", "modelo": "plan", "precio": 9000, "costo": 3500, "q": 3 }],
+      "subtotal": 27000, "descuento": 2000, "total": 25000, "pay": "tarjeta",
+      "abonos": [{ "id": "AB-M-3", "fecha": "2026-09-22", "monto": 25000, "metodo": "tarjeta" }],
+      "estado": "en-proceso", "entrega": "2026-12-22", "nota": "",
+      "creado": "2026-09-22T18:00:00.000Z", "estadoLog": []
+    },
+    {
+      "n": 1005, "fecha": "2026-10-05", "cliente": "Panadería Sol", "empresa": "", "telefono": "3311-2244", "canal": "Facebook",
+      "clienteId": "CL-M-NUEVO",
+      "items": [{ "tipoId": "SRV-M-REEL", "nombre": "Reel unitario", "unidad": "pieza", "precio": 1800, "costo": 600, "q": 1 }],
+      "subtotal": 1800, "descuento": 0, "total": 1800, "pay": "efectivo", "abonos": [],
+      "estado": "pendiente", "entrega": "2026-10-12", "nota": "",
+      "creado": "2026-10-05T13:00:00.000Z", "estadoLog": []
+    },
+    {
+      "n": 1005, "fecha": "2026-10-06", "cliente": "Café Aurora (sucursal)", "empresa": "", "telefono": "9988 7766", "canal": "WhatsApp",
+      "clienteId": "CL-M-DUP",
+      "items": [{ "tipoId": "SRV-M-ESP", "nombre": "Acuerdo Aurora", "unidad": "paquete", "modelo": "especial", "precio": 5000, "costo": 1000, "q": 1 }],
+      "subtotal": 5000, "descuento": 0, "total": 5000, "pay": "bac", "abonos": [],
+      "estado": "revision", "entrega": "", "nota": "Venta subida desde otro navegador con el mismo número"
+    }
+  ],
+  "config": {
+    "payConfig": [{ "id": "bac", "label": "Transf. BAC", "comisionPct": 0 }, { "id": "efectivo", "label": "Efectivo", "comisionPct": 0 }, { "id": "tarjeta", "label": "Tarjeta / link", "comisionPct": 4.5 }],
+    "categorias": ["Redes sociales", "Video / Reels", "Fotografía", "Otro"],
+    "canales": ["WhatsApp", "Instagram", "Facebook", "Referido", "Web"],
+    "moneda": "L",
+    "gastoTipos": ["Freelancer", "Software", "Otro"]
+  },
+  "gastos": {
+    "variables": [
+      { "id": "GV-M-1", "fecha": "2026-09-05", "concepto": "Freelancer edición", "categoria": "Freelancer", "monto": 2500, "nota": "" },
+      { "fecha": "2026-09-18", "concepto": "Pauta propia", "categoria": "Otro", "monto": "1,200" }
+    ],
+    "fijos": [
+      { "id": "GF-M-1", "concepto": "Suite de diseño", "categoria": "Software", "monto": 1100, "activo": true }
+    ]
+  }
+}

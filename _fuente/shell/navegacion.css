@@ -1,0 +1,20 @@
+/* ═════════════ LOOPA OS · navegación unificada (Fase 2, tanda 2) ═════════════ */
+/* Sólo aplica con la bandera de Producción (NavAgrupada). */
+.nav-grupo { font-size: var(--fs-s); color: var(--dim); letter-spacing: 0.14em; text-transform: uppercase; padding: 14px 12px 4px; }
+.nav-agrupada .nav-grupo:first-child { padding-top: 4px; }
+.nav-mas { display: none; }
+/* El fondo termina sobre la barra inferior (60 px): «Más» sigue visible y activo. */
+.nav-mas-fondo { position: fixed; top: 0; left: 0; right: 0; bottom: 60px; background: rgba(0, 0, 0, 0.45); z-index: 2500; display: flex; align-items: flex-end; }
+.nav-mas-hoja { width: 100%; background: var(--surface); border-top: 1px solid var(--line); border-radius: 14px 14px 0 0; padding: 10px; display: flex; flex-direction: column; gap: 2px; }
+.nav-mas-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; font-size: var(--fs-m); color: var(--text); background: transparent; border-radius: 10px; text-align: left; }
+.nav-mas-item.on { background: rgba(var(--accent-rgb), 0.1); }
+
+/* Tablet: la barra lateral es angosta (sólo íconos); los títulos de grupo no entran. */
+@media (max-width: 900px) {
+  .nav-grupo { display: none; }
+}
+
+@media (max-width: 640px) {
+  .nav-agrupada .nav-secundario { display: none; }
+  .nav-agrupada .nav-mas { display: flex; }
+}

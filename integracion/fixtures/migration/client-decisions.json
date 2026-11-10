@@ -1,0 +1,8 @@
+{
+  "_nota": "Decisiones humanas para los clientes que la migración no puede resolver sola. Se revisan y firman antes de escribir.",
+  "decisions": {
+    "CL-M-LIENZO": { "action": "link", "frameClientId": "fc-mig-lienzo" },
+    "CL-M-DUP": { "action": "new" },
+    "CL-M-MULTI": { "action": "link", "frameClientId": "fc-mig-delta-a" }
+  }
+}

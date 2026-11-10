@@ -1,0 +1,162 @@
+{
+  "_nota": "Escenarios sintéticos. Las líneas sin snapshot se congelan desde services.json con buildSaleLine(), igual que hará la confirmación de venta. 'steps' es la secuencia que reproduce el simulador; si falta, se usa: confirmar, repetir el mismo evento y resincronizar.",
+  "scenarios": [
+    {
+      "name": "paquete-mismo-dia",
+      "description": "Reels y fotos del mismo cliente el mismo día: una sola tarjeta con checklist combinado. La asesoría no tiene plantilla y sólo avisa.",
+      "occurredAt": "2026-11-10T15:00:00.000Z",
+      "sale": {
+        "schemaVersion": 1,
+        "id": "cac82f31-d6f6-4683-9b7f-67930296acdb",
+        "n": 1042,
+        "revision": 1,
+        "status": "confirmed",
+        "fecha": "2026-11-10",
+        "entrega": "2026-11-20",
+        "client": { "clientId": "cli-demo-cafe-aurora", "nombre": "Café Aurora", "empresa": "Café Aurora S. de R.L." },
+        "lines": [
+          { "lineId": "bc48672a-7b42-4e52-99ff-778b5e575476", "serviceId": "SRV-DEMO-REEL", "quantity": 3 },
+          { "lineId": "803d47c6-4367-4c7b-b176-8331bc3abc49", "serviceId": "SRV-DEMO-FOTO", "quantity": 1 },
+          { "lineId": "ec9a6c90-3ecc-4e37-87a1-9ecbbf657ab0", "serviceId": "SRV-DEMO-ASESORIA", "quantity": 2 }
+        ]
+      }
+    },
+    {
+      "name": "plan-mensual",
+      "description": "Plan mensual con 4 sesiones semanales configuradas: 4 tarjetas, ni una más.",
+      "occurredAt": "2026-11-10T16:00:00.000Z",
+      "sale": {
+        "schemaVersion": 1,
+        "id": "a399d400-451a-488b-bf09-27b070851b38",
+        "n": 1043,
+        "revision": 1,
+        "status": "confirmed",
+        "fecha": "2026-11-10",
+        "entrega": "",
+        "client": { "clientId": "cli-demo-ferreteria-norte", "nombre": "Ferretería Norte", "empresa": "" },
+        "lines": [
+          { "lineId": "8071da35-7730-440a-a29c-556b33fb74f5", "serviceId": "SRV-DEMO-PLAN-SOCIAL", "quantity": 1 }
+        ]
+      }
+    },
+    {
+      "name": "plan-trimestral",
+      "description": "El mismo plan vendido por 3 meses (cantidad 3): 12 sesiones semanales consecutivas.",
+      "occurredAt": "2026-11-10T16:30:00.000Z",
+      "sale": {
+        "schemaVersion": 1,
+        "id": "a6414d75-0725-4e6f-8bb9-bd1eff3e29bd",
+        "n": 1044,
+        "revision": 1,
+        "status": "confirmed",
+        "fecha": "2026-11-10",
+        "entrega": "",
+        "client": { "clientId": "cli-demo-estudio-lienzo", "nombre": "Estudio Lienzo", "empresa": "" },
+        "lines": [
+          { "lineId": "d877db5d-9682-44ea-b005-8f70ee64dc3e", "serviceId": "SRV-DEMO-PLAN-SOCIAL", "quantity": 3 }
+        ]
+      }
+    },
+    {
+      "name": "fechas-distintas",
+      "description": "Mismo cliente, días distintos: no se agrupan. Branding usa la estrategia 'separate' (una tarjeta por bloque) y la pauta tiene la producción deshabilitada.",
+      "occurredAt": "2026-11-10T17:00:00.000Z",
+      "sale": {
+        "schemaVersion": 1,
+        "id": "8d69f9b4-edd9-4c2a-92e1-fdbc466d2a6c",
+        "n": 1045,
+        "revision": 1,
+        "status": "confirmed",
+        "fecha": "2026-11-10",
+        "entrega": "2026-12-15",
+        "client": { "clientId": "cli-demo-cafe-aurora", "nombre": "Café Aurora", "empresa": "" },
+        "lines": [
+          { "lineId": "c6e91b3c-0559-4736-ac95-524898a36b3b", "serviceId": "SRV-DEMO-BRANDING", "quantity": 1 },
+          { "lineId": "c1e6113c-43fb-4066-92ca-1f425d967d18", "serviceId": "SRV-DEMO-REEL", "quantity": 1 },
+          { "lineId": "ed262d88-17b6-485a-8ada-72528a9db877", "serviceId": "SRV-DEMO-PAUTA", "quantity": 1 }
+        ]
+      }
+    },
+    {
+      "name": "editada-y-cancelada",
+      "description": "Se genera, el equipo empieza a trabajar, la venta se edita (3 → 4 reels), se pide resincronizar y luego se cancela. Nada se pisa ni se borra.",
+      "occurredAt": "2026-11-10T18:00:00.000Z",
+      "sale": {
+        "schemaVersion": 1,
+        "id": "2fee7692-1771-409d-8db7-95729aea3195",
+        "n": 1046,
+        "revision": 1,
+        "status": "confirmed",
+        "fecha": "2026-11-10",
+        "entrega": "2026-11-24",
+        "client": { "clientId": "cli-demo-estudio-lienzo", "nombre": "Estudio Lienzo", "empresa": "" },
+        "lines": [
+          { "lineId": "6ca09e3b-988f-45a2-bbf5-fbff1fe65658", "serviceId": "SRV-DEMO-REEL", "quantity": 3 }
+        ]
+      },
+      "steps": [
+        { "event": "sale.confirmed" },
+        { "action": "start_work" },
+        { "event": "sale.updated", "patch": { "lines": [{ "lineId": "6ca09e3b-988f-45a2-bbf5-fbff1fe65658", "quantity": 4 }] } },
+        { "event": "sale.resync_requested" },
+        { "event": "sale.cancelled" }
+      ]
+    },
+    {
+      "name": "cliente-desconocido",
+      "description": "El cliente no existe en la ficha única (por ejemplo, todavía no se migró): se bloquea y nunca se empareja por nombre, aunque exista otro cliente llamado igual.",
+      "occurredAt": "2026-11-10T19:00:00.000Z",
+      "sale": {
+        "schemaVersion": 1,
+        "id": "f443e8df-c342-43e1-94d4-5bf04e9c234e",
+        "n": 1047,
+        "revision": 1,
+        "status": "confirmed",
+        "fecha": "2026-11-10",
+        "entrega": "2026-11-20",
+        "client": { "clientId": "cli-demo-no-migrado", "nombre": "Café Aurora", "empresa": "" },
+        "lines": [
+          { "lineId": "9d1b8be8-ba44-46bf-9380-47bbc5f96d1d", "serviceId": "SRV-DEMO-FOTO", "quantity": 1 }
+        ]
+      }
+    },
+    {
+      "name": "entrega-faltante",
+      "description": "Un reel se programa desde la entrega y la venta no la tiene: error claro, ninguna tarjeta.",
+      "occurredAt": "2026-11-10T19:30:00.000Z",
+      "sale": {
+        "schemaVersion": 1,
+        "id": "761d08a6-3a05-4b05-a9a7-e54f425c9f52",
+        "n": 1048,
+        "revision": 1,
+        "status": "confirmed",
+        "fecha": "2026-11-10",
+        "entrega": "",
+        "client": { "clientId": "cli-demo-cafe-aurora", "nombre": "Café Aurora", "empresa": "" },
+        "lines": [
+          { "lineId": "c1d217a0-b9ae-424b-963d-004258cb0d92", "serviceId": "SRV-DEMO-REEL", "quantity": 2 }
+        ]
+      }
+    },
+    {
+      "name": "datos-invalidos",
+      "description": "Venta mal formada (sin id, fecha imposible, cantidad 0, línea repetida, sin snapshot): todos los errores juntos y legibles.",
+      "occurredAt": "2026-11-10T20:00:00.000Z",
+      "raw": true,
+      "sale": {
+        "schemaVersion": 1,
+        "id": "",
+        "n": 1049,
+        "revision": 1,
+        "status": "confirmed",
+        "fecha": "2026-02-30",
+        "entrega": "2026-01-01",
+        "client": { "clientId": "cli-demo-cafe-aurora", "nombre": "" },
+        "lines": [
+          { "lineId": "d2d87766-8da3-4bd9-9822-70039df018c8", "serviceId": "SRV-DEMO-REEL", "quantity": 0, "snapshot": { "nombre": "Reel", "modelo": "unitario", "precio": 1, "costo": 0 }, "executionPlan": null, "executionTemplateVersion": 1 },
+          { "lineId": "d2d87766-8da3-4bd9-9822-70039df018c8", "serviceId": "SRV-DEMO-FOTO", "quantity": 1 }
+        ]
+      }
+    }
+  ]
+}

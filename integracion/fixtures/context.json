@@ -1,0 +1,25 @@
+{
+  "_nota": "Datos sintéticos. Ningún id, nombre ni miembro corresponde a producción.",
+  "today": "2026-11-09",
+  "timeZone": "America/Tegucigalpa",
+  "defaultWorkspaceId": "ws-loopa-produccion",
+  "allowedWorkspaceIds": ["ws-loopa-produccion"],
+  "workspaces": {
+    "ws-loopa-produccion": {
+      "name": "LOOPA · Producción",
+      "memberIds": ["uid-demo-carla", "uid-demo-ana", "uid-demo-beto"],
+      "statusIds": ["briefing", "producing", "editing", "review", "delivered", "archived"],
+      "typeIds": ["reel", "photo", "corp", "campaign", "bts", "podcast", "other"]
+    },
+    "ws-demo-personal": {
+      "name": "Tablero personal (no habilitado)",
+      "memberIds": ["uid-demo-ana"]
+    }
+  },
+  "clients": {
+    "cli-demo-cafe-aurora": { "name": "Café Aurora", "workspaceId": "ws-loopa-produccion" },
+    "cli-demo-ferreteria-norte": { "name": "Ferretería Norte", "workspaceId": "ws-loopa-produccion" },
+    "cli-demo-estudio-lienzo": { "name": "Estudio Lienzo", "workspaceId": "ws-loopa-produccion" },
+    "cli-demo-cliente-ajeno": { "name": "Cliente de otro tablero", "workspaceId": "ws-demo-personal" }
+  }
+}

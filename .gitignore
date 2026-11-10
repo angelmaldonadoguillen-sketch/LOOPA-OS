@@ -1,0 +1,6 @@
+integracion/preview/index.html
+integracion/emulador/node_modules/
+firestore-debug.log
+integracion/emulador/.jtmp/
+firebase-debug.log
+socket_*

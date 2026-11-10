@@ -247,6 +247,7 @@ function Icon({ name, size = 16 }) {
     case 'copy':     return <svg {...c}><rect x="8" y="8" width="13" height="13"/><path d="M16 8V3H3v13h5"/></svg>;
     case 'bell':     return <svg {...c}><path d="M6 17V11a6 6 0 0 1 12 0v6l2 2H4l2-2zM10 21h4"/></svg>;
     case 'archive':  return <svg {...c}><path d="M3 4h18v4H3zM5 8v12h14V8M10 12h4"/></svg>;
+    case 'calendar': return <svg {...c}><rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>;
     default: return null;
   }
 }
@@ -2582,7 +2583,13 @@ function PeriodFilter({ value, onChange }) {
 }
 
 function App({ onLogout }) {
-  const [route, setRoute] = useState(() => { try { return localStorage.getItem('loopa-route') || 'nueva'; } catch (e) { return 'nueva'; } });
+  const [route, setRoute] = useState(() => {
+    try {
+      const r = localStorage.getItem('loopa-route') || 'nueva';
+      // Sin la bandera, Producción no existe: no se vuelve a una pantalla vacía.
+      return r === 'produccion' && !PROD_FLAG ? 'nueva' : r;
+    } catch (e) { return 'nueva'; }
+  });
   const [ventas, setVentas] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [servicios, setServicios] = useState([]);
@@ -2804,6 +2811,7 @@ function App({ onLogout }) {
     { id: 'ventas',    label: 'Ventas',        icon: 'list' },
     { id: 'servicios', label: 'Servicios',     icon: 'tag' },
     { id: 'clientes',  label: 'Clientes',      icon: 'user' },
+    ...(PROD_FLAG ? [{ id: 'produccion', label: 'Producción', icon: 'calendar' }] : []),
     { id: 'metricas',  label: 'Métricas',      icon: 'chart' },
     { id: 'gastos',    label: 'Gastos',        icon: 'money' },
     { id: 'config',    label: 'Configuración', icon: 'settings' },
@@ -2868,6 +2876,7 @@ function App({ onLogout }) {
           )}
         </div>
 
+        {PROD_FLAG ? <NavAgrupada modules={modules} route={route} onGo={(id) => (id === 'nueva' && route === 'nueva' ? goNueva(null) : setRoute(id))} /> : (
         <nav className="nav" style={{ marginTop: 8 }}>
           {modules.map(m => (
             <button key={m.id} className={`nav-item ${route === m.id ? 'active' : ''}`} onClick={() => m.id === 'nueva' && route === 'nueva' ? goNueva(null) : setRoute(m.id)} title={m.label}>
@@ -2877,6 +2886,7 @@ function App({ onLogout }) {
             </button>
           ))}
         </nav>
+        )}
       </aside>
 
       <div className="main">
@@ -2926,6 +2936,7 @@ function App({ onLogout }) {
               onDelete={(id) => setClientes(prev => prev.filter(c => c.id !== id))}
               onNuevaVenta={(c) => goNueva({ cliente: clientePrefill(c) })} onOpenVenta={openVenta} />
           )}
+          {route === 'produccion' && PROD_FLAG && <ProduccionModulo modo={PROD_FLAG} onAbrirVenta={openVenta} />}
           {route === 'metricas' && <Metricas ventas={ventas} gastos={gastos} config={config} />}
           {route === 'gastos' && <Gastos gastos={gastos} setGastos={setGastos} config={config} setConfig={setConfig} />}
           {route === 'config' && (

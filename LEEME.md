@@ -84,5 +84,36 @@ Verificación local mínima:
 
 ```bash
 node --test service-ecosystem.test.cjs
+node --test "integracion/test/*.test.cjs"
 node _fuente/build.js
 ```
+
+## Fusión con FRAME (en curso)
+
+LOOPA OS absorbe FRAME como módulo **Producción**: una sola app, una ficha de
+cliente y un flujo continuo de la venta a la entrega. Al confirmar una venta,
+sus servicios generan en el servidor el trabajo del calendario: una tarjeta
+por cliente y día, con checklist de entregables. La generación es idempotente
+y nunca duplica.
+
+- `functions/production-plan/` — núcleo puro (contratos, planificador,
+  ejecutor idempotente). Todavía no está conectado a ninguna Cloud Function ni a
+  la app publicada.
+- `integracion/` — ADR, fixtures sintéticos, simulador y pruebas.
+  Para ver qué tarjetas generaría cada venta de ejemplo:
+  `node integracion/simulate.cjs`.
+
+- `functions/migration/` y `functions/repositories/` — modelo unificado (un
+  documento por venta, correlativo transaccional) y migración del esquema
+  actual. Para ensayarla con datos de ejemplo:
+  `node integracion/migrate.cjs --simulate`.
+
+- `functions/adapters/firestore-store.js` — el mismo almacén sobre Firestore.
+  Por ahora sólo acepta el **emulador local** (proyecto `demo-*`). Para correr
+  los escenarios contra el emulador (requiere Java 21 y Firebase CLI):
+  `cd integracion/emulador && npm install --ignore-scripts`, y desde la raíz
+  `node integracion/emulador/correr.cjs`.
+
+Nada de esto cambia `index.html` ni escribe en Firebase. Las decisiones están
+en `integracion/ADR-0001-fusion-loopa-os.md` (producción) y
+`integracion/ADR-0002-modelo-unificado-y-migracion.md` (datos y migración).

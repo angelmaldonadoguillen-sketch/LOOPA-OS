@@ -1,0 +1,13 @@
+{
+  "_nota": "Export SINTÉTICO de frame_clients con la forma de FRAME (contact.email/phone usan «—» cuando faltan).",
+  "workspaceId": "ws-loopa-produccion",
+  "clients": [
+    { "id": "fc-mig-aurora", "name": "Café Aurora", "workspaceId": "ws-loopa-produccion", "industry": "Gastronomía", "color": "var(--warn)", "initials": "CA", "contact": { "name": "Ana", "email": "—", "phone": "99887766" }, "tags": [], "notes": "", "portalToken": "", "portalPublished": false },
+    { "id": "fc-mig-ferre", "name": "Ferretería del Norte", "workspaceId": "ws-loopa-produccion", "industry": "Comercio", "color": "var(--resource-teal)", "initials": "FN", "contact": { "name": "—", "email": "VENTAS@FerreNorte.example", "phone": "—" }, "tags": [], "notes": "", "portalToken": "", "portalPublished": false },
+    { "id": "fc-mig-lienzo", "name": "Estudio Lienzo", "workspaceId": "ws-loopa-produccion", "industry": "Arquitectura", "color": "var(--resource-blue)", "initials": "EL", "contact": { "name": "—", "email": "—", "phone": "—" }, "tags": [], "notes": "", "portalToken": "", "portalPublished": false },
+    { "id": "fc-mig-delta-a", "name": "Delta (marketing)", "workspaceId": "ws-loopa-produccion", "industry": "Corporativo", "color": "var(--resource-violet)", "initials": "DM", "contact": { "name": "—", "email": "info@delta.example", "phone": "—" }, "tags": [], "notes": "", "portalToken": "", "portalPublished": false },
+    { "id": "fc-mig-delta-b", "name": "Delta (operaciones)", "workspaceId": "ws-loopa-produccion", "industry": "Corporativo", "color": "var(--resource-coral)", "initials": "DO", "contact": { "name": "—", "email": "—", "phone": "+504 2222 3333" }, "tags": [], "notes": "", "portalToken": "", "portalPublished": false },
+    { "id": "fc-mig-solo-frame", "name": "Cliente sólo de FRAME", "workspaceId": "ws-loopa-produccion", "industry": "Sin categoría", "color": "var(--resource-neutral)", "initials": "CF", "contact": { "name": "—", "email": "—", "phone": "—" }, "tags": [], "notes": "", "portalToken": "", "portalPublished": false },
+    { "id": "fc-mig-otro-tablero", "name": "Café Aurora", "workspaceId": "ws-demo-personal", "industry": "Gastronomía", "color": "var(--warn)", "initials": "CA", "contact": { "name": "—", "email": "—", "phone": "99887766" }, "tags": [], "notes": "", "portalToken": "", "portalPublished": false }
+  ]
+}

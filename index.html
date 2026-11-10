@@ -1027,6 +1027,156 @@ b, strong { font-weight: 500; }
 @media (max-width: 640px) {
 :root { --fs-l: 24px; }
 }
+:root { --pr-aviso: #d9b45a; --pr-alerta: #e0705f; }
+.pr { display: flex; flex-direction: column; gap: 14px; }
+.pr-aviso { padding: 16px; font-size: var(--fs-m); color: var(--muted); line-height: 1.5; }
+.pr-demo { font-size: var(--fs-s); color: var(--dim); letter-spacing: 0.04em; margin: -6px 0 10px; }
+.pr-barra { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.pr-nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pr-titulo { font-size: var(--fs-m); font-weight: 500; min-width: 150px; text-align: center; }
+.pr-modos { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.pr-modos button { padding: 6px 12px; font-size: var(--fs-s); color: var(--muted); background: transparent; letter-spacing: 0.06em; }
+.pr-modos button.on { background: var(--text); color: var(--on-accent); }
+.pr-grilla { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--line); gap: 1px; }
+.pr-dow { background: var(--surface); padding: 8px 10px; font-size: var(--fs-s); color: var(--dim); letter-spacing: 0.1em; text-transform: uppercase; }
+.pr-dia { background: var(--bg); min-height: 112px; padding: 6px; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.pr-grilla.semana .pr-dia { min-height: 360px; }
+.pr-dia.fuera { background: var(--surface); }
+.pr-dia.fuera .pr-dia-num { color: var(--dim); }
+.pr-dia-num { font-size: var(--fs-s); color: var(--muted); padding: 2px 4px; }
+.pr-dia.hoy .pr-dia-corta { background: var(--text); color: var(--on-accent); border-radius: 999px; padding: 1px 7px; font-weight: 500; }
+.pr-dia-larga { display: none; }
+.pr-card { width: 100%; text-align: left; display: flex; flex-direction: column; gap: 4px; padding: 7px 8px; border-radius: 7px; background: var(--card); border: 1px solid var(--line); color: var(--text); cursor: pointer; min-width: 0; }
+.pr-card:hover, .pr-card:focus-visible { border-color: var(--muted); outline: none; }
+.pr-card.cerrada { opacity: 0.55; }
+.pr-card-cliente { font-size: var(--fs-s); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr-card-titulo { font-size: var(--fs-s); color: var(--muted); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pr-card-avance { height: 3px; border-radius: 2px; background: var(--line-2); overflow: hidden; }
+.pr-card-avance > span { display: block; height: 100%; background: var(--text); }
+.pr-card-pie { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.pr-card.compacta .pr-card-pie { display: none; }
+.pr-vence { font-size: var(--fs-s); color: var(--muted); }
+.pr-vence.aviso, .pr-datos dd.aviso { color: var(--pr-aviso); }
+.pr-vence.alerta, .pr-datos dd.alerta { color: var(--pr-alerta); }
+.pr-venta { font-size: var(--fs-s); color: var(--dim); font-variant-numeric: tabular-nums; }
+.pr-venta.cancelada { color: var(--pr-alerta); }
+.pr-detalle-fondo { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: 2000; display: flex; justify-content: flex-end; }
+.pr-detalle { width: min(420px, 100%); height: 100%; overflow-y: auto; background: var(--surface); border-left: 1px solid var(--line); padding: 20px; display: flex; flex-direction: column; gap: 18px; }
+.pr-detalle-cab { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.pr-detalle-titulo { font-size: var(--fs-m); font-weight: 500; line-height: 1.4; margin-top: 4px; }
+.pr-datos { display: grid; gap: 10px; margin: 0; }
+.pr-datos > div { display: grid; grid-template-columns: 110px 1fr; gap: 10px; font-size: var(--fs-s); }
+.pr-datos dt { color: var(--dim); letter-spacing: 0.06em; }
+.pr-datos dd { margin: 0; color: var(--text); text-transform: none; }
+.pr-link { color: var(--text); text-decoration: underline; text-underline-offset: 3px; background: none; padding: 0; font-size: var(--fs-s); }
+.pr-checklist-cab { display: flex; justify-content: space-between; font-size: var(--fs-s); color: var(--muted); letter-spacing: 0.06em; margin-bottom: 8px; }
+.pr-checklist ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.pr-checklist li { display: flex; gap: 8px; align-items: flex-start; font-size: var(--fs-s); line-height: 1.4; }
+.pr-checklist li.hecho { color: var(--dim); text-decoration: line-through; }
+.pr-check { width: 14px; height: 14px; border: 1px solid var(--line-2); border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+.pr-checklist li.hecho .pr-check { background: var(--text); color: var(--on-accent); border-color: var(--text); }
+.pr-nota { font-size: var(--fs-s); color: var(--dim); line-height: 1.5; border-top: 1px solid var(--line); padding-top: 12px; }
+@media (max-width: 760px) {
+.pr-grilla { display: flex; flex-direction: column; background: transparent; border: none; gap: 8px; }
+.pr-dow { display: none; }
+.pr-dia { min-height: 0; border: 1px solid var(--line); border-radius: 10px; }
+.pr-grilla.semana .pr-dia { min-height: 0; }
+.pr-dia:not(.con):not(.hoy) { display: none; }
+.pr-dia.fuera { display: none; }
+.pr-dia-larga { display: inline; }
+.pr-dia-corta { display: none; }
+.pr-dia.hoy .pr-dia-num { color: var(--text); font-weight: 500; }
+.pr-card.compacta .pr-card-pie { display: flex; }
+.pr-titulo { min-width: 0; }
+}
+.pr-vacio { font-size: var(--fs-s); color: var(--muted); padding: 10px 12px; border: 1px dashed var(--line-2); border-radius: 8px; }
+.pr-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.pr-tablero { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(220px, 1fr); gap: 12px; overflow-x: auto; padding-bottom: 6px; }
+.pr-col { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; display: flex; flex-direction: column; min-width: 0; }
+.pr-col-cab { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; font-size: var(--fs-s); letter-spacing: 0.06em; border-bottom: 1px solid var(--line); }
+.pr-col-lista { display: flex; flex-direction: column; gap: 8px; padding: 8px; }
+.pr-col-vacia { font-size: var(--fs-s); color: var(--dim); padding: 6px 4px; }
+.pr-col-item { display: flex; flex-direction: column; gap: 4px; }
+.pr-mover { display: flex; justify-content: flex-end; gap: 4px; }
+.pr-mover .icon-btn:disabled { opacity: 0.25; cursor: default; }
+.pr-campo { background: var(--bg); color: var(--text); border: 1px solid var(--line-2); border-radius: 7px; padding: 6px 8px; font: inherit; font-size: var(--fs-s); width: 100%; }
+.pr-campo:focus-visible { outline: 1px solid var(--muted); outline-offset: 1px; }
+.pr-error { font-size: var(--fs-s); color: var(--pr-alerta); border: 1px solid var(--pr-alerta); border-radius: 8px; padding: 8px 10px; line-height: 1.4; }
+.pr-ayuda { font-size: var(--fs-s); color: var(--dim); margin-top: 4px; line-height: 1.4; }
+.pr-check-label { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
+.pr-check-label input { margin-top: 2px; accent-color: var(--text); }
+.pr-agregar { display: flex; gap: 6px; margin-top: 10px; }
+.page-head .pr-modos { align-self: flex-end; }
+@media (max-width: 760px) {
+.pr-tablero { grid-auto-columns: 82%; scroll-snap-type: x mandatory; }
+.pr-col { scroll-snap-align: start; }
+}
+.pr-resumen { display: flex; flex-direction: column; gap: 14px; }
+.pr-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.pr-kpi { padding: 14px 16px; }
+.pr-kpi-label { font-size: var(--fs-s); color: var(--dim); letter-spacing: 0.08em; text-transform: uppercase; }
+.pr-kpi-valor { font-size: var(--fs-l); font-weight: 300; margin-top: 6px; letter-spacing: -0.02em; }
+.pr-kpi-valor.alerta { color: var(--pr-alerta); }
+.pr-resumen-grilla { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.pr-bloque { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.pr-bloque-titulo { font-size: var(--fs-s); color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500; margin: 0; }
+.pr-barras { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.pr-barra-fila { display: grid; grid-template-columns: minmax(80px, 34%) 1fr 32px; gap: 10px; align-items: center; font-size: var(--fs-s); }
+.pr-barra-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.pr-barra-pista { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.pr-barra-pista > span { display: block; height: 100%; background: var(--text); }
+.pr-barra-valor { text-align: right; }
+.pr-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.pr-link-fila { width: 100%; display: flex; justify-content: space-between; gap: 10px; text-align: left; background: transparent; color: var(--text); padding: 8px 6px; border-radius: 7px; font-size: var(--fs-s); }
+.pr-link-fila:hover { background: var(--card); }
+.pr-link-fila:focus-visible { background: var(--card); outline: 1px solid var(--muted); outline-offset: 1px; }
+.pr-link-fila strong { font-weight: 500; }
+.pr-rutina-cab { display: flex; justify-content: space-between; gap: 8px; font-size: var(--fs-s); color: var(--muted); }
+.pr-racha { color: var(--text); }
+.pr-rutina { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.pr-rutina li { display: flex; justify-content: space-between; gap: 8px; align-items: center; font-size: var(--fs-s); flex-wrap: wrap; }
+.pr-rutina li.hecho .pr-check-label span { color: var(--dim); text-decoration: line-through; }
+.pr-rutina-meta { display: flex; gap: 6px; align-items: center; }
+.pr-campo-chico { width: auto; max-width: 150px; padding: 4px 6px; }
+.pr-rutina-opcion { font-size: var(--fs-s); color: var(--muted); }
+.pr-historial ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px; flex-wrap: wrap; }
+.pr-historial li { font-size: var(--fs-s); color: var(--muted); border: 1px solid var(--line); border-radius: 7px; padding: 4px 8px; display: flex; gap: 6px; }
+.pr-historial li.perfecto { color: var(--text); border-color: var(--muted); }
+@media (max-width: 900px) {
+.pr-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pr-resumen-grilla { grid-template-columns: 1fr; }
+}
+.pr-kpi-sub { font-size: var(--fs-s); color: var(--dim); margin-top: 2px; }
+.pr-cliente { width: min(480px, 100%); }
+.pr-cli-seccion { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 14px; }
+.pr-cli-tarea { display: flex; flex-direction: column; gap: 2px; padding-bottom: 6px; }
+.pr-cli-meta { font-size: var(--fs-s); color: var(--dim); }
+.pr-cli-visible { font-size: var(--fs-s); color: var(--muted); padding-left: 6px; }
+.pr-cli-portal-cab { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.pr-aviso-chico { font-size: var(--fs-s); color: var(--pr-aviso); border: 1px solid var(--pr-aviso); border-radius: 8px; padding: 8px 10px; line-height: 1.45; }
+.pr-portal-vista { border: 1px solid var(--line-2); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px; background: var(--bg); }
+.pr-portal-cab { font-size: var(--fs-s); }
+.pr-portal-tarea { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--line); padding-top: 10px; }
+.pr-portal-tit { display: flex; justify-content: space-between; gap: 10px; font-size: var(--fs-s); }
+.pr-fases { display: flex; gap: 3px; }
+.pr-fases > span { flex: 1; height: 4px; border-radius: 2px; background: var(--line-2); }
+.pr-fases > span.hecha { background: var(--muted); }
+.pr-fases > span.actual { background: var(--text); }
+button.pr-barra-label { background: none; padding: 0; text-align: left; font-size: var(--fs-s); }
+.nav-grupo { font-size: var(--fs-s); color: var(--dim); letter-spacing: 0.14em; text-transform: uppercase; padding: 14px 12px 4px; }
+.nav-agrupada .nav-grupo:first-child { padding-top: 4px; }
+.nav-mas { display: none; }
+.nav-mas-fondo { position: fixed; top: 0; left: 0; right: 0; bottom: 60px; background: rgba(0, 0, 0, 0.45); z-index: 2500; display: flex; align-items: flex-end; }
+.nav-mas-hoja { width: 100%; background: var(--surface); border-top: 1px solid var(--line); border-radius: 14px 14px 0 0; padding: 10px; display: flex; flex-direction: column; gap: 2px; }
+.nav-mas-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; font-size: var(--fs-m); color: var(--text); background: transparent; border-radius: 10px; text-align: left; }
+.nav-mas-item.on { background: rgba(var(--accent-rgb), 0.1); }
+@media (max-width: 900px) {
+.nav-grupo { display: none; }
+}
+@media (max-width: 640px) {
+.nav-agrupada .nav-secundario { display: none; }
+.nav-agrupada .nav-mas { display: flex; }
+}
 
 </style>
 </head>
@@ -1040,6 +1190,1534 @@ window.LOOPA_SVG = {"viewBox":"0 0 201.77 31.12","inner":"<path d=\"M7.65,23.35V
 window.LOOPA_SVG_LARGO = {"viewBox":"0 0 487.99 31.12","inner":"<path d=\"M7.65,23.35V.02H0v23.33c0,4.29,3.49,7.78,7.78,7.78h22.46v-7.65H7.78c-.07,0-.12-.06-.12-.12Z\"/><path d=\"M372.62.19H46.18c-8.53,0-15.46,6.94-15.46,15.46s6.94,15.47,15.46,15.47h326.44c4.14,0,8.04-1.62,10.96-4.55,2.92-2.94,4.52-6.84,4.51-10.98-.04-8.49-6.97-15.4-15.46-15.4ZM378.16,21.17c-1.48,1.48-3.44,2.3-5.54,2.3H46.18c-4.31,0-7.81-3.5-7.81-7.81s3.5-7.81,7.81-7.81h326.44c4.29,0,7.79,3.49,7.81,7.78,0,2.09-.8,4.06-2.28,5.55Z\"/><path d=\"M412.89.41h-22.27v30.72h7.65v-7.23h14.61c6.48,0,11.75-5.27,11.75-11.75s-5.27-11.74-11.75-11.74ZM412.89,16.24h-14.61v-8.18h14.61c2.26,0,4.09,1.84,4.09,4.09s-1.84,4.09-4.09,4.09Z\"/><path d=\"M452.55,0h-23.35v7.59h22.12c.66,0,1.2.54,1.2,1.2v1.94h-17.92c-4.39,0-8.26,3.21-8.71,7.57-.03.25-.04.51-.05.76,0,.21,0,.42,0,.63.17,6.41,5.61,11.43,12.02,11.43h9.2l5.42-8.56v8.56h7.36V7.3c0-4.03-3.27-7.3-7.3-7.3ZM447.37,23.47h-9.63c-1.96,0-3.77-1.31-4.16-3.24-.54-2.63,1.47-4.95,4-4.95h14.94l-5.15,8.18Z\"/><path d=\"M466.66,12.93c-.12-.17-.27-.3-.46-.38-.19-.09-.41-.13-.68-.13-.2,0-.39.04-.58.11-.19.07-.36.19-.5.34-.15.16-.27.36-.35.62-.09.26-.13.57-.13.94v.48c0,.32.04.6.11.84.08.24.18.43.33.59s.32.27.52.34.43.11.68.11.45-.03.63-.09c.17-.06.32-.14.44-.24.12-.1.22-.2.29-.31l-.36-.43c-.11.14-.24.26-.39.35-.15.09-.34.13-.57.13-.16,0-.3-.02-.42-.08-.12-.05-.23-.13-.31-.23s-.15-.24-.19-.4c-.04-.16-.06-.36-.06-.58v-.1h2.35v-.4c0-.32-.03-.61-.08-.85-.06-.25-.14-.45-.26-.62ZM466.31,14.22h-1.65c0-.18.02-.35.06-.49.04-.19.1-.33.18-.44.08-.11.17-.18.28-.22.11-.04.23-.06.35-.06.2,0,.36.05.46.14s.19.23.24.39.08.36.09.58v.1Z\"/><path d=\"M469.51,16.13c-.1.05-.23.07-.39.07-.12,0-.23-.02-.35-.06-.12-.04-.22-.12-.3-.23s-.13-.26-.13-.46h-.69c0,.23.06.45.17.66.11.2.28.37.5.49.22.13.49.19.81.19.21,0,.4-.03.57-.08s.32-.14.44-.24.22-.23.28-.38c.07-.15.1-.32.1-.5,0-.23-.05-.42-.15-.57-.1-.15-.25-.29-.44-.4-.19-.11-.44-.23-.72-.34-.15-.07-.27-.12-.36-.17-.09-.05-.17-.1-.22-.15-.06-.05-.09-.1-.11-.16-.02-.06-.03-.12-.03-.2,0-.1.02-.2.06-.29.04-.09.11-.16.21-.21.1-.05.22-.08.37-.08s.27.03.37.1c.1.07.18.15.23.26.05.1.08.21.08.33h.69c0-.24-.05-.46-.16-.65-.11-.19-.26-.35-.47-.46s-.45-.17-.74-.17c-.2,0-.39.03-.55.09-.16.06-.3.15-.42.26-.12.11-.21.24-.27.38s-.09.3-.09.47.03.32.08.44.14.23.24.33.24.18.39.26.33.16.53.24c.2.09.36.17.48.24.12.08.2.15.26.23.05.08.08.17.08.28,0,.11-.03.21-.08.3-.05.09-.13.15-.24.2Z\"/><path d=\"M471.58,15.67c0,.28.04.5.12.67.08.17.18.28.31.35.13.07.26.11.41.11.12,0,.22,0,.3-.03.08-.02.14-.04.19-.05v-.59s-.06.02-.11.03c-.06.01-.11.02-.16.02-.06,0-.12-.01-.17-.04-.06-.02-.1-.07-.13-.14s-.05-.18-.05-.32v-2.62h.64v-.55h-.64v-1.02h-.69v1.02h-.64v.55h.64v2.62Z\"/><path d=\"M473.98,16.43c.1.12.23.22.37.28.14.06.3.09.47.09.26,0,.47-.05.65-.15.15-.08.25-.2.35-.34v.4h.67v-4.22h-.69v3.08c-.06.17-.15.32-.28.43-.15.12-.34.18-.59.18-.07,0-.14-.01-.21-.04-.07-.03-.13-.08-.19-.15-.06-.07-.1-.17-.14-.29-.03-.12-.05-.28-.05-.47v-2.73h-.69v2.72c0,.28.03.52.08.72s.13.36.24.49Z\"/><path d=\"M480.37,16.72v-5.99h-.69v2.2c-.1-.16-.23-.29-.38-.37-.16-.09-.34-.13-.56-.13s-.4.04-.58.12c-.17.08-.32.2-.45.36-.13.16-.22.37-.29.62-.07.25-.1.55-.1.9v.39c0,.33.03.62.1.87.07.25.17.45.29.62.13.17.28.29.45.37s.36.12.57.12.41-.04.57-.13c.16-.09.29-.22.4-.38,0,0,0-.02.01-.03l.03.47h.63ZM479.39,16.04c-.12.09-.28.14-.47.14-.16,0-.29-.03-.41-.08-.11-.06-.21-.14-.28-.25s-.13-.26-.16-.43c-.03-.17-.05-.38-.05-.61v-.39c0-.23.02-.44.05-.61.03-.17.09-.32.16-.43.07-.11.17-.2.28-.26.12-.06.25-.09.41-.09.14,0,.26.03.37.09.1.06.19.13.27.23.05.07.09.15.13.23v2.08s0,.01,0,.02c-.07.15-.17.28-.29.37Z\"/><path d=\"M481.79,11.78c.13,0,.23-.04.29-.12.07-.08.1-.17.1-.29,0-.12-.03-.22-.1-.3-.07-.08-.16-.12-.29-.12s-.23.04-.29.12c-.07.08-.1.18-.1.3s.03.21.1.29c.06.08.16.12.29.12Z\"/><rect x=\"481.44\" y=\"12.5\" width=\".69\" height=\"4.22\"/><path d=\"M485.81,16.3c.15-.17.26-.37.35-.62.08-.25.12-.54.12-.86v-.4c0-.33-.04-.62-.12-.86-.08-.25-.2-.45-.35-.62-.15-.17-.32-.29-.52-.38-.2-.08-.41-.13-.64-.13s-.44.04-.64.13c-.2.08-.37.21-.52.38-.15.17-.26.37-.35.62-.08.25-.13.54-.13.86v.4c0,.33.04.62.13.86.08.25.2.46.35.62.15.17.32.29.52.37.2.08.41.13.64.13s.44-.04.64-.13c.2-.08.37-.21.52-.37ZM484.65,16.21c-.13,0-.26-.03-.37-.09-.11-.06-.21-.15-.3-.26-.09-.12-.15-.26-.2-.44-.05-.17-.07-.38-.07-.61v-.4c0-.23.02-.43.07-.61.05-.17.11-.32.2-.44.08-.12.18-.21.3-.26.11-.06.24-.09.37-.09s.26.03.38.09.22.15.3.26c.09.12.15.26.2.44.05.17.07.38.07.61v.4c0,.23-.02.43-.06.61-.04.17-.1.32-.18.44-.08.12-.18.21-.29.26-.12.06-.26.09-.41.09Z\"/><path d=\"M464.68,21.01c.03-.17.08-.31.14-.43.07-.12.16-.21.28-.27.12-.06.27-.1.45-.1.16,0,.29.04.4.1.11.07.2.17.26.31.07.14.1.31.11.52h.65c-.01-.32-.08-.6-.19-.83s-.28-.4-.49-.52c-.21-.12-.46-.18-.74-.18s-.51.04-.71.13c-.2.09-.37.22-.5.38s-.23.37-.29.61c-.07.24-.1.51-.1.82v.48c0,.31.03.58.1.82.06.24.16.44.29.61s.3.3.5.38c.2.09.44.13.71.13.25,0,.49-.06.7-.18.21-.12.38-.28.51-.49s.2-.46.21-.74h-.65c-.01.19-.05.35-.13.47s-.17.21-.28.26c-.11.06-.24.08-.38.08-.18,0-.33-.03-.45-.09s-.21-.16-.28-.28c-.07-.12-.11-.26-.14-.43-.03-.17-.04-.35-.04-.56v-.48c0-.21.01-.39.04-.56Z\"/><path d=\"M468.41,20.91c.04-.11.09-.21.15-.29.07-.09.15-.17.25-.22.1-.05.21-.08.34-.08.06,0,.11,0,.16,0,.04,0,.1.01.15.02v-.67s-.06-.02-.12-.04-.11-.02-.15-.02c-.19,0-.35.05-.48.15-.12.09-.22.22-.3.37l-.02-.44h-.67v4.22h.69v-3.01Z\"/><path d=\"M472.59,20.13c-.12-.17-.27-.3-.46-.38-.19-.09-.41-.13-.68-.13-.2,0-.39.04-.58.11-.19.07-.36.19-.5.34-.15.16-.27.36-.35.62-.09.26-.13.57-.13.94v.48c0,.32.04.6.11.84.08.24.18.43.33.59s.32.27.52.34.43.11.68.11.45-.03.63-.09c.17-.06.32-.14.44-.24.12-.1.22-.2.29-.31l-.36-.43c-.11.14-.24.26-.39.35-.15.09-.34.13-.57.13-.16,0-.3-.02-.42-.08-.12-.05-.23-.13-.31-.23s-.15-.24-.19-.4c-.04-.16-.06-.36-.06-.58v-.1h2.35v-.4c0-.32-.03-.61-.08-.85-.06-.25-.14-.45-.26-.62ZM472.25,21.42h-1.65c0-.18.02-.35.06-.49.04-.19.1-.33.18-.44.08-.11.17-.18.28-.22.11-.04.23-.06.35-.06.2,0,.36.05.46.14s.19.23.24.39.08.36.09.58v.1Z\"/><path d=\"M476.47,23v-2.08c0-.31-.06-.57-.17-.76-.11-.19-.27-.33-.47-.41s-.43-.13-.69-.13c-.22,0-.42.04-.59.11-.17.07-.32.17-.45.29-.12.12-.22.26-.29.4-.07.15-.1.3-.1.45h.69c0-.12.03-.23.08-.33.06-.1.14-.18.24-.24.11-.06.23-.09.38-.09s.28.02.38.07c.1.05.18.12.23.22.05.1.08.24.08.4v.45h-.48c-.28,0-.52.04-.73.11s-.38.17-.52.29c-.14.13-.24.28-.31.45s-.11.36-.11.56c0,.27.05.49.15.67.1.18.24.32.43.41s.4.14.64.14c.17,0,.32-.04.45-.1.13-.07.25-.16.35-.26.06-.06.09-.13.14-.2,0,.05,0,.1.01.16.02.14.04.25.08.33h.71v-.06c-.04-.11-.07-.25-.1-.41-.02-.16-.03-.31-.03-.45ZM475.43,23.25c-.13.08-.29.12-.46.12-.14,0-.26-.02-.36-.07-.09-.04-.16-.12-.21-.22s-.07-.23-.07-.4c0-.13.02-.25.08-.35.05-.1.12-.19.22-.26s.21-.12.34-.16.28-.05.45-.05h.36v.95s-.01.09-.04.14c-.07.11-.18.21-.31.29Z\"/><path d=\"M478.39,18.68h-.69v1.02h-.64v.55h.64v2.62c0,.28.04.5.12.67.08.17.18.28.31.35.13.07.26.11.41.11.12,0,.22,0,.3-.03.08-.02.14-.04.19-.05v-.59s-.06.02-.11.03c-.06.01-.11.02-.16.02-.06,0-.12-.01-.17-.04-.06-.02-.1-.07-.13-.14s-.05-.18-.05-.32v-2.62h.64v-.55h-.64v-1.02Z\"/><rect x=\"479.85\" y=\"19.7\" width=\".69\" height=\"4.22\"/><path d=\"M480.2,18.16c-.13,0-.23.04-.29.12-.07.08-.1.18-.1.3s.03.21.1.29c.06.08.16.12.29.12s.23-.04.29-.12c.07-.08.1-.17.1-.29,0-.12-.03-.22-.1-.3-.07-.08-.16-.12-.29-.12Z\"/><path d=\"M471.38,30.3c-.13,0-.23.04-.29.12-.07.08-.1.18-.1.3s.03.21.1.29c.06.08.16.12.29.12s.23-.04.29-.12c.07-.08.1-.17.1-.29,0-.12-.03-.22-.1-.3-.07-.08-.16-.12-.29-.12Z\"/><polygon points=\"482.76 22.86 481.93 19.7 481.23 19.7 482.5 23.92 482.56 23.92 482.95 23.92 483.02 23.92 484.27 19.7 483.57 19.7 482.76 22.86\"/><path d=\"M487.87,20.75c-.08-.25-.2-.45-.35-.62-.15-.17-.32-.29-.52-.38-.2-.08-.41-.13-.64-.13s-.44.04-.64.13c-.2.08-.37.21-.52.38-.15.17-.26.37-.35.62-.08.25-.13.54-.13.86v.4c0,.33.04.62.13.86.08.25.2.46.35.62.15.17.32.29.52.37.2.08.41.13.64.13s.44-.04.64-.13c.2-.08.37-.21.52-.37.15-.17.26-.37.35-.62.08-.25.12-.54.12-.86v-.4c0-.33-.04-.62-.12-.86ZM487.3,22.01c0,.23-.02.43-.06.61-.04.17-.1.32-.18.44-.08.12-.18.21-.29.26-.12.06-.26.09-.41.09-.13,0-.26-.03-.37-.09-.11-.06-.21-.15-.3-.26-.09-.12-.15-.26-.2-.44-.05-.17-.07-.38-.07-.61v-.4c0-.23.02-.43.07-.61.05-.17.11-.32.2-.44.08-.12.18-.21.3-.26.11-.06.24-.09.37-.09s.26.03.38.09.22.15.3.26c.09.12.15.26.2.44.05.17.07.38.07.61v.4Z\"/><path d=\"M466.61,27.18c-.1-.12-.22-.21-.36-.27-.14-.06-.3-.08-.47-.08-.22,0-.42.05-.6.15-.16.09-.29.22-.41.37v-2.22h-.69v5.99h.69v-3.02c.03-.08.06-.17.11-.24.09-.13.19-.24.31-.31.12-.08.24-.11.38-.11.15,0,.27.03.37.09.1.06.17.16.22.29.05.13.07.31.07.53v2.77h.69v-2.76c0-.28-.03-.51-.08-.71-.05-.19-.13-.35-.23-.47Z\"/><path d=\"M470.41,27.18c-.1-.12-.22-.21-.36-.27-.14-.06-.3-.08-.47-.08-.22,0-.42.05-.6.15-.17.09-.31.23-.43.39l-.02-.46h-.65v4.22h.69v-3.02c.03-.08.06-.17.11-.24.09-.13.19-.24.31-.31.12-.08.24-.11.38-.11.15,0,.27.03.37.09.1.06.17.16.22.29.05.13.07.31.07.53v2.77h.69v-2.76c0-.28-.03-.51-.08-.71-.05-.19-.13-.35-.23-.47Z\"/>"};
 </script>
 <script type="text/babel" data-presets="react">
+// ── módulo: produccion/nucleo.js ──
+// ═══════════════════════════════════════════════════════════════
+// LOOPA OS · Producción — núcleo puro (portado de FRAME, data.jsx)
+//
+// Reglas de negocio de las tareas de producción, sin React, sin DOM y sin
+// globales: todo lo que FRAME leía de window (columnas del tablero, "hoy") se
+// recibe por parámetro. Corre igual en el navegador (dentro del bundle de
+// build.js) y en Node (pruebas de paridad contra el código original de FRAME).
+//
+// Las pruebas en integracion/test/produccion-paridad.test.cjs ejecutan el
+// data.jsx real de FRAME y comparan resultado por resultado.
+// ═══════════════════════════════════════════════════════════════
+const LoopaProduccion = (function () {
+  // Columnas por defecto de FRAME (comportamiento, no color: LOOPA es b/n).
+  const STATUSES = [
+    { id: 'briefing',  label: 'Briefing' },
+    { id: 'producing', label: 'En producción' },
+    { id: 'editing',   label: 'Edición' },
+    { id: 'review',    label: 'Revisión cliente' },
+    { id: 'delivered', label: 'Entregado', isDone: true, requiresChecklist: true },
+    { id: 'archived',  label: 'Archivado' },
+  ];
+  const PRIORITIES = [
+    { id: 'high',   label: 'Alta' },
+    { id: 'medium', label: 'Media' },
+    { id: 'low',    label: 'Baja' },
+  ];
+  // Ícono y color iguales a FRAME: viajan en la proyección pública del
+  // portal (la página del cliente los dibuja).
+  const PROJECT_TYPES = [
+    { id: 'reel', label: 'Reel', icon: 'film', color: 'var(--resource-violet)' },
+    { id: 'photo', label: 'Fotografía', icon: 'camera', color: 'var(--resource-blue)' },
+    { id: 'corp', label: 'Video corporativo', icon: 'briefcase', color: 'var(--resource-teal)' },
+    { id: 'campaign', label: 'Campaign', icon: 'zap', color: 'var(--resource-coral)' },
+    { id: 'bts', label: 'BTS', icon: 'film', color: 'var(--warn)' },
+    { id: 'podcast', label: 'Podcast', icon: 'mic', color: 'var(--resource-pink)' },
+    { id: 'other', label: 'Otro', icon: 'folder', color: 'var(--resource-neutral)' },
+  ];
+  const typeOf = (id, customTypes) => (customTypes || []).find(t => t.id === id) || PROJECT_TYPES.find(t => t.id === id) || PROJECT_TYPES[PROJECT_TYPES.length - 1];
+  const statusOf = (id, columns) => (columns || []).find(c => c.id === id) || STATUSES.find(c => c.id === id) || STATUSES[0];
+  const URGENT_DAYS = 3;
+
+  // ── Fechas de calendario (YYYY-MM-DD local) ───────────────────
+  const pad = (n) => String(n).padStart(2, '0');
+  const localISO = (dt) => `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+  const YMD = /^(\d{4})-(\d{2})-(\d{2})$/;
+  // Fecha estricta: "2026-11-00", "2026-13-01" o "0099-01-01" no son días
+  // válidos (Date.UTC los "arreglaría" en silencio y FRAME los trata como
+  // inválidos). Inválida → NaN, igual que FRAME.
+  const dayNumber = (iso) => {
+    const m = YMD.exec(typeof iso === 'string' ? iso : '');
+    if (!m) return NaN;
+    const y = +m[1], mo = +m[2], d = +m[3];
+    if (mo < 1 || mo > 12 || d < 1) return NaN;
+    const dt = new Date(0);
+    dt.setUTCFullYear(y, mo - 1, d);
+    if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) return NaN;
+    return Math.round(dt.getTime() / 86400000);
+  };
+  const isDay = (iso) => !Number.isNaN(dayNumber(iso));
+  const fromDayNumber = (n) => {
+    if (!Number.isFinite(n)) return '';
+    const d = new Date(0);
+    d.setTime(n * 86400000);
+    return `${String(d.getUTCFullYear()).padStart(4, '0')}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+  };
+  // Fecha inválida → '' (nunca "NaN-NaN-NaN").
+  const addDays = (iso, k) => fromDayNumber(dayNumber(iso) + k);
+  // Días entre hoy y la fecha (negativo = ya pasó). Igual que FRAME, sin
+  // depender de la hora del día.
+  const daysUntil = (iso, todayISO) => dayNumber(iso) - dayNumber(todayISO);
+
+  // ── Forma garantizada de una tarea (normalizeProject de FRAME) ──
+  // `today` reemplaza al localISO(new Date()) que FRAME evaluaba adentro.
+  function normalizeTask(p, today) {
+    return {
+      ...p,
+      title:        p.title        ?? '',
+      client:       p.client       ?? '',
+      type:         p.type         ?? 'other',
+      status:       p.status       ?? 'briefing',
+      priority:     p.priority     ?? 'medium',
+      startDate:    p.startDate    || today,
+      deadline:     p.deadline     ?? '',
+      sessionDate:  p.sessionDate  || p.startDate || p.deadline || today,
+      currency:     p.currency     ?? 'USD',
+      budget:       typeof p.budget === 'number' ? p.budget : 0,
+      tags:         Array.isArray(p.tags)         ? p.tags         : [],
+      assignees:    Array.isArray(p.assignees)    ? p.assignees    : [],
+      checklist:    Array.isArray(p.checklist)    ? p.checklist    : [],
+      deliverables: Array.isArray(p.deliverables) ? p.deliverables : [],
+      comments:     Array.isArray(p.comments)     ? p.comments     : [],
+      timeline:     Array.isArray(p.timeline)     ? p.timeline     : [],
+      description:  Array.isArray(p.description)  ? p.description  : [],
+      workspaceIds: Array.isArray(p.workspaceIds)
+        ? [...new Set(p.workspaceIds.filter(Boolean))]
+        : (p.workspaceId ? [p.workspaceId] : []),
+      viewerIds:    Array.isArray(p.viewerIds) ? [...new Set(p.viewerIds.filter(Boolean))] : [],
+      clientVisible: p.clientVisible !== false,
+      cover:        p.cover && typeof p.cover === 'object' ? p.cover : { type: 'color', value: 'var(--surface-2)' },
+    };
+  }
+
+  const boardOf = (task) => (task && task.workspaceIds && task.workspaceIds.length ? task.workspaceIds : [task && task.workspaceId]).filter(Boolean);
+
+  // ── Columnas: el cierre es comportamiento, no nombre ────────────
+  // `columns` es la configuración del tablero (kanban_columns). Si no se pasa,
+  // rige la compatibilidad de FRAME: sólo 'delivered' cierra.
+  const columnOf = (status, columns) => (columns || []).find(c => c.id === status);
+  const isCompletionStatus = (status, columns) => {
+    const c = columnOf(status, columns);
+    return typeof (c && c.isDone) === 'boolean' ? c.isDone : status === 'delivered';
+  };
+  const requiresChecklistForStatus = (status, columns) => {
+    const c = columnOf(status, columns);
+    return typeof (c && c.requiresChecklist) === 'boolean' ? c.requiresChecklist : status === 'delivered';
+  };
+  const isClosed = (task, columns) => task.status === 'archived' || isCompletionStatus(task.status, columns);
+  const isUrgent = (task, todayISO, columns) => {
+    if (isClosed(task, columns)) return false;
+    const d = daysUntil(task.deadline, todayISO);
+    return d >= 0 && d <= URGENT_DAYS;
+  };
+  const isOverdue = (task, todayISO, columns) => !isClosed(task, columns) && daysUntil(task.deadline, todayISO) < 0;
+  const needsAttention = (task, todayISO, columns) => isUrgent(task, todayISO, columns) || isOverdue(task, todayISO, columns);
+  const progressOf = (task) => {
+    if (!task.checklist || !task.checklist.length) return 0;
+    return Math.round((task.checklist.filter(c => c.done).length / task.checklist.length) * 100);
+  };
+
+  // ── Calendario ──────────────────────────────────────────────────
+  // Una tarea, un día: el de trabajo (sessionDate). La fecha límite no ubica
+  // nada; es el compromiso con el cliente y se muestra como dato.
+  const calendarDateOf = (task) => task.sessionDate || task.startDate || task.deadline || '';
+  function tasksByDate(tasks) {
+    const map = {};
+    (tasks || []).forEach(t => {
+      const date = calendarDateOf(t);
+      if (!date) return;
+      if (!map[date]) map[date] = [];
+      if (!map[date].some(x => x.id === t.id)) map[date].push(t);
+    });
+    return map;
+  }
+  // 42 días (6 semanas) empezando en lunes, como FRAME.
+  function monthGrid(year, monthIndex) {
+    const first = `${year}-${pad(monthIndex + 1)}-01`;
+    const dow = (new Date(Date.UTC(year, monthIndex, 1)).getUTCDay() + 6) % 7;
+    const start = addDays(first, -dow);
+    return Array.from({ length: 42 }, (_, i) => addDays(start, i));
+  }
+  function weekOf(iso) {
+    const m = YMD.exec(iso);
+    const dow = (new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])).getUTCDay() + 6) % 7;
+    const start = addDays(iso, -dow);
+    return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+  }
+
+  // ── Carry-over: lo incompleto pasa a hoy (sólo sessionDate) ─────
+  // FRAME tiene DOS reglas que no coinciden del todo:
+  //   · carryOverCandidates        = la del navegador (app.jsx): progreso
+  //     redondeado < 100 y cierre según isClosed (flags booleanos).
+  //   · carryOverCandidatesServidor = la de la función programada
+  //     (functions/index.js): algún ítem sin hacer, columnas cerradas con
+  //     isDone "verdadero", y 'delivered' sólo si ninguna columna define isDone.
+  // Difieren con 199 de 200 ítems hechos, con isDone no booleano y con estados
+  // que no están en las columnas. Cuál rige en LOOPA es la decisión D12
+  // (ADR-0003); ambas tienen prueba de paridad contra su original.
+  function carryOverCandidates(tasks, todayISO, columns) {
+    return (tasks || []).filter(t => {
+      if (!t.checklist || !t.checklist.length || progressOf(t) >= 100) return false;
+      if (isClosed(t, columns)) return false;
+      const ref = t.sessionDate || t.startDate || t.deadline;
+      return !!ref && ref < todayISO;
+    }).map(t => t.id);
+  }
+  function carryOverCandidatesServidor(tasks, todayISO, columns) {
+    const cols = Array.isArray(columns) ? columns : [];
+    const completed = new Set(cols.filter(c => c.isDone).map(c => c.id));
+    if (!cols.some(c => typeof c.isDone === 'boolean')) completed.add('delivered');
+    return (tasks || []).filter(data => {
+      const checklist = Array.isArray(data.checklist) ? data.checklist : [];
+      const incomplete = checklist.length > 0 && checklist.some(item => !item.done);
+      const refDate = data.sessionDate || data.startDate || data.deadline;
+      return !(!incomplete || !refDate || refDate >= todayISO || data.status === 'archived' || completed.has(data.status));
+    }).map(t => t.id);
+  }
+  // El compromiso (deadline) nunca se toca al reprogramar.
+  const reschedule = (task, sessionDate) => ({ ...task, sessionDate });
+
+  // ── Tablero: columnas propias + las de estados desconocidos ─────
+  // Igual que boardColumns de FRAME (sin tableros ajenos, que LOOPA no tiene:
+  // hay un solo tablero de producción). Una tarjeta con un estado que no está
+  // en las columnas no desaparece: se agrega su columna al final.
+  function boardColumns(columns, tasks) {
+    const mias = new Set((columns || []).map(c => c.id));
+    const extra = [];
+    (tasks || []).forEach(t => {
+      if (!t.status || mias.has(t.status) || extra.some(c => c.id === t.status)) return;
+      extra.push({ id: t.status, label: t.status, color: '#8a8a8e', fromBoardId: '', fromBoard: 'otro tablero' });
+    });
+    return extra.length ? [...(columns || []), ...extra] : (columns || []);
+  }
+
+  // ── Edición de una tarea ────────────────────────────────────────
+  // Reglas de FRAME (handleUpdateProject) + las de la fusión:
+  //   · pasar a una columna que exige checklist completo, con el checklist
+  //     incompleto, se rechaza (la restricción es de la columna destino);
+  //   · reprogramar mueve sólo sessionDate (debe ser un día válido);
+  //   · en una tarea generada por una venta, la entrega (deadline) es el
+  //     compromiso que fija la venta y la procedencia es inmutable;
+  //   · sólo se editan campos conocidos: el resto se rechaza.
+  const EDITABLE = ['title', 'status', 'priority', 'sessionDate', 'deadline', 'checklist', 'assignees', 'tags', 'clientVisible'];
+  const PROVENANCE = ['sourceSystem', 'sourceSaleId', 'sourceSaleNumber', 'sourceSaleStatus', 'sourceLineIds', 'sourceEventId', 'sourceTemplateVersions', 'sourceWorkItems', 'idempotencyKey', 'integration', 'workspaceId', 'workspaceIds', 'viewerIds', 'id', 'clientId'];
+  const editError = (code, message) => ({ ok: false, error: { code, message } });
+
+  function statusChangeBlocked(prev, next, columns) {
+    return !!(prev && requiresChecklistForStatus(next.status, columns) && prev.status !== next.status
+      && next.checklist && next.checklist.length && progressOf(next) < 100);
+  }
+
+  const isPlain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v) && Object.getPrototypeOf(v) === Object.prototype;
+  const isStringList = (v) => Array.isArray(v) && v.every(x => typeof x === 'string');
+
+  function applyTaskPatch(task, patch, columns) {
+    if (!isPlain(patch)) return editError('patch_invalid', 'El cambio debe ser un objeto');
+    const keys = Object.keys(patch);
+    const locked = keys.filter(k => PROVENANCE.includes(k));
+    if (locked.length) return editError('provenance_locked', `No se puede cambiar: ${locked.join(', ')}`);
+    const unknown = keys.filter(k => !EDITABLE.includes(k));
+    if (unknown.length) return editError('field_not_editable', `Campos no editables: ${unknown.join(', ')}`);
+    const fromSale = task.sourceSystem === 'loopa';
+    if (fromSale && Object.prototype.hasOwnProperty.call(patch, 'deadline') && patch.deadline !== task.deadline) {
+      return editError('deadline_locked', 'La entrega la fija la venta: se cambia editando la venta en LOOPA');
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, 'sessionDate') && !isDay(patch.sessionDate)) {
+      return editError('session_invalid', 'El día de trabajo debe ser una fecha válida');
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, 'deadline') && patch.deadline !== '' && !isDay(patch.deadline)) {
+      return editError('deadline_invalid', 'La entrega debe ser una fecha válida o quedar vacía');
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, 'title') && !(typeof patch.title === 'string' && patch.title.trim())) {
+      return editError('title_empty', 'La tarea necesita un título');
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, 'checklist')) {
+      const ok = Array.isArray(patch.checklist) && patch.checklist.every(c => c && typeof c.id === 'string' && typeof c.text === 'string' && typeof c.done === 'boolean');
+      const ids = ok ? patch.checklist.map(c => c.id) : [];
+      if (!ok || new Set(ids).size !== ids.length) return editError('checklist_invalid', 'El checklist tiene ítems inválidos o repetidos');
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, 'priority') && !PRIORITIES.some(p => p.id === patch.priority)) {
+      return editError('priority_invalid', 'Prioridad desconocida');
+    }
+    // El estado debe existir: una columna del tablero, el estado actual o
+    // 'archived'. Un estado vacío haría desaparecer la tarjeta del tablero.
+    if (Object.prototype.hasOwnProperty.call(patch, 'status')) {
+      const known = (columns && columns.length ? columns : STATUSES).map(c => c.id);
+      if (typeof patch.status !== 'string' || !patch.status || !(known.includes(patch.status) || patch.status === task.status || patch.status === 'archived')) {
+        return editError('status_invalid', 'Estado desconocido para este tablero');
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, 'tags') && !isStringList(patch.tags)) return editError('tags_invalid', 'Las etiquetas deben ser una lista de textos');
+    if (Object.prototype.hasOwnProperty.call(patch, 'clientVisible') && typeof patch.clientVisible !== 'boolean') return editError('visibility_invalid', 'La visibilidad debe ser sí o no');
+    if (Object.prototype.hasOwnProperty.call(patch, 'assignees') && !isStringList(patch.assignees)) return editError('assignees_invalid', 'Los responsables deben ser una lista de ids');
+    // Copias: el estado guardado nunca comparte arreglos con quien llama.
+    const copy = { ...patch };
+    if (copy.checklist) copy.checklist = copy.checklist.map(c => ({ ...c }));
+    if (copy.tags) copy.tags = [...copy.tags];
+    if (copy.assignees) copy.assignees = [...copy.assignees];
+    const next = { ...task, ...copy };
+    if (statusChangeBlocked(task, next, columns)) {
+      const col = columnOf(next.status, columns) || STATUSES.find(c => c.id === next.status);
+      return editError('checklist_incomplete', `Completá el checklist antes de mover la tarea a ${col ? col.label : next.status}.`);
+    }
+    return { ok: true, task: next };
+  }
+
+  const toggleChecklistItem = (task, itemId) => ({
+    checklist: task.checklist.map(c => (c.id === itemId ? { ...c, done: !c.done } : c)),
+  });
+  const addChecklistItem = (task, text, id) => ({
+    checklist: [...task.checklist, { id, text: String(text).trim(), done: false }],
+  });
+
+  // ── Rutina diaria del equipo (routine.jsx de FRAME) ─────────────
+  // Documento: { tasks:[{id,text,assignee?}], today:{date,checks,debt},
+  // history:[{date,completed,total}], config:{carryOver} }.
+  // Todas las funciones devuelven un documento NUEVO; nunca mutan.
+  const ROUTINE_HISTORY_MAX = 60;
+  function routineDedupeHistory(history) {
+    const seen = new Set();
+    return (history || []).filter(e => {
+      if (!e || !e.date || seen.has(e.date)) return false;
+      seen.add(e.date);
+      return true;
+    });
+  }
+  // Al cambiar de día: el día anterior pasa al historial y, con carry-over,
+  // lo que quedó sin hacer suma deuda. Reglas (ADR-0003 §8):
+  //   · sólo se cambia de día si la fecha guardada es un día válido ANTERIOR
+  //     a hoy. Una fecha futura (reloj adelantado) no borra las marcas ni
+  //     ensucia el historial; una fecha inválida empieza el día de cero sin
+  //     tocar el historial (FRAME metía la fecha basura al historial);
+  //   · la deuda cuenta DÍAS de calendario (FRAME sumaba 1 por apertura: tras
+  //     una semana sin abrir decía "pendiente de ayer");
+  //   · el historial se deduplica DESPUÉS de agregar el día (nunca dos
+  //     entradas con la misma fecha) y se corta en 60.
+  function routineRollover(doc, todayISO) {
+    const d = doc || {};
+    const tasks = Array.isArray(d.tasks) ? d.tasks : [];
+    const today = d.today || { date: todayISO, checks: {} };
+    const history = routineDedupeHistory(d.history);
+    const carry = !!(d.config && d.config.carryOver);
+    const base = { tasks, history, config: { carryOver: carry } };
+    if (today.date && !isDay(today.date)) {
+      return { changed: true, doc: { ...base, today: { date: todayISO, checks: {}, debt: {} } } };
+    }
+    if (today.date && today.date < todayISO) {
+      const checks = today.checks || {};
+      const entry = { date: today.date, completed: tasks.filter(t => checks[t.id]).length, total: tasks.length };
+      const gap = daysUntil(todayISO, today.date);
+      const debt = {};
+      if (carry) {
+        const prev = today.debt || {};
+        tasks.forEach(t => { if (!checks[t.id]) debt[t.id] = (prev[t.id] || 0) + gap; });
+      }
+      return { changed: true, doc: { ...base, history: routineDedupeHistory([entry, ...history]).slice(0, ROUTINE_HISTORY_MAX), today: { date: todayISO, checks: {}, debt } } };
+    }
+    return {
+      changed: history.length !== (Array.isArray(d.history) ? d.history.length : 0) || !d.today,
+      doc: { ...base, today: { date: today.date || todayISO, checks: today.checks || {}, debt: today.debt || {} } },
+    };
+  }
+  function routineToggle(doc, taskId) {
+    const checks = { ...doc.today.checks, [taskId]: !doc.today.checks[taskId] };
+    const debt = { ...doc.today.debt };
+    if (checks[taskId]) delete debt[taskId]; // completar salda la deuda
+    return { ...doc, today: { ...doc.today, checks, debt } };
+  }
+  function routineAddTask(doc, text, id) {
+    const t = String(text || '').trim();
+    if (!t || doc.tasks.some(x => x.id === id)) return doc;
+    return { ...doc, tasks: [...doc.tasks, { id, text: t.slice(0, 200) }] };
+  }
+  // A diferencia de FRAME, también se borra su deuda (FRAME la dejaba huérfana).
+  function routineDeleteTask(doc, id) {
+    const omit = (o) => Object.fromEntries(Object.entries(o || {}).filter(([k]) => k !== id));
+    return { ...doc, tasks: doc.tasks.filter(t => t.id !== id), today: { ...doc.today, checks: omit(doc.today.checks), debt: omit(doc.today.debt) } };
+  }
+  function routineRenameTask(doc, id, text) {
+    const t = String(text || '').trim();
+    if (!t) return doc;
+    return { ...doc, tasks: doc.tasks.map(x => (x.id === id ? { ...x, text: t.slice(0, 200) } : x)) };
+  }
+  // Apagar el arrastre limpia la deuda (igual que FRAME en toggleCarryOver).
+  function routineSetCarryOver(doc, on) {
+    return { ...doc, config: { ...doc.config, carryOver: !!on }, today: on ? doc.today : { ...doc.today, debt: {} } };
+  }
+  const routineAssignTask = (doc, id, userId) => ({ ...doc, tasks: doc.tasks.map(x => (x.id === id ? { ...x, assignee: userId || null } : x)) });
+  // Racha: días perfectos seguidos hasta hoy (hoy cuenta si ya está completo).
+  function routineStats(doc, todayISO) {
+    const total = doc.tasks.length;
+    const completed = doc.tasks.filter(t => doc.today.checks[t.id]).length;
+    const allDone = total > 0 && completed === total;
+    const perfect = new Set(doc.history.filter(e => e.total > 0 && e.completed === e.total).map(e => e.date));
+    if (allDone) perfect.add(todayISO);
+    let streak = 0;
+    for (let i = 0; i < ROUTINE_HISTORY_MAX; i += 1) {
+      if (perfect.has(addDays(todayISO, -i))) streak += 1;
+      else break;
+    }
+    return { total, completed, allDone, pct: total === 0 ? 0 : Math.round((completed / total) * 100), streak };
+  }
+
+  // ── Resumen de producción (analytics.jsx de FRAME, sin importes) ──
+  // LOOPA no copia importes a Producción (D8): se omiten presupuesto y
+  // montos por mes. Clientes se agrupan por id cuando lo hay (ficha única) y
+  // si no por nombre, como FRAME.
+  function productionSummary(tasks, columns, team, todayISO) {
+    const cols = columns || [];
+    const reportable = (tasks || []).filter(p => p.status !== 'archived');
+    const active = reportable.filter(p => !isClosed(p, cols));
+    const delivered = reportable.filter(p => isCompletionStatus(p.status, cols));
+    const urgent = active.filter(p => needsAttention(p, todayISO, cols));
+    const deliveryRate = reportable.length ? Math.round((delivered.length / reportable.length) * 100) : 0;
+    const workflow = cols.length ? cols : STATUSES.filter(x => x.id !== 'archived');
+    const statusGroups = workflow.map(c => ({ id: c.id, label: c.label, count: reportable.filter(p => p.status === c.id).length }));
+    const typeIds = [...new Set(reportable.map(p => p.type).filter(Boolean))];
+    const typeCounts = typeIds
+      .map(id => ({ id, label: (PROJECT_TYPES.find(t => t.id === id) || { label: id }).label, count: reportable.filter(p => p.type === id).length }))
+      .sort((a, b) => b.count - a.count);
+    const workload = (team || []).filter(m => !m.status || m.status === 'active')
+      .map(m => ({ id: m.id, name: m.name, count: active.filter(p => (p.assignees || []).includes(m.id)).length }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+    const byClient = {};
+    reportable.forEach(p => {
+      if (!p.client) return;
+      const key = p.clientId || p.client;
+      if (!byClient[key]) byClient[key] = { key, name: p.client, count: 0 };
+      byClient[key].count += 1;
+    });
+    const topClients = Object.values(byClient).sort((a, b) => b.count - a.count).slice(0, 6);
+    const [ty, tm] = todayISO.split('-').map(Number);
+    const months = [];
+    for (let i = 5; i >= 0; i -= 1) {
+      const idx = ty * 12 + (tm - 1) - i;
+      const key = `${Math.floor(idx / 12)}-${pad((idx % 12) + 1)}`;
+      months.push({ key, count: reportable.filter(p => (p.deadline || p.startDate || '').startsWith(key)).length });
+    }
+    // Próximas entregas: sólo fechas válidas, de la más cercana a la más lejana.
+    // Empates (mismo día, frecuentes: una tarjeta por cliente y día) se
+    // desempatan por id para que el orden sea estable; FRAME conservaba el
+    // orden de llegada.
+    const upcoming = active.filter(p => isDay(p.deadline))
+      .sort((a, b) => a.deadline.localeCompare(b.deadline) || String(a.id).localeCompare(String(b.id)))
+      .slice(0, 5);
+    return { reportable: reportable.length, active: active.length, delivered: delivered.length, urgent: urgent.length, deliveryRate, statusGroups, typeCounts, workload, topClients, months, upcoming };
+  }
+
+  // ── Portal del cliente (portal.jsx de FRAME) ────────────────────
+  // Qué tareas son de un cliente. FRAME comparaba sólo el NOMBRE: con dos
+  // clientes homónimos, uno veía el trabajo del otro en su portal público.
+  // En la fusión (ficha única):
+  //   · una tarea con clientId pertenece sólo al cliente con ese id;
+  //   · una tarea vieja sin clientId cae por nombre SÓLO si ningún otro
+  //     cliente del tablero tiene ese nombre; si es ambiguo, no se publica.
+  //   · un cliente SIN nombre nunca recibe tareas por nombre (si no, se
+  //     llevaría todas las tareas internas o «sin cliente»);
+  //   · sin la lista de clientes (allClients) no se puede saber si hay
+  //     homónimos: entonces sólo cuenta el clientId.
+  // El nombre se compara normalizado (NFC, espacios colapsados, minúsculas):
+  // «Café  Aurora» y «Café Aurora» (é compuesta o no) son el mismo nombre,
+  // tanto para encontrar homónimos como para emparejar.
+  const nameKey = (v) => String(v || '').normalize('NFC').replace(/\s+/g, ' ').trim().toLowerCase();
+  function clientHomonyms(client, allClients) {
+    const name = nameKey(client && client.name);
+    if (!name) return [];
+    return (allClients || []).filter(c => c && c.id !== client.id && nameKey(c.name) === name);
+  }
+  function clientTasks(client, tasks, allClients) {
+    const name = nameKey(client.name);
+    const porNombre = name !== '' && Array.isArray(allClients) && clientHomonyms(client, allClients).length === 0;
+    return (tasks || []).filter(t => (t.clientId ? t.clientId === client.id : (porNombre && nameKey(t.client) === name)));
+  }
+  // Tareas viejas (sin clientId) que llevan el nombre de este cliente: con
+  // homónimos quedan fuera de la ficha y del portal hasta enlazarlas.
+  function unlinkedNameMatches(client, tasks) {
+    const name = nameKey(client.name);
+    if (!name) return [];
+    return (tasks || []).filter(t => !t.clientId && nameKey(t.client) === name);
+  }
+  // Enlazar una tarea vieja a su ficha única. Es la ÚNICA forma de asignar
+  // clientId desde la interfaz (applyTaskPatch lo bloquea como procedencia):
+  // sólo una vez, sólo a un cliente que existe y sólo si el nombre coincide
+  // (resuelve homónimos; las tareas sin cliente reconocible se enlazan en la
+  // migración, no a mano).
+  function linkTaskToClient(task, client, allClients) {
+    if (!task || !client) return editError('link_invalid', 'Falta la tarea o el cliente');
+    if (task.clientId) return editError('already_linked', 'La tarea ya tiene ficha de cliente');
+    if (!(allClients || []).some(c => c && c.id === client.id)) return editError('client_unknown', 'El cliente no existe en este tablero');
+    if (!nameKey(client.name) || nameKey(task.client) !== nameKey(client.name)) return editError('name_mismatch', 'Sólo se enlaza una tarea al cliente con su mismo nombre');
+    return { ok: true, task: { ...task, clientId: client.id } };
+  }
+
+  // Proyección PÚBLICA de un cliente: lo único que ve en su portal. Misma
+  // forma que buildClientPortalDocument de FRAME (las reglas validan esas
+  // claves exactas). Nunca lleva comentarios, responsables, importes ni
+  // datos internos. `now` reemplaza al new Date() interno.
+  function buildPortalDocument({ client, tasks, allClients, workspace, published, columns, customTypes, now, studioName = 'LOOPA' }) {
+    const isPublished = (published === undefined ? client.portalPublished === true : published) === true;
+    const columnas = columns && columns.length ? columns : STATUSES;
+    const fases = columnas.map(c => c.id);
+    const avancePorFase = (t) => {
+      if (isClosed(t, columns)) return 100;
+      const i = fases.indexOf(t.status);
+      if (i < 0 || fases.length < 2) return 0;
+      return Math.round((i / fases.length) * 100);
+    };
+    const etiquetasFases = columnas.map(c => String(c.label || c.id || '')).slice(0, 12);
+    const compartido = (item) => item.clientVisible !== false;
+    // Misma URL aunque cambie la mayúscula del esquema/host o el token de
+    // descarga (?alt=media&token=…): un archivo oculto no vuelve como portada.
+    const urlKey = (u) => {
+      const m = /^(https?):\/\/([^/?#]*)([^?#]*)/i.exec(String(u || '').trim());
+      return m ? `${m[1].toLowerCase()}://${m[2].toLowerCase()}${m[3]}` : String(u || '').trim();
+    };
+    const objetos = (lista) => (Array.isArray(lista) ? lista : []).filter(item => item && typeof item === 'object');
+    const esImagenDelBrief = (item) => /(?:\/|%2f)frame-descriptions(?:\/|%2f)/i.test(String(typeof item === 'string' ? item : (item && item.url) || ''));
+    const portadaDe = (t) => {
+      const cover = t.cover;
+      if (cover && cover.type === 'image' && /^https:\/\//i.test(String(cover.value || '')) && !esImagenDelBrief(String(cover.value))) {
+        const oculta = objetos(t.deliverables).some(item => urlKey(item.url) === urlKey(cover.value) && !compartido(item));
+        if (!oculta) return String(cover.value);
+      }
+      const disponible = objetos(t.deliverables).find(item => compartido(item) && !esImagenDelBrief(item) && item.kind === 'photos' && /^https:\/\//i.test(String(item.url || '')));
+      return disponible ? String(disponible.url) : '';
+    };
+    const visible = clientTasks(client, tasks, allClients)
+      .filter(t => t.clientVisible !== false)
+      // Una venta cancelada no se le muestra al cliente como «en producción»:
+      // la tarea sigue en el tablero (cancelar nunca borra), pero sale del portal.
+      .filter(t => t.sourceSaleStatus !== 'cancelled')
+      .map(t => {
+        const checklist = objetos(t.checklist);
+        const completed = checklist.filter(item => item.done).length;
+        const tipo = typeOf(t.type, customTypes);
+        return {
+          id: String(t.id),
+          title: String(t.title || ''),
+          // Un tipo propio sin nombre cae a su id (FRAME dejaba undefined).
+          type: String(tipo.label || tipo.id || ''),
+          typeIcon: String(tipo.icon || 'folder'),
+          typeColor: String(tipo.color || 'var(--resource-neutral)').slice(0, 64),
+          // Una columna sin nombre cae a su id: FRAME dejaba undefined, que
+          // Firestore rechaza al escribir el documento público.
+          status: String(statusOf(t.status, columns).label || statusOf(t.status, columns).id || ''),
+          statusId: String(t.status || ''),
+          startDate: String(t.startDate || ''),
+          deadline: String(t.deadline || ''),
+          progress: checklist.length ? Math.round((completed / checklist.length) * 100) : avancePorFase(t),
+          phases: etiquetasFases,
+          phaseIndex: isClosed(t, columns) ? etiquetasFases.length : fases.indexOf(t.status),
+          cover: portadaDe(t),
+          deliverables: objetos(t.deliverables).filter(item => compartido(item) && !esImagenDelBrief(item)).map(item => ({
+            name: String(item.name || 'Entregable'),
+            kind: String(item.kind || 'file'),
+            url: /^https:\/\//i.test(String(item.url || '')) ? String(item.url) : '',
+          })).slice(0, 20),
+        };
+      })
+      .sort((a, b) => a.startDate.localeCompare(b.startDate));
+    const ws = workspace || {};
+    // Lo que valida la regla validPortal: nombres ≤ 200 y avatar sólo como
+    // imagen embebida (una URL de foto de perfil haría fallar la escritura).
+    const avatar = String((ws.members && ws.ownerId && ws.members[ws.ownerId] && ws.members[ws.ownerId].avatar) || '');
+    const avatarValido = avatar.length <= 350000 && /^data:image\/(jpeg|png|webp);base64,/.test(avatar) ? avatar : '';
+    return {
+      workspaceId: String(client.workspaceId || ws.id || ''),
+      clientId: String(client.id),
+      clientName: String(client.name || 'Cliente').slice(0, 200),
+      clientInitials: String(client.initials || String(client.name || 'Cliente').slice(0, 2).toUpperCase()).slice(0, 4),
+      clientColor: String(client.color || 'var(--resource-blue)').slice(0, 64),
+      studioName: String(ws.name || studioName).slice(0, 200),
+      studioAvatar: avatarValido,
+      published: isPublished,
+      updatedAt: String(now),
+      taskIds: isPublished ? visible.slice(0, 100).map(t => t.id) : [],
+      tasks: isPublished ? visible.slice(0, 100) : [],
+    };
+  }
+
+  // ── Vínculo con la venta (tareas generadas desde LOOPA) ─────────
+  const saleLinkOf = (task) => (task && task.sourceSystem === 'loopa'
+    ? { saleId: task.sourceSaleId, n: task.sourceSaleNumber, cancelled: task.sourceSaleStatus === 'cancelled' }
+    : null);
+
+  return {
+    STATUSES, PRIORITIES, PROJECT_TYPES, URGENT_DAYS,
+    localISO, addDays, daysUntil, isDay,
+    normalizeTask, boardOf,
+    isCompletionStatus, requiresChecklistForStatus, isClosed, isUrgent, isOverdue, needsAttention, progressOf,
+    calendarDateOf, tasksByDate, monthGrid, weekOf,
+    carryOverCandidates, carryOverCandidatesServidor, reschedule, saleLinkOf,
+    boardColumns, statusChangeBlocked, applyTaskPatch, toggleChecklistItem, addChecklistItem,
+    routineDedupeHistory, routineRollover, routineSetCarryOver, routineToggle, routineAddTask, routineDeleteTask, routineRenameTask, routineAssignTask, routineStats,
+    productionSummary, clientTasks, clientHomonyms, unlinkedNameMatches, linkTaskToClient, buildPortalDocument, typeOf, statusOf,
+  };
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = LoopaProduccion;
+
+// ── módulo: produccion/calendario.jsx ──
+// ═══════════════════════════════════════════════════════════════
+// LOOPA OS · Producción — calendario (Fase 2, tanda 1)
+//
+// Vista de SÓLO LECTURA del trabajo del equipo, con la identidad de LOOPA.
+// La lógica (qué día va cada tarea, urgencias, progreso) sale del núcleo
+// portado de FRAME (nucleo.js), verificado con pruebas de paridad.
+//
+// Bandera (se recuerda en este navegador):
+//   ?produccion=demo   datos de ejemplo generados por el planificador
+//   ?produccion=1      datos reales (se conectan en la Fase 3)
+//   ?produccion=0      apaga el módulo (también off / false / no)
+// Cualquier otro valor se ignora. Sin bandera, el módulo no aparece.
+// ═══════════════════════════════════════════════════════════════
+
+const PROD_FLAG = (() => {
+  try {
+    const q = new URLSearchParams(window.location.search).get('produccion');
+    if (q !== null) {
+      const v = q.trim().toLowerCase();
+      const on = v === 'demo' ? 'demo' : (v === '' || v === '1') ? '1' : null;
+      const off = ['0', 'off', 'false', 'no'].includes(v);
+      if (on) window.localStorage.setItem('loopa-flag-produccion', on);
+      else if (off) window.localStorage.setItem('loopa-flag-produccion', '0');
+    }
+    const stored = window.localStorage.getItem('loopa-flag-produccion');
+    return stored === 'demo' || stored === '1' ? stored : null;
+  } catch (e) {
+    return null;
+  }
+})();
+
+const PROD_DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+const prodCapital = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const prodFecha = (iso) => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); };
+const prodMesLabel = (y, m) => prodCapital(new Date(y, m, 1).toLocaleDateString('es-HN', { month: 'long', year: 'numeric' }));
+const prodDiaLabel = (iso) => (LoopaProduccion.isDay(iso)
+  ? prodCapital(prodFecha(iso).toLocaleDateString('es-HN', { weekday: 'long', day: 'numeric', month: 'long' }))
+  : `Fecha inválida (${iso})`);
+const prodCorto = (iso, conAnio = false) => (LoopaProduccion.isDay(iso)
+  ? prodFecha(iso).toLocaleDateString('es-HN', conAnio ? { day: 'numeric', month: 'short', year: 'numeric' } : { day: '2-digit', month: 'short' })
+  : iso);
+const prodSemanaLabel = (dias) => {
+  const a = dias[0], b = dias[6];
+  return a.slice(0, 4) === b.slice(0, 4)
+    ? `${prodCorto(a)} – ${prodCorto(b)}, ${a.slice(0, 4)}`
+    : `${prodCorto(a, true)} – ${prodCorto(b, true)}`;
+};
+
+function prodEstadoLabel(status, columnas) {
+  const c = (columnas || []).find(x => x.id === status) || LoopaProduccion.STATUSES.find(x => x.id === status);
+  return c ? c.label : status;
+}
+
+// Lo que muestra la tarjeta sobre la fecha límite (el compromiso).
+function prodVence(t, hoy, columnas) {
+  if (!t.deadline) return null;
+  if (!LoopaProduccion.isDay(t.deadline)) return { txt: 'Entrega con fecha inválida', tono: 'alerta' };
+  if (LoopaProduccion.isClosed(t, columnas)) return { txt: `Entrega ${prodCorto(t.deadline)}`, tono: 'ok' };
+  const d = LoopaProduccion.daysUntil(t.deadline, hoy);
+  if (d < 0) return { txt: `Vencida hace ${-d} d`, tono: 'alerta' };
+  if (d === 0) return { txt: 'Entrega hoy', tono: 'alerta' };
+  if (d <= LoopaProduccion.URGENT_DAYS) return { txt: `Entrega en ${d} d`, tono: 'aviso' };
+  return { txt: `Entrega ${prodCorto(t.deadline)}`, tono: '' };
+}
+
+// Número de venta: enlace a la venta real, o texto en los datos de ejemplo
+// (sus números son ficticios y podrían coincidir con una venta real).
+function ProdVenta({ venta, enlazar, onAbrirVenta, conEstado }) {
+  if (!venta) return null;
+  return (
+    <>
+      {enlazar
+        ? <button className="pr-link" onClick={() => onAbrirVenta(venta.n)}>#{venta.n}</button>
+        : <span className="pr-venta">#{venta.n} · venta de ejemplo</span>}
+      {conEstado && venta.cancelled && <span className="pr-venta cancelada" style={{ marginLeft: 8 }}>Venta cancelada · revisar</span>}
+    </>
+  );
+}
+
+function ProdTarjeta({ t, hoy, columnas, onAbrir, compacta }) {
+  const pct = LoopaProduccion.progressOf(t);
+  const vence = prodVence(t, hoy, columnas);
+  const venta = LoopaProduccion.saleLinkOf(t);
+  const cerrada = LoopaProduccion.isClosed(t, columnas);
+  return (
+    <button data-id={t.id} className={`pr-card ${cerrada ? 'cerrada' : ''} ${compacta ? 'compacta' : ''}`} onClick={(e) => onAbrir(t, e.currentTarget)}
+      aria-label={`${t.client || 'Sin cliente'}: ${t.title}${vence ? `, ${vence.txt}` : ''}`}>
+      <span className="pr-card-cliente">{t.client || 'Sin cliente'}</span>
+      {!compacta && <span className="pr-card-titulo">{t.title}</span>}
+      {t.checklist.length > 0 && (
+        <span className="pr-card-avance" aria-hidden="true"><span style={{ width: `${pct}%` }} /></span>
+      )}
+      <span className="pr-card-pie">
+        {vence && <span className={`pr-vence ${vence.tono}`}>{vence.txt}</span>}
+        {venta && <span className={`pr-venta ${venta.cancelled ? 'cancelada' : ''}`}>#{venta.n}</span>}
+      </span>
+    </button>
+  );
+}
+
+
+// Ficha lateral modal: el foco entra al abrir, queda atrapado adentro y
+// vuelve a la tarjeta al cerrar (Escape, botón o clic afuera). Con
+// `onCambiar` es editable; cada cambio pasa por las reglas del núcleo
+// (applyTaskPatch) y un rechazo se muestra acá, sin tocar la tarea.
+function ProdDetalle({ t, hoy, columnas, origen, onCerrar, onAbrirVenta, enlazarVentas, onCambiar, onAbrirCliente }) {
+  const pct = LoopaProduccion.progressOf(t);
+  const venta = LoopaProduccion.saleLinkOf(t);
+  const vence = prodVence(t, hoy, columnas);
+  const editable = typeof onCambiar === 'function';
+  const deVenta = t.sourceSystem === 'loopa';
+  const [error, setError] = useState(null);
+  const [nuevo, setNuevo] = useState('');
+  const panel = useRef(null);
+  const cerrarBtn = useRef(null);
+  useEffect(() => {
+    if (cerrarBtn.current) cerrarBtn.current.focus();
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.stopPropagation(); onCerrar(); return; }
+      if (e.key !== 'Tab' || !panel.current) return;
+      const focos = [...panel.current.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter(el => !el.disabled);
+      if (!focos.length) return;
+      const primero = focos[0], ultimo = focos[focos.length - 1];
+      if (e.shiftKey && document.activeElement === primero) { e.preventDefault(); ultimo.focus(); }
+      else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primero.focus(); }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => {
+      window.removeEventListener('keydown', onKey, true);
+      // Si la tarjeta se volvió a montar (cambió de columna o de día), se
+      // busca por id para devolverle el foco.
+      if (origen && document.contains(origen)) origen.focus();
+      else {
+        const nueva = document.querySelector(`.pr-card[data-id="${CSS.escape(t.id)}"]`);
+        if (nueva) nueva.focus();
+      }
+    };
+  }, [onCerrar, origen]);
+
+  const cambiar = (patch) => {
+    const r = onCambiar(patch);
+    setError(r && !r.ok ? r.error.message : null);
+    return r;
+  };
+  const agregar = () => {
+    if (!nuevo.trim()) return;
+    const r = cambiar(LoopaProduccion.addChecklistItem(t, nuevo, `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`));
+    if (r && r.ok) setNuevo('');
+  };
+  const cols = LoopaProduccion.boardColumns(columnas, [t]);
+  const tituloId = `pr-detalle-${t.id}`;
+
+  return (
+    <div className="pr-detalle-fondo" onMouseDown={onCerrar}>
+      <aside ref={panel} className="pr-detalle" role="dialog" aria-modal="true" aria-labelledby={tituloId} onMouseDown={e => e.stopPropagation()}>
+        <div className="pr-detalle-cab">
+          <div>
+            <div className="page-kicker">{t.client || 'Sin cliente'}</div>
+            <div className="pr-detalle-titulo" id={tituloId}>{t.title}</div>
+          </div>
+          <button ref={cerrarBtn} className="icon-btn" onClick={onCerrar} aria-label="Cerrar"><Icon name="x" size={14} /></button>
+        </div>
+        {error && <div className="pr-error" role="alert">{error}</div>}
+        <dl className="pr-datos">
+          <div><dt>Estado</dt><dd>
+            {editable
+              ? <select className="pr-campo" value={t.status} onChange={e => cambiar({ status: e.target.value })} aria-label="Estado">
+                  {cols.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                </select>
+              : prodEstadoLabel(t.status, columnas)}
+          </dd></div>
+          {editable && (
+            <div><dt>Prioridad</dt><dd>
+              <select className="pr-campo" value={t.priority} onChange={e => cambiar({ priority: e.target.value })} aria-label="Prioridad">
+                {LoopaProduccion.PRIORITIES.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+              </select>
+            </dd></div>
+          )}
+          <div><dt>Día de trabajo</dt><dd>
+            {editable
+              ? <input className="pr-campo" type="date" value={LoopaProduccion.calendarDateOf(t)} onChange={e => e.target.value && cambiar({ sessionDate: e.target.value })} aria-label="Día de trabajo" style={{ colorScheme: 'dark' }} />
+              : prodDiaLabel(LoopaProduccion.calendarDateOf(t))}
+          </dd></div>
+          <div><dt>Entrega</dt><dd className={vence ? vence.tono : ''}>
+            {editable && !deVenta
+              ? <input className="pr-campo" type="date" value={t.deadline || ''} onChange={e => cambiar({ deadline: e.target.value })} aria-label="Entrega" style={{ colorScheme: 'dark' }} />
+              : (t.deadline ? `${prodDiaLabel(t.deadline)}${vence && vence.tono ? ` · ${vence.txt}` : ''}` : '—')}
+            {editable && deVenta && <div className="pr-ayuda">La fija la venta: reprogramar mueve el día de trabajo, no la entrega.</div>}
+          </dd></div>
+          {t.clientId && onAbrirCliente && (
+            <div><dt>Cliente</dt><dd><button className="pr-link" onClick={() => onAbrirCliente(t.clientId)}>Ver ficha de {t.client || 'cliente'}</button></dd></div>
+          )}
+          {venta && (
+            <div><dt>Venta</dt><dd>
+              <ProdVenta venta={venta} enlazar={enlazarVentas} onAbrirVenta={onAbrirVenta} conEstado />
+            </dd></div>
+          )}
+        </dl>
+        {(t.checklist.length > 0 || editable) && (
+          <div className="pr-checklist">
+            <div className="pr-checklist-cab"><span>Entregables</span><span className="mono">{pct}%</span></div>
+            <ul>
+              {t.checklist.map(c => (
+                <li key={c.id} className={c.done ? 'hecho' : ''}>
+                  {editable
+                    ? <label className="pr-check-label">
+                        <input type="checkbox" checked={c.done} onChange={() => cambiar(LoopaProduccion.toggleChecklistItem(t, c.id))} />
+                        <span>{c.text}</span>
+                      </label>
+                    : <>
+                        <span className="pr-check" aria-hidden="true">{c.done ? <Icon name="check" size={11} /> : null}</span>
+                        <span>{c.text}{c.done ? <span className="pr-sr"> (hecho)</span> : null}</span>
+                      </>}
+                </li>
+              ))}
+            </ul>
+            {editable && (
+              <form className="pr-agregar" onSubmit={e => { e.preventDefault(); agregar(); }}>
+                <input className="pr-campo" value={nuevo} onChange={e => setNuevo(e.target.value)} placeholder="Agregar entregable…" aria-label="Nuevo entregable" maxLength={200} />
+                <button className="btn sm" type="submit" disabled={!nuevo.trim()}>Agregar</button>
+              </form>
+            )}
+          </div>
+        )}
+        <div className="pr-nota">{editable
+          ? 'Datos de ejemplo: los cambios se aplican con las reglas reales, pero no se guardan (se pierden al recargar). La conexión con los datos del equipo llega en la Fase 3.'
+          : 'Vista de sólo lectura.'}</div>
+      </aside>
+    </div>
+  );
+}
+
+function ProduccionCalendario({ tareas, columnas, hoy, onAbrir }) {
+  // Una sola fecha de referencia para mes y semana (como FRAME): cambiar de
+  // vista no salta a otro período.
+  const [ancla, setAncla] = useState(hoy);
+  const [modo, setModo] = useState('mes');
+  const normalizadas = useMemo(() => tareas.map(t => LoopaProduccion.normalizeTask(t, hoy)), [tareas, hoy]);
+  const porDia = useMemo(() => LoopaProduccion.tasksByDate(normalizadas), [normalizadas]);
+  const ay = Number(ancla.slice(0, 4)), am = Number(ancla.slice(5, 7)) - 1;
+  const dias = modo === 'mes' ? LoopaProduccion.monthGrid(ay, am) : LoopaProduccion.weekOf(ancla);
+  const mesActual = ancla.slice(0, 7);
+  const visibles = dias.filter(iso => modo === 'semana' || iso.startsWith(mesActual)).reduce((n, iso) => n + (porDia[iso] || []).length, 0);
+  const atencion = normalizadas.filter(t => LoopaProduccion.needsAttention(t, hoy, columnas)).length;
+
+  // Siempre desde el valor vigente (actualización funcional): dos clics
+  // seguidos avanzan dos períodos aunque React no haya vuelto a dibujar.
+  const mover = (k) => {
+    if (modo === 'mes') {
+      setAncla(a => {
+        const d = new Date(Number(a.slice(0, 4)), Number(a.slice(5, 7)) - 1 + k, 1);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+      });
+    } else setAncla(a => LoopaProduccion.addDays(a, 7 * k));
+  };
+  const titulo = modo === 'mes' ? prodMesLabel(ay, am) : prodSemanaLabel(dias);
+
+  return (
+    <div className="pr">
+      <div className="pr-barra">
+        <div className="pr-nav">
+          <button className="icon-btn" onClick={() => mover(-1)} aria-label={modo === 'mes' ? 'Mes anterior' : 'Semana anterior'}><Icon name="arrow-l" size={13} /></button>
+          <div className="pr-titulo" aria-live="polite">{titulo}</div>
+          <button className="icon-btn" onClick={() => mover(1)} aria-label={modo === 'mes' ? 'Mes siguiente' : 'Semana siguiente'}><Icon name="arrow-r" size={13} /></button>
+          <button className="btn sm" onClick={() => setAncla(hoy)}>Hoy</button>
+        </div>
+        <div className="pr-nav">
+          {atencion > 0 && <span className="pr-vence alerta">{atencion} con entrega próxima o vencida</span>}
+          <div className="pr-modos" role="group" aria-label="Período del calendario">
+            <button aria-pressed={modo === 'mes'} className={modo === 'mes' ? 'on' : ''} onClick={() => setModo('mes')}>Mes</button>
+            <button aria-pressed={modo === 'semana'} className={modo === 'semana' ? 'on' : ''} onClick={() => setModo('semana')}>Semana</button>
+          </div>
+        </div>
+      </div>
+      {visibles === 0 && <div className="pr-vacio">Sin trabajo programado en este {modo === 'mes' ? 'mes' : 'período'}.</div>}
+      <div className={`pr-grilla ${modo}`}>
+        {PROD_DIAS.map(d => <div key={d} className="pr-dow" aria-hidden="true">{d}</div>)}
+        {dias.map(iso => {
+          const lista = porDia[iso] || [];
+          const fuera = modo === 'mes' && !iso.startsWith(mesActual);
+          return (
+            <div key={iso} className={`pr-dia ${fuera ? 'fuera' : ''} ${iso === hoy ? 'hoy' : ''} ${lista.length ? 'con' : ''}`}>
+              <div className="pr-dia-num"><span className="pr-dia-larga">{prodDiaLabel(iso)}</span><span className="pr-dia-corta">{Number(iso.slice(8))}</span></div>
+              {lista.map(t => <ProdTarjeta key={t.id} t={t} hoy={hoy} columnas={columnas} onAbrir={onAbrir} compacta={modo === 'mes' && lista.length > 2} />)}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Fuente de datos de ejemplo EN MEMORIA: aplica las reglas reales del núcleo
+// pero no persiste nada. Mismo contrato que tendrá la fuente real (Fase 3):
+// tareas + cambiar(id, patch) → { ok, error }.
+function useFuenteDemo(datos) {
+  const [tareas, setTareas] = useState(() => (datos ? datos.tareas : []));
+  useEffect(() => { setTareas(datos ? datos.tareas : []); }, [datos]);
+  const ref = useRef(tareas);
+  ref.current = tareas;
+  const cambiar = useCallback((id, patch) => {
+    const actual = ref.current.find(t => t.id === id);
+    if (!actual) return { ok: false, error: { code: 'not_found', message: 'La tarea ya no existe' } };
+    const r = LoopaProduccion.applyTaskPatch(LoopaProduccion.normalizeTask(actual, datos.hoy), patch, datos.columnas);
+    if (r.ok) {
+      const next = ref.current.map(t => (t.id === id ? r.task : t));
+      ref.current = next;
+      setTareas(next);
+    }
+    return r;
+  }, [datos]);
+  // Enlazar una tarea vieja a su ficha de cliente (resolver homónimos).
+  const enlazar = useCallback((id, cliente, clientes) => {
+    const actual = ref.current.find(t => t.id === id);
+    if (!actual) return { ok: false, error: { code: 'not_found', message: 'La tarea ya no existe' } };
+    const r = LoopaProduccion.linkTaskToClient(LoopaProduccion.normalizeTask(actual, datos.hoy), cliente, clientes);
+    if (r.ok) {
+      const next = ref.current.map(t => (t.id === id ? r.task : t));
+      ref.current = next;
+      setTareas(next);
+    }
+    return r;
+  }, [datos]);
+  return { tareas, cambiar, enlazar };
+}
+
+// Módulo completo: decide de dónde salen los datos y qué vista se muestra.
+function ProduccionModulo({ modo, onAbrirVenta }) {
+  const [estado, setEstado] = useState({ cargando: modo === 'demo', datos: null, error: null });
+  const [vista, setVista] = useState(() => {
+    try { const v = localStorage.getItem('loopa-produccion-vista'); return ['tablero', 'resumen'].includes(v) ? v : 'calendario'; } catch (e) { return 'calendario'; }
+  });
+  // Rutina de ejemplo en memoria: al cargar se aplica el cambio de día del
+  // núcleo (historial + deuda), igual que FRAME al abrir el tablero.
+  const [rutina, setRutina] = useState(null);
+  // Fichas de cliente de ejemplo (portal publicado o no) y la que está abierta.
+  const [clientes, setClientes] = useState([]);
+  const [clienteAbierto, setClienteAbierto] = useState(null);
+  const [abierta, setAbierta] = useState(null); // { id, el }
+  const [aviso, setAviso] = useState(null);
+  useEffect(() => {
+    if (modo !== 'demo') return undefined;
+    let vivo = true;
+    fetch(window.LOOPA_DEMO_URL || 'integracion/preview/produccion-demo.json', { cache: 'no-store' })
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then(datos => { if (vivo) setEstado({ cargando: false, datos, error: null }); })
+      .catch(err => { if (vivo) setEstado({ cargando: false, datos: null, error: err.message || 'sin datos' }); });
+    return () => { vivo = false; };
+  }, [modo]);
+  useEffect(() => { try { localStorage.setItem('loopa-produccion-vista', vista); } catch (e) { /* sólo preferencia de vista */ } }, [vista]);
+  const fuente = useFuenteDemo(estado.datos);
+  useEffect(() => {
+    if (estado.datos) {
+      setRutina(LoopaProduccion.routineRollover(estado.datos.rutina || {}, estado.datos.hoy).doc);
+      setClientes(estado.datos.clientes || []);
+    }
+  }, [estado.datos]);
+  const datos = estado.datos;
+  const abrir = useCallback((t, el) => { setAviso(null); setAbierta({ id: t.id, el }); }, []);
+  // Todo cambio pasa por acá: uno exitoso limpia el aviso de la página.
+  const cambiar = useCallback((id, patch) => {
+    const r = fuente.cambiar(id, patch);
+    if (r.ok) setAviso(null);
+    return r;
+  }, [fuente.cambiar]);
+  const elegirVista = (v) => { setAviso(null); setVista(v); };
+  const cerrar = useCallback(() => setAbierta(null), []);
+  const tareaAbierta = abierta && datos ? fuente.tareas.find(t => t.id === abierta.id) : null;
+  const fichaAbierta = clienteAbierto ? clientes.find(c => c.id === clienteAbierto) : null;
+  // Un solo panel a la vez: abrir la ficha cierra la tarea y viceversa.
+  // El foco vuelve a quien abrió la ficha: la fila del resumen o, si se
+  // llegó desde una tarea, la tarjeta de esa tarea (no un botón de un panel
+  // que ya se desmontó).
+  const abiertaRef = useRef(null);
+  abiertaRef.current = abierta;
+  const origenFicha = useRef(null);
+  const abrirCliente = useCallback((id) => {
+    const a = abiertaRef.current;
+    origenFicha.current = a && a.el && document.contains(a.el) ? a.el : document.activeElement;
+    setAbierta(null);
+    setClienteAbierto(id);
+  }, []);
+  const cerrarCliente = useCallback(() => setClienteAbierto(null), []);
+  const mover = (t, status) => {
+    const r = cambiar(t.id, { status });
+    if (!r.ok) setAviso(r.error.message);
+    return r;
+  };
+
+  return (
+    <div>
+      <div className="page-head">
+        <div>
+          <div className="page-kicker">Producción</div>
+          <div className="page-title">{{ tablero: 'Tablero', resumen: 'Resumen' }[vista] || 'Calendario'}</div>
+          <div className="page-desc">{{
+            tablero: 'El trabajo por etapa. Mové las tarjetas con las flechas o desde la ficha; pasar a Entregado exige el checklist completo.',
+            resumen: 'Cómo viene el trabajo del equipo y la rutina de hoy. Sin importes: lo comercial vive en Ventas y Métricas.',
+          }[vista] || 'Una tarjeta por cliente y día, con los entregables de lo vendido. El día ubica el trabajo; la entrega es el compromiso con el cliente.'}</div>
+        </div>
+        {datos && (
+          <div className="pr-modos" role="group" aria-label="Vista de producción">
+            <button aria-pressed={vista === 'calendario'} className={vista === 'calendario' ? 'on' : ''} onClick={() => elegirVista('calendario')}>Calendario</button>
+            <button aria-pressed={vista === 'tablero'} className={vista === 'tablero' ? 'on' : ''} onClick={() => elegirVista('tablero')}>Tablero</button>
+            <button aria-pressed={vista === 'resumen'} className={vista === 'resumen' ? 'on' : ''} onClick={() => elegirVista('resumen')}>Resumen</button>
+          </div>
+        )}
+      </div>
+      {modo !== 'demo' && (
+        <div className="panel pr-aviso">Producción todavía no está conectada a los datos del equipo: se conecta en la Fase 3. Para ver el módulo con datos de ejemplo, abrí LOOPA con <span className="mono">?produccion=demo</span>.</div>
+      )}
+      {modo === 'demo' && estado.cargando && <div className="panel pr-aviso">Cargando datos de ejemplo…</div>}
+      {modo === 'demo' && estado.error && <div className="panel pr-aviso">No se pudieron cargar los datos de ejemplo ({estado.error}). Generalos con <span className="mono">node integracion/preview/generar-demo.cjs</span>.</div>}
+      {datos && (
+        <>
+          <div className="pr-demo">Datos de ejemplo generados por el planificador desde ventas ficticias · hoy = {datos.hoy} · los cambios no se guardan</div>
+          {aviso && <div className="pr-error" role="alert">{aviso}</div>}
+          {vista === 'calendario' && <ProduccionCalendario tareas={fuente.tareas} columnas={datos.columnas} hoy={datos.hoy} onAbrir={abrir} />}
+          {vista === 'tablero' && <ProduccionTablero tareas={fuente.tareas} columnas={datos.columnas} hoy={datos.hoy} onAbrir={abrir} onMover={mover} />}
+          {vista === 'resumen' && rutina && (
+            <ProduccionResumen tareas={fuente.tareas} columnas={datos.columnas} hoy={datos.hoy} equipo={datos.equipo || []} clientes={clientes} onAbrirCliente={abrirCliente}
+              rutina={rutina} onCambiarRutina={(fn) => setRutina(d => fn(d))} onAbrir={abrir} />
+          )}
+          {tareaAbierta && (
+            <ProdDetalle t={LoopaProduccion.normalizeTask(tareaAbierta, datos.hoy)} origen={abierta.el} hoy={datos.hoy} columnas={datos.columnas}
+              enlazarVentas={false} onCerrar={cerrar} onAbrirVenta={(n) => { setAbierta(null); onAbrirVenta(n); }}
+              onCambiar={(patch) => cambiar(tareaAbierta.id, patch)}
+              onAbrirCliente={clientes.some(c => c.id === tareaAbierta.clientId) ? abrirCliente : null} />
+          )}
+          {fichaAbierta && (
+            <FichaClienteProduccion cliente={fichaAbierta} clientes={clientes} tareas={fuente.tareas} columnas={datos.columnas} hoy={datos.hoy}
+              workspace={datos.workspace} onCerrar={cerrarCliente} origen={origenFicha.current}
+              onCambiarTarea={cambiar}
+              onEnlazarTarea={(id) => fuente.enlazar(id, fichaAbierta, clientes)}
+              onPublicar={(id, on) => setClientes(cs => cs.map(c => (c.id === id ? { ...c, portalPublished: on } : c)))}
+              onAbrirTarea={(t) => { setClienteAbierto(null); abrir(t, origenFicha.current); }} />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── módulo: produccion/tablero.jsx ──
+// ═══════════════════════════════════════════════════════════════
+// LOOPA OS · Producción — tablero por estado (Fase 2, tanda 3)
+//
+// Columnas = configuración del tablero (kanban_columns). Una tarea con un
+// estado que no está en las columnas no desaparece: boardColumns agrega su
+// columna al final, como FRAME. Las tarjetas se abren en la ficha editable;
+// el estado se cambia ahí o con las flechas de la tarjeta (teclado incluido).
+// ═══════════════════════════════════════════════════════════════
+
+function ProduccionTablero({ tareas, columnas, hoy, onAbrir, onMover }) {
+  // Tras mover con las flechas la tarjeta se vuelve a montar en otra
+  // columna: el foco se lleva a la misma flecha (o a la tarjeta) para que el
+  // teclado no pierda el lugar.
+  const [foco, setFoco] = useState(null); // { id, lado }
+  useEffect(() => {
+    if (!foco) return;
+    const item = document.querySelector(`.pr-col-item[data-id="${CSS.escape(foco.id)}"]`);
+    if (!item) return;
+    const flechas = item.querySelectorAll('.pr-mover .icon-btn');
+    const preferida = flechas[foco.lado === 'izq' ? 0 : 1];
+    const destino = preferida && !preferida.disabled ? preferida : ([...flechas].find(b => !b.disabled) || item.querySelector('.pr-card'));
+    if (destino) destino.focus();
+    setFoco(null);
+  }, [foco, tareas]);
+  const mover = (t, status, lado) => { const r = onMover(t, status); if (r && r.ok) setFoco({ id: t.id, lado }); };
+  const normalizadas = useMemo(() => tareas.map(t => LoopaProduccion.normalizeTask(t, hoy)), [tareas, hoy]);
+  // Lo archivado no ocupa el tablero (FRAME tampoco lo muestra como columna).
+  const visibles = normalizadas.filter(t => t.status !== 'archived');
+  const cols = LoopaProduccion.boardColumns(columnas, visibles).filter(c => c.id !== 'archived');
+  const orden = cols.map(c => c.id);
+  return (
+    <div className="pr-tablero" role="list" aria-label="Tablero de producción">
+      {cols.map((c, i) => {
+        const lista = visibles.filter(t => t.status === c.id)
+          .sort((a, b) => LoopaProduccion.calendarDateOf(a).localeCompare(LoopaProduccion.calendarDateOf(b)) || a.id.localeCompare(b.id));
+        return (
+          <section key={c.id} className="pr-col" role="listitem" aria-label={`${c.label}: ${lista.length} tareas`}>
+            <header className="pr-col-cab">
+              <span>{c.label}{!columnas.some(x => x.id === c.id) ? ' · fuera de las columnas' : ''}</span>
+              <span className="mono dim">{lista.length}</span>
+            </header>
+            <div className="pr-col-lista">
+              {lista.length === 0 && <div className="pr-col-vacia">Sin tareas</div>}
+              {lista.map(t => (
+                <div key={t.id} className="pr-col-item" data-id={t.id}>
+                  <ProdTarjeta t={t} hoy={hoy} columnas={columnas} onAbrir={onAbrir} />
+                  <div className="pr-mover">
+                    <button className="icon-btn" disabled={i === 0} onClick={() => mover(t, orden[i - 1], 'izq')} aria-label={`Mover «${t.title}» a ${i > 0 ? cols[i - 1].label : ''}`}><Icon name="arrow-l" size={11} /></button>
+                    <button className="icon-btn" disabled={i === cols.length - 1} onClick={() => mover(t, orden[i + 1], 'der')} aria-label={`Mover «${t.title}» a ${i < cols.length - 1 ? cols[i + 1].label : ''}`}><Icon name="arrow-r" size={11} /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── módulo: produccion/resumen.jsx ──
+// ═══════════════════════════════════════════════════════════════
+// LOOPA OS · Producción — resumen y rutina diaria (Fase 2, tanda 4)
+//
+// Los números salen de productionSummary (paridad con analytics.jsx de
+// FRAME) y la rutina de las funciones routine* del núcleo (paridad con
+// routine.jsx). Sin importes: Producción no copia montos (D8).
+// ═══════════════════════════════════════════════════════════════
+
+const prodMesCorto = (key) => { const [y, m] = key.split('-').map(Number); return new Date(y, m - 1, 1).toLocaleDateString('es-HN', { month: 'short' }).replace('.', ''); };
+const prodNombre = (equipo, id) => ((equipo || []).find(m => m.id === id) || {}).name || 'Sin asignar';
+
+// Barra horizontal accesible: el número está en el texto, la barra es decorativa.
+function ProdBarra({ label, valor, max, onAbrir }) {
+  const pct = max > 0 ? Math.round((valor / max) * 100) : 0;
+  return (
+    <li className="pr-barra-fila">
+      {onAbrir
+        ? <button className="pr-barra-label pr-link" onClick={onAbrir} aria-label={`Abrir la ficha de ${label}`}>{label}</button>
+        : <span className="pr-barra-label">{label}</span>}
+      <span className="pr-barra-pista" aria-hidden="true"><span style={{ width: `${pct}%` }} /></span>
+      <span className="pr-barra-valor mono">{valor}</span>
+    </li>
+  );
+}
+
+function ProdBloque({ titulo, children }) {
+  return (
+    <section className="panel pr-bloque">
+      <h3 className="pr-bloque-titulo">{titulo}</h3>
+      {children}
+    </section>
+  );
+}
+
+function RutinaDiaria({ doc, hoy, equipo, onCambiar }) {
+  const [nuevo, setNuevo] = useState('');
+  const [editando, setEditando] = useState(null); // { id, texto }
+  // Tras renombrar, cancelar o quitar, el foco vuelve a un lugar útil (la
+  // fila, la siguiente o el campo para agregar), nunca al <body>.
+  const lista = useRef(null);
+  const [foco, setFoco] = useState(null); // { id, que: 'renombrar' | 'check' | 'agregar' }
+  useEffect(() => {
+    if (!foco || !lista.current) return;
+    const raiz = lista.current;
+    const fila = foco.id ? raiz.querySelector(`[data-id="${CSS.escape(foco.id)}"]`) : null;
+    const destino = foco.que === 'agregar' || !fila
+      ? raiz.querySelector('input[aria-label="Nueva tarea de rutina"]')
+      : fila.querySelector(foco.que === 'renombrar' ? 'button[data-accion="renombrar"]' : 'input[type=checkbox]');
+    if (destino) destino.focus();
+    setFoco(null);
+  }, [foco, doc]);
+  const activos = (equipo || []).filter(m => !m.status || m.status === 'active');
+  const st = LoopaProduccion.routineStats(doc, hoy);
+  const recientes = doc.history.slice(0, 7);
+  const agregar = (e) => {
+    e.preventDefault();
+    if (!nuevo.trim()) return;
+    onCambiar(d => LoopaProduccion.routineAddTask(d, nuevo, `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`));
+    setNuevo('');
+  };
+  const guardarNombre = () => {
+    if (!editando) return;
+    onCambiar(d => LoopaProduccion.routineRenameTask(d, editando.id, editando.texto));
+    setFoco({ id: editando.id, que: 'renombrar' });
+    setEditando(null);
+  };
+  const quitar = (t) => {
+    const i = doc.tasks.findIndex(x => x.id === t.id);
+    const siguiente = doc.tasks[i + 1] || doc.tasks[i - 1];
+    onCambiar(d => LoopaProduccion.routineDeleteTask(d, t.id));
+    setFoco(siguiente ? { id: siguiente.id, que: 'check' } : { que: 'agregar' });
+  };
+  return (
+    <ProdBloque titulo="Rutina del día">
+      <div ref={lista} className="pr-rutina-cuerpo">
+      <div className="pr-rutina-cab">
+        <span className="mono">{st.completed}/{st.total} · {st.pct}%</span>
+        {st.streak > 0 && <span className="pr-racha">{st.streak} {st.streak === 1 ? 'día perfecto' : 'días perfectos seguidos'}</span>}
+      </div>
+      <div className="pr-card-avance" aria-hidden="true"><span style={{ width: `${st.pct}%` }} /></div>
+      {st.total === 0 && <div className="pr-col-vacia">Sin tareas de rutina. Agregá las que el equipo repite cada día.</div>}
+      <ul className="pr-rutina">
+        {doc.tasks.map(t => {
+          const hecho = !!doc.today.checks[t.id];
+          // Como FRAME: la deuda sólo se muestra con el arrastre encendido.
+          const deuda = doc.config.carryOver ? (doc.today.debt[t.id] || 0) : 0;
+          const asignadoFuera = t.assignee && !activos.some(m => m.id === t.assignee);
+          return (
+            <li key={t.id} data-id={t.id} className={hecho ? 'hecho' : ''}>
+              {editando && editando.id === t.id
+                ? <input className="pr-campo" autoFocus value={editando.texto} aria-label="Nombre de la tarea de rutina" maxLength={200}
+                    onChange={e => setEditando({ ...editando, texto: e.target.value })}
+                    onBlur={guardarNombre}
+                    onKeyDown={e => { if (e.key === 'Enter') guardarNombre(); if (e.key === 'Escape') { e.stopPropagation(); setFoco({ id: t.id, que: 'renombrar' }); setEditando(null); } }} />
+                : <label className="pr-check-label">
+                    <input type="checkbox" checked={hecho} onChange={() => onCambiar(d => LoopaProduccion.routineToggle(d, t.id))} />
+                    <span>{t.text}</span>
+                  </label>}
+              <span className="pr-rutina-meta">
+                {deuda > 0 && !hecho && <span className="pr-vence aviso">{deuda === 1 ? 'pendiente de ayer' : `pendiente hace ${deuda} días`}</span>}
+                <select className="pr-campo pr-campo-chico" value={t.assignee || ''} aria-label={`Responsable de «${t.text}»`}
+                  onChange={e => onCambiar(d => LoopaProduccion.routineAssignTask(d, t.id, e.target.value))}>
+                  <option value="">Sin asignar</option>
+                  {activos.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  {asignadoFuera && <option value={t.assignee}>{prodNombre(equipo, t.assignee) === 'Sin asignar' ? 'Persona desconocida' : prodNombre(equipo, t.assignee)} (inactivo)</option>}
+                </select>
+                <button className="icon-btn" data-accion="renombrar" onClick={() => setEditando({ id: t.id, texto: t.text })} aria-label={`Renombrar «${t.text}»`}><Icon name="edit" size={11} /></button>
+                <button className="icon-btn" onClick={() => quitar(t)} aria-label={`Quitar «${t.text}»`}><Icon name="trash" size={11} /></button>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      <form className="pr-agregar" onSubmit={agregar}>
+        <input className="pr-campo" value={nuevo} onChange={e => setNuevo(e.target.value)} placeholder="Nueva tarea de rutina…" aria-label="Nueva tarea de rutina" maxLength={200} />
+        <button className="btn sm" type="submit" disabled={!nuevo.trim()}>Agregar</button>
+      </form>
+      <label className="pr-check-label pr-rutina-opcion">
+        <input type="checkbox" checked={!!doc.config.carryOver} onChange={() => onCambiar(d => LoopaProduccion.routineSetCarryOver(d, !d.config.carryOver))} />
+        <span>Arrastrar lo que quede sin hacer al día siguiente</span>
+      </label>
+      {recientes.length > 0 && (
+        <div className="pr-historial">
+          <div className="pr-checklist-cab"><span>Últimos días</span></div>
+          <ul>
+            {recientes.map(h => (
+              <li key={h.date} className={h.total > 0 && h.completed === h.total ? 'perfecto' : ''}>
+                <span>{prodCorto(h.date)}</span><span className="mono">{h.completed}/{h.total}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      </div>
+    </ProdBloque>
+  );
+}
+
+function ProduccionResumen({ tareas, columnas, hoy, equipo, rutina, onCambiarRutina, onAbrir, clientes = [], onAbrirCliente }) {
+  const normalizadas = useMemo(() => tareas.map(t => LoopaProduccion.normalizeTask(t, hoy)), [tareas, hoy]);
+  const r = useMemo(() => LoopaProduccion.productionSummary(normalizadas, columnas, equipo, hoy), [normalizadas, columnas, equipo, hoy]);
+  const maxEstado = Math.max(1, ...r.statusGroups.map(s => s.count));
+  const maxTipo = Math.max(1, ...r.typeCounts.map(t => t.count));
+  const maxCarga = Math.max(1, ...r.workload.map(w => w.count));
+  const maxCliente = Math.max(1, ...r.topClients.map(c => c.count));
+  const maxMes = Math.max(1, ...r.months.map(m => m.count));
+  const kpis = [
+    { label: 'Activas', valor: r.active },
+    { label: 'Entregadas', valor: r.delivered, sub: `${r.deliveryRate}% del total` },
+    { label: 'Requieren atención', valor: r.urgent, tono: r.urgent > 0 ? 'alerta' : '' },
+    { label: 'Total sin archivar', valor: r.reportable },
+  ];
+  return (
+    <div className="pr-resumen">
+      <div className="pr-kpis">
+        {kpis.map(k => (
+          <div key={k.label} className="panel pr-kpi">
+            <div className="pr-kpi-label">{k.label}</div>
+            <div className={`pr-kpi-valor ${k.tono || ''}`}>{k.valor}</div>
+            {k.sub && <div className="pr-kpi-sub">{k.sub}</div>}
+          </div>
+        ))}
+      </div>
+      <div className="pr-resumen-grilla">
+        <RutinaDiaria doc={rutina} hoy={hoy} equipo={equipo} onCambiar={onCambiarRutina} />
+        <ProdBloque titulo="Próximas entregas">
+          {r.upcoming.length === 0 && <div className="pr-col-vacia">Sin entregas pendientes.</div>}
+          <ul className="pr-lista">
+            {r.upcoming.map(t => {
+              const v = prodVence(t, hoy, columnas);
+              return (
+                <li key={t.id}>
+                  <button className="pr-link-fila" data-id={t.id} onClick={(e) => onAbrir(t, e.currentTarget)}>
+                    <span><strong>{t.client || 'Sin cliente'}</strong> · {t.title}</span>
+                    {v && <span className={`pr-vence ${v.tono}`}>{v.txt}</span>}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </ProdBloque>
+        <ProdBloque titulo="Por estado">
+          <ul className="pr-barras">{r.statusGroups.map(s => <ProdBarra key={s.id} label={s.label} valor={s.count} max={maxEstado} />)}</ul>
+        </ProdBloque>
+        <ProdBloque titulo="Carga del equipo (tareas activas)">
+          {r.workload.length === 0 && <div className="pr-col-vacia">Sin integrantes activos.</div>}
+          <ul className="pr-barras">{r.workload.map(w => <ProdBarra key={w.id} label={w.name || prodNombre(equipo, w.id)} valor={w.count} max={maxCarga} />)}</ul>
+        </ProdBloque>
+        <ProdBloque titulo="Por tipo">
+          <ul className="pr-barras">{r.typeCounts.map(t => <ProdBarra key={t.id} label={t.label} valor={t.count} max={maxTipo} />)}</ul>
+        </ProdBloque>
+        <ProdBloque titulo="Clientes con más trabajo">
+          {/* Dos fichas con el mismo nombre se distinguen con el final de su id. */}
+          <ul className="pr-barras">{r.topClients.map(c => {
+            const repetido = r.topClients.filter(x => x.name === c.name).length > 1;
+            const label = repetido ? `${c.name} (${String(c.key).slice(-4)})` : c.name;
+            const ficha = clientes.find(x => x.id === c.key);
+            return <ProdBarra key={c.key} label={label} valor={c.count} max={maxCliente}
+              onAbrir={ficha && onAbrirCliente ? () => onAbrirCliente(ficha.id) : null} />;
+          })}</ul>
+        </ProdBloque>
+        <ProdBloque titulo="Tareas por mes de entrega">
+          <ul className="pr-barras">{r.months.map(m => <ProdBarra key={m.key} label={prodMesCorto(m.key)} valor={m.count} max={maxMes} />)}</ul>
+        </ProdBloque>
+      </div>
+    </div>
+  );
+}
+
+// ── módulo: produccion/cliente.jsx ──
+// ═══════════════════════════════════════════════════════════════
+// LOOPA OS · Producción — ficha del cliente y portal (Fase 2, tanda 5)
+//
+// La parte de PRODUCCIÓN de la ficha única: su trabajo, qué tareas comparte
+// y una vista previa EXACTA de lo que vería en su portal (buildPortalDocument,
+// paridad con portal.jsx de FRAME). Publicar el portal de verdad (documento
+// público + reglas) se conecta en la Fase 3; acá todo es en memoria.
+//
+// Las tareas del cliente se eligen por clientId; las viejas sin id, por nombre
+// sólo si no hay otro cliente homónimo (clientTasks): un portal público nunca
+// muestra trabajo de otro cliente.
+// ═══════════════════════════════════════════════════════════════
+
+function ProdLineaFases({ fases, indice }) {
+  if (indice < 0) return null;
+  return (
+    <div className="pr-fases" aria-hidden="true">
+      {fases.map((f, i) => <span key={`${f}-${i}`} className={i < indice ? 'hecha' : i === indice ? 'actual' : ''} />)}
+    </div>
+  );
+}
+
+function FichaClienteProduccion({ cliente, clientes, tareas, columnas, hoy, workspace, origen, onCerrar, onCambiarTarea, onEnlazarTarea, onPublicar, onAbrirTarea }) {
+  const panel = useRef(null);
+  const cerrarBtn = useRef(null);
+  const [error, setError] = useState(null);
+  useEffect(() => {
+    const previo = document.activeElement;
+    if (cerrarBtn.current) cerrarBtn.current.focus();
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.stopPropagation(); onCerrar(); return; }
+      if (e.key !== 'Tab' || !panel.current) return;
+      const focos = [...panel.current.querySelectorAll('button, input, select, [href], [tabindex]:not([tabindex="-1"])')].filter(el => !el.disabled);
+      if (!focos.length) return;
+      const a = focos[0], z = focos[focos.length - 1];
+      if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); }
+      else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => {
+      window.removeEventListener('keydown', onKey, true);
+      const destino = origen && document.contains(origen) ? origen : previo;
+      if (destino && document.contains(destino)) destino.focus();
+    };
+  }, [onCerrar, origen]);
+
+  const normalizadas = useMemo(() => tareas.map(t => LoopaProduccion.normalizeTask(t, hoy)), [tareas, hoy]);
+  const propias = LoopaProduccion.clientTasks(cliente, normalizadas, clientes);
+  const activas = propias.filter(t => !LoopaProduccion.isClosed(t, columnas) && t.status !== 'archived');
+  // Archivado no es entregado: no se lista ni se cuenta.
+  const cerradas = propias.filter(t => LoopaProduccion.isClosed(t, columnas) && t.status !== 'archived');
+  const homonimos = LoopaProduccion.clientHomonyms(cliente, clientes).length;
+  const sinFicha = homonimos > 0 ? LoopaProduccion.unlinkedNameMatches(cliente, normalizadas).filter(t => t.status !== 'archived') : [];
+  const ventas = [...new Set(propias.map(t => t.sourceSaleNumber).filter(Boolean))].sort((a, b) => a - b)
+    .map(n => ({ n, cancelada: propias.some(t => t.sourceSaleNumber === n && t.sourceSaleStatus === 'cancelled') }));
+  // Vista previa: el documento tal como se publicaría (aunque todavía no lo esté).
+  const vistaPrevia = LoopaProduccion.buildPortalDocument({ client: cliente, tasks: normalizadas, allClients: clientes, workspace, published: true, columns: columnas, now: hoy });
+  const tituloId = `pr-cliente-${cliente.id}`;
+  const cambiarVisible = (t) => {
+    const r = onCambiarTarea(t.id, { clientVisible: !(t.clientVisible !== false) });
+    setError(r && !r.ok ? r.error.message : null);
+  };
+  const enlazar = (t) => {
+    const r = onEnlazarTarea(t.id);
+    setError(r && !r.ok ? r.error.message : null);
+  };
+
+  const filaTarea = (t) => {
+    const pct = LoopaProduccion.progressOf(t);
+    const v = prodVence(t, hoy, columnas);
+    return (
+      <li key={t.id} className="pr-cli-tarea">
+        <button className="pr-link-fila" data-id={t.id} onClick={(e) => onAbrirTarea(t, e.currentTarget)}>
+          <span>{t.title}</span>
+          <span className="pr-cli-meta">{prodEstadoLabel(t.status, columnas)} · {pct}%{v ? ` · ${v.txt}` : ''}{t.sourceSaleStatus === 'cancelled' ? ' · venta cancelada: no se publica' : ''}</span>
+        </button>
+        <label className="pr-check-label pr-cli-visible">
+          <input type="checkbox" checked={t.clientVisible !== false} onChange={() => cambiarVisible(t)} aria-label={`Visible para el cliente: ${t.title}`} />
+          <span>Visible para el cliente</span>
+        </label>
+      </li>
+    );
+  };
+
+  return (
+    <div className="pr-detalle-fondo" onMouseDown={onCerrar}>
+      <aside ref={panel} className="pr-detalle pr-cliente" role="dialog" aria-modal="true" aria-labelledby={tituloId} onMouseDown={e => e.stopPropagation()}>
+        <div className="pr-detalle-cab">
+          <div>
+            <div className="page-kicker">Cliente</div>
+            <div className="pr-detalle-titulo" id={tituloId}>{cliente.name}</div>
+          </div>
+          <button ref={cerrarBtn} className="icon-btn" onClick={onCerrar} aria-label="Cerrar"><Icon name="x" size={14} /></button>
+        </div>
+        {error && <div className="pr-error" role="alert">{error}</div>}
+        {homonimos > 0 && (
+          <div className="pr-aviso-chico">Hay otro cliente con el mismo nombre. Las tareas viejas sin ficha asignada no se muestran ni se publican hasta enlazarlas, para no mezclar el trabajo de dos clientes.</div>
+        )}
+        {sinFicha.length > 0 && (
+          <section className="pr-cli-seccion">
+            <h3 className="pr-bloque-titulo">Sin ficha con este nombre</h3>
+            <ul className="pr-lista">{sinFicha.map(t => (
+              <li key={t.id} className="pr-cli-tarea">
+                <span>{t.title}</span>
+                <button className="btn" onClick={() => enlazar(t)} aria-label={`Enlazar «${t.title}» a esta ficha`}>Es de este cliente</button>
+              </li>
+            ))}</ul>
+          </section>
+        )}
+        <dl className="pr-datos">
+          <div><dt>Trabajo activo</dt><dd>{activas.length} {activas.length === 1 ? 'tarea' : 'tareas'}</dd></div>
+          <div><dt>Entregado</dt><dd>{cerradas.length}</dd></div>
+          <div><dt>Ventas con producción</dt><dd>{ventas.length ? ventas.map(v => `#${v.n}${v.cancelada ? ' (cancelada)' : ''}`).join(', ') : '—'}</dd></div>
+        </dl>
+
+        <section className="pr-cli-seccion">
+          <h3 className="pr-bloque-titulo">En producción</h3>
+          {activas.length === 0 && <div className="pr-col-vacia">Sin trabajo activo.</div>}
+          <ul className="pr-lista">{activas.map(filaTarea)}</ul>
+          {cerradas.length > 0 && (
+            <>
+              <h3 className="pr-bloque-titulo" style={{ marginTop: 10 }}>Entregado</h3>
+              <ul className="pr-lista">{cerradas.map(filaTarea)}</ul>
+            </>
+          )}
+        </section>
+
+        <section className="pr-cli-seccion">
+          <div className="pr-cli-portal-cab">
+            <h3 className="pr-bloque-titulo">Portal del cliente</h3>
+            <label className="pr-check-label">
+              <input type="checkbox" checked={cliente.portalPublished === true} onChange={() => onPublicar(cliente.id, !(cliente.portalPublished === true))} />
+              <span>{cliente.portalPublished === true ? 'Publicado' : 'Sin publicar'}</span>
+            </label>
+          </div>
+          <div className="pr-ayuda">Así lo vería {cliente.name}: sólo tareas marcadas como visibles y de ventas vigentes, sin comentarios internos, responsables ni importes. {cliente.portalPublished === true ? '' : 'Mientras no se publique, el enlace no muestra nada.'}</div>
+          <div className="pr-portal-vista" aria-label={`Vista previa del portal de ${cliente.name}`}>
+            <div className="pr-portal-cab"><strong>{vistaPrevia.studioName}</strong><span className="dim"> · para {vistaPrevia.clientName}</span></div>
+            {vistaPrevia.tasks.length === 0 && <div className="pr-col-vacia">Todavía no hay trabajo compartido.</div>}
+            {vistaPrevia.tasks.map(t => (
+              <div key={t.id} className="pr-portal-tarea">
+                <div className="pr-portal-tit"><span>{t.title}</span><span className="pr-cli-meta">{t.type}</span></div>
+                <ProdLineaFases fases={t.phases} indice={t.phaseIndex} />
+                <div className="pr-cli-meta">{t.status} · {t.progress}%{t.deadline ? ` · entrega ${prodCorto(t.deadline)}` : ''}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+        <div className="pr-nota">Datos de ejemplo: publicar y cambiar la visibilidad no se guarda. El portal público real (documento, enlace y reglas) se conecta en la Fase 3; las ventas y cobros del cliente se suman a esta ficha con los datos migrados.</div>
+      </aside>
+    </div>
+  );
+}
+
+// ── módulo: shell/navegacion.jsx ──
+// ═══════════════════════════════════════════════════════════════
+// LOOPA OS · navegación unificada (Fase 2, tanda 2)
+//
+// Sólo se usa con la bandera de Producción: sin ella, app.jsx dibuja su menú
+// original y nada cambia. Agrupa los módulos en Comercial / Producción /
+// Sistema. En el celular muestra los cuatro principales y un «Más» con el
+// resto, en lugar de una barra de ocho botones donde las etiquetas se pisan.
+// ═══════════════════════════════════════════════════════════════
+
+const NAV_GRUPOS = [
+  { id: 'comercial', label: 'Comercial', ids: ['nueva', 'ventas', 'servicios', 'clientes'] },
+  { id: 'produccion', label: 'Producción', ids: ['produccion'] },
+  { id: 'sistema', label: 'Sistema', ids: ['metricas', 'gastos', 'config'] },
+];
+const NAV_PRINCIPALES = ['nueva', 'ventas', 'produccion', 'clientes'];
+
+function NavAgrupada({ modules, route, onGo }) {
+  const [masAbierto, setMasAbierto] = useState(false);
+  const masBtn = useRef(null);
+  const hoja = useRef(null);
+  const byId = Object.fromEntries(modules.map(m => [m.id, m]));
+  const secundarios = modules.filter(m => !NAV_PRINCIPALES.includes(m.id));
+  const enMas = secundarios.some(m => m.id === route);
+  // Hoja «Más»: diálogo simple. El foco entra al abrir, Tab no sale de la
+  // hoja, Escape la cierra y devuelve el foco a «Más». Si la pantalla se
+  // agranda (ya no hay barra inferior), se cierra sola.
+  useEffect(() => {
+    if (!masAbierto) return undefined;
+    const primero = hoja.current && hoja.current.querySelector('button');
+    if (primero) primero.focus();
+    const cerrar = () => { setMasAbierto(false); if (masBtn.current) masBtn.current.focus(); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.stopPropagation(); cerrar(); return; }
+      if (e.key !== 'Tab' || !hoja.current) return;
+      const focos = [...hoja.current.querySelectorAll('button')];
+      const a = focos[0], z = focos[focos.length - 1];
+      if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); }
+      else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); }
+    };
+    const mq = window.matchMedia('(min-width: 641px)');
+    const onMq = (ev) => { if (ev.matches) setMasAbierto(false); };
+    window.addEventListener('keydown', onKey, true);
+    mq.addEventListener('change', onMq);
+    return () => { window.removeEventListener('keydown', onKey, true); mq.removeEventListener('change', onMq); };
+  }, [masAbierto]);
+  const ir = (id) => { setMasAbierto(false); onGo(id); };
+
+  const item = (m, extra = '') => (
+    <button key={m.id} className={`nav-item ${extra} ${route === m.id ? 'active' : ''}`} onClick={() => ir(m.id)} title={m.label} aria-current={route === m.id ? 'page' : undefined}>
+      <Icon name={m.icon} size={15} />
+      <span>{m.label}</span>
+      <span className="nav-mobile-label">{m.label.split(' ')[0]}</span>
+    </button>
+  );
+
+  return (
+    <nav className="nav nav-agrupada" style={{ marginTop: 8 }} aria-label="Módulos">
+      {NAV_GRUPOS.map(g => {
+        const items = g.ids.map(id => byId[id]).filter(Boolean);
+        if (!items.length) return null;
+        return (
+          <React.Fragment key={g.id}>
+            <div className="nav-grupo" aria-hidden="true">{g.label}</div>
+            {items.map(m => item(m, NAV_PRINCIPALES.includes(m.id) ? '' : 'nav-secundario'))}
+          </React.Fragment>
+        );
+      })}
+      <button ref={masBtn} className={`nav-item nav-mas ${enMas ? 'active' : ''}`} onClick={() => setMasAbierto(v => !v)} aria-expanded={masAbierto} aria-controls="nav-mas-hoja" title="Más">
+        <Icon name="list" size={15} />
+        <span className="nav-mobile-label">Más</span>
+      </button>
+      {masAbierto && (
+        <div className="nav-mas-fondo" onMouseDown={() => setMasAbierto(false)}>
+          <div ref={hoja} id="nav-mas-hoja" className="nav-mas-hoja" role="dialog" aria-modal="true" aria-label="Más módulos" onMouseDown={e => e.stopPropagation()}>
+            {secundarios.map(m => (
+              <button key={m.id} className={`nav-mas-item ${route === m.id ? 'on' : ''}`} aria-current={route === m.id ? 'page' : undefined} onClick={() => ir(m.id)}>
+                <Icon name={m.icon} size={15} /> <span>{m.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </nav>
+  );
+}
+
+// ── app.jsx ──
 // ═══════════════════════════════════════════════════════════════
 // LOOPA OS — sistema de ventas de servicios digitales
 // Misma base que TOONED OS (shell, estética, Firebase, diálogos),
@@ -1289,6 +2967,7 @@ function Icon({ name, size = 16 }) {
     case 'copy':     return <svg {...c}><rect x="8" y="8" width="13" height="13"/><path d="M16 8V3H3v13h5"/></svg>;
     case 'bell':     return <svg {...c}><path d="M6 17V11a6 6 0 0 1 12 0v6l2 2H4l2-2zM10 21h4"/></svg>;
     case 'archive':  return <svg {...c}><path d="M3 4h18v4H3zM5 8v12h14V8M10 12h4"/></svg>;
+    case 'calendar': return <svg {...c}><rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>;
     default: return null;
   }
 }
@@ -3624,7 +5303,13 @@ function PeriodFilter({ value, onChange }) {
 }
 
 function App({ onLogout }) {
-  const [route, setRoute] = useState(() => { try { return localStorage.getItem('loopa-route') || 'nueva'; } catch (e) { return 'nueva'; } });
+  const [route, setRoute] = useState(() => {
+    try {
+      const r = localStorage.getItem('loopa-route') || 'nueva';
+      // Sin la bandera, Producción no existe: no se vuelve a una pantalla vacía.
+      return r === 'produccion' && !PROD_FLAG ? 'nueva' : r;
+    } catch (e) { return 'nueva'; }
+  });
   const [ventas, setVentas] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [servicios, setServicios] = useState([]);
@@ -3846,6 +5531,7 @@ function App({ onLogout }) {
     { id: 'ventas',    label: 'Ventas',        icon: 'list' },
     { id: 'servicios', label: 'Servicios',     icon: 'tag' },
     { id: 'clientes',  label: 'Clientes',      icon: 'user' },
+    ...(PROD_FLAG ? [{ id: 'produccion', label: 'Producción', icon: 'calendar' }] : []),
     { id: 'metricas',  label: 'Métricas',      icon: 'chart' },
     { id: 'gastos',    label: 'Gastos',        icon: 'money' },
     { id: 'config',    label: 'Configuración', icon: 'settings' },
@@ -3910,6 +5596,7 @@ function App({ onLogout }) {
           )}
         </div>
 
+        {PROD_FLAG ? <NavAgrupada modules={modules} route={route} onGo={(id) => (id === 'nueva' && route === 'nueva' ? goNueva(null) : setRoute(id))} /> : (
         <nav className="nav" style={{ marginTop: 8 }}>
           {modules.map(m => (
             <button key={m.id} className={`nav-item ${route === m.id ? 'active' : ''}`} onClick={() => m.id === 'nueva' && route === 'nueva' ? goNueva(null) : setRoute(m.id)} title={m.label}>
@@ -3919,6 +5606,7 @@ function App({ onLogout }) {
             </button>
           ))}
         </nav>
+        )}
       </aside>
 
       <div className="main">
@@ -3968,6 +5656,7 @@ function App({ onLogout }) {
               onDelete={(id) => setClientes(prev => prev.filter(c => c.id !== id))}
               onNuevaVenta={(c) => goNueva({ cliente: clientePrefill(c) })} onOpenVenta={openVenta} />
           )}
+          {route === 'produccion' && PROD_FLAG && <ProduccionModulo modo={PROD_FLAG} onAbrirVenta={openVenta} />}
           {route === 'metricas' && <Metricas ventas={ventas} gastos={gastos} config={config} />}
           {route === 'gastos' && <Gastos gastos={gastos} setGastos={setGastos} config={config} setConfig={setConfig} />}
           {route === 'config' && (

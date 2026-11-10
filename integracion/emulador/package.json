@@ -1,0 +1,11 @@
+{
+  "name": "loopa-emulador-pruebas",
+  "private": true,
+  "description": "Sólo pruebas locales contra el emulador de Firestore (proyecto demo-*). No es parte de la app publicada.",
+  "scripts": {
+    "test": "node correr.cjs"
+  },
+  "devDependencies": {
+    "firebase-admin": "13.4.0"
+  }
+}
