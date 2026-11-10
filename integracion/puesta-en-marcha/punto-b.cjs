@@ -23,6 +23,11 @@ const urlsB = {
     if (!DOCS_LOOPA.includes(k)) throw new Error(`documento de LOOPA inesperado: ${k}`);
     return `${BASE(ORIGEN)}/loopa/${k}`;
   },
+  // Columnas y tipos de un tablero (para validar las plantillas de producción).
+  config: (ws, doc) => {
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(ws) || !['kanban_columns', 'project_types'].includes(doc)) throw new Error(`config inesperada: ${ws}/${doc}`);
+    return `${BASE(DESTINO)}/frame_workspaces/${ws}/config/${doc}`;
+  },
   frame: (c, pagina) => {
     if (!COLECCIONES_FRAME.includes(c)) throw new Error(`colección inesperada: ${c}`);
     return `${BASE(DESTINO)}/${c}?pageSize=300${pagina ? `&pageToken=${encodeURIComponent(pagina)}` : ''}`;
@@ -38,7 +43,8 @@ function permitidoB(metodo, url) {
   if (![...u.searchParams.keys()].every(k => k === 'pageSize' || k === 'pageToken')) return false;
   const loopa = new RegExp(`^/v1/projects/${ORIGEN}/databases/\\(default\\)/documents/loopa/(${DOCS_LOOPA.join('|')})$`);
   const frame = new RegExp(`^/v1/projects/${DESTINO}/databases/\\(default\\)/documents/(${COLECCIONES_FRAME.join('|')})$`);
-  if (loopa.test(u.pathname)) return u.search === '';
+  const config = new RegExp(`^/v1/projects/${DESTINO}/databases/\\(default\\)/documents/frame_workspaces/[A-Za-z0-9_-]{1,64}/config/(kanban_columns|project_types)$`);
+  if (loopa.test(u.pathname) || config.test(u.pathname)) return u.search === '';
   return frame.test(u.pathname);
 }
 

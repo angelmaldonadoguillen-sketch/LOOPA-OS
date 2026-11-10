@@ -132,3 +132,19 @@ test('fuera de la migración no se lee ni se escribe', async () => {
   await assert.rejects(s.get('loopa_sales', '../x'), /Fuera de la migración/);
   assert.throws(() => new R.AlmacenRest({ base: 'https://evil.test/v1/projects/x/databases/(default)', pedir: () => {} }), /no válida/);
 });
+
+test('revisión: enteros enormes como double; beginTransaction se reintenta; sin red = reintentable', async () => {
+  assert.deepEqual(R.aValor(2 ** 53 + 2), { doubleValue: 2 ** 53 + 2 });
+  assert.deepEqual(R.aValor(1e21), { doubleValue: 1e21 });
+  assert.deepEqual(R.aValor(42), { integerValue: '42' });
+  const t = transporte([
+    { status: 503, cuerpo: { error: { status: 'UNAVAILABLE' } } },
+    { status: 200, cuerpo: { transaction: 'T2' } },
+    { status: 200, cuerpo: {} },
+  ]);
+  await new R.AlmacenRest({ base: BASE, pedir: t.pedir }).transaction(async (tx) => { tx.create('loopa_sales', 'S-1', {}); });
+  assert.deepEqual(t.llamadas.map(l => l.url.split(':').pop()), ['beginTransaction', 'beginTransaction', 'commit']);
+  const { transporte: real } = require('../puesta-en-marcha/migrar.cjs');
+  const sinRed = await real('x')('GET', 'http://127.0.0.1:1/nada');
+  assert.equal(sinRed.status, 503, 'un fetch que falla es «unavailable»');
+});

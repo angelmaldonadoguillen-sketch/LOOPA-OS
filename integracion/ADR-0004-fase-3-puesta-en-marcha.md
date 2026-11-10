@@ -604,3 +604,48 @@ El detalle y el orden del corte están en `integracion/puesta-en-marcha/PUNTO-B-
 - las plantillas de producción de los servicios: ninguno tiene, así que las ventas todavía no crearían tareas.
 
 **Pruebas:** 251 sin red, 33 en el emulador, 11 de funciones.
+
+## 18. Plantillas, gastos y configuración en FRAME, y la revisión del corte (2026-11-10)
+
+**Decisiones de Ángel:**
+- **Tablero de producción:** «Loopa Estudio».
+- **Quién vende:** Ángel.
+- **Plantillas:** una tarea por servicio. Están en `integracion/puesta-en-marcha/plantillas-produccion.cjs` y se cargan con `plantillas.cjs`.
+- **Pruebas de las plantillas:**
+  - son válidas por contrato y para las columnas y tipos del tablero;
+  - pasadas por el planificador real, cada línea da una tarea «Servicio · Cliente», en Briefing, con fecha límite en la entrega;
+  - los 10 servicios que crea la migración son los mismos 10 de las plantillas.
+
+**Revisión independiente de las herramientas del corte:** 1 problema grave y 6 menores. Todo está corregido, con prueba.
+
+1. **Grave: después del corte, los gastos y la configuración desaparecían.** LOOPA los guardaba en cada navegador (D21) y nunca leía lo migrado. Ahora es la **tanda 3.8**:
+   - **Reglas:**
+     - `loopa_expenses/{id}`: lo lee y edita el equipo comercial;
+     - `loopa_config/main`: forma cerrada;
+     - lo que trae la migración (`legacyId`, `legacyRaw`, `migration`) no se cambia ni se fabrica desde el navegador.
+   - **LOOPA:**
+     - en modo real y en el emulador, lee y guarda en FRAME y escucha en vivo;
+     - escribe sólo lo que cambió (`LoopaFuente.cambiosGastos` / `cambioConfig`, funciones puras) y con `merge`;
+     - si hay un cambio propio esperando guardarse, lo que llega en vivo no lo pisa.
+   - **Verificado en el navegador, con el emulador:**
+     - lee los gastos migrados;
+     - un gasto nuevo se guarda con la forma de las reglas;
+     - un gasto migrado se edita sin perder su marca;
+     - un cambio desde otro equipo aparece solo;
+     - todo sigue ahí al recargar.
+   - **Pendiente:** publicar las reglas nuevas (paso 0 de `PUNTO-B-C.md`). FRAME ya tiene el archivo regenerado.
+2. **Pestañas viejas de LOOPA siguen escribiendo en tooned-os.** No se tocan las reglas de tooned-os, que es compartido con TOONED. En su lugar, el paso 8 del corte (B0 + corrida en seco) detecta lo que llegue tarde, y se pasa con otra corrida.
+3. **`migrar` escribía con conflictos y después no se podía retomar.** Ahora, con conflictos, no escribe, y el mensaje distingue «se cortó» de «hay conflictos».
+4. **`configurar-c`:**
+   - no toca un documento con claves de más;
+   - la lista comercial suma personas, salvo con `--reemplazar`.
+5. **Copia archivada:** tiene que estar fuera de la carpeta del respaldo y ser idéntica (sha256). Se le quita el BOM.
+6. **Enteros fuera del rango seguro:** van como double, igual que el SDK.
+7. **Reintentos y sesión:**
+   - `beginTransaction` se reintenta, con espera creciente;
+   - `fetch` tiene un límite de 30 s, y sin red cuenta como `unavailable`;
+   - el token tiene que valer al menos 10 minutos.
+
+**Un solo comando para el corte:** `corte.cjs` (migración → configuración → plantillas). Su corrida en seco contra el proyecto real da 29 documentos para crear, 0 conflictos, la configuración que se escribiría y 10 plantillas válidas.
+
+**Pruebas:** 259 sin red, 34 en el emulador (reglas 3.8 incluidas), 11 de funciones y 22 de FRAME.

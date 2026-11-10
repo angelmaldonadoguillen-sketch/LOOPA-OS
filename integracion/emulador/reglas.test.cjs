@@ -82,6 +82,9 @@ async function seed() {
     await put('loopa_config', 'access', { commercialUids: ['u1', 'pend', 'rej'] });
     await put('loopa_config', 'otro', { secreto: true });
     await put('loopa_config', 'production', { defaultWorkspaceId: 'ws1', allowedWorkspaceIds: ['ws1'] });
+    // Tanda 3.8: configuración comercial y un gasto migrados.
+    await put('loopa_config', 'main', { payConfig: [], categorias: ['Redes'], canales: [], gastoTipos: ['Software'], moneda: 'L', migration: { hash: 'h-main' } });
+    await put('loopa_expenses', 'GV-1', { id: 'GV-1', kind: 'variable', fecha: '2026-11-01', concepto: 'Hosting', categoria: 'Software', monto: 500, nota: '', legacyId: 'GV-1', migration: { hash: 'h-gv1' } });
     await put('loopa_integration_events', 'e1', { eventId: 'e1', status: 'done' });
     await put('loopa_counters', 'sales', { next: 1043 });
     await put('loopa_migrations', 'run-a', { status: 'done' });
@@ -362,4 +365,35 @@ test('FRAME 3.6 (revisión): ficha con los campos que agrega stampWs, portal, fa
   b.set(ref(db, 'frame_projects', 'tConFicha'), { ...r.project, workspaceIds: ['ws1'], viewerIds: ['u1', 'u2', 'pend', 'u5'] });
   b.delete(ref(db, 'frame_trash', 'tConFicha'));
   await ok(b.commit(), 'restaurar con su ficha y vaciar la papelera, juntos');
+});
+
+test('tanda 3.8: gastos y configuración comercial, sólo el equipo comercial', { skip }, async () => {
+  const g = (uid, id = 'GV-1') => ref(as(uid), 'loopa_expenses', id);
+  const cfg = (uid) => ref(as(uid), 'loopa_config', 'main');
+  await ok(fsMod.getDoc(g('u1')), 'comercial lee un gasto');
+  await ok(fsMod.getDoc(cfg('u1')), 'comercial lee la configuración');
+  for (const uid of ['u2', 'u3', 'pend', null]) {
+    await no(fsMod.getDoc(g(uid)), `${uid} no ve gastos`);
+    await no(fsMod.getDoc(cfg(uid)), `${uid} no ve la configuración comercial`);
+    await no(fsMod.setDoc(g(uid, 'GV-X'), { id: 'GV-X', kind: 'fixed', concepto: 'Renta', categoria: 'Local', monto: 1, nota: '', activo: true }), `${uid} no crea gastos`);
+  }
+  const nuevo = { id: 'GV-2', kind: 'variable', fecha: '2026-11-10', concepto: 'Taxi', categoria: 'Transporte', monto: 120, nota: '' };
+  await ok(fsMod.setDoc(g('u1', 'GV-2'), nuevo), 'crea un gasto variable');
+  await ok(fsMod.setDoc(g('u1', 'GF-1'), { id: 'GF-1', kind: 'fixed', concepto: 'Renta', categoria: 'Local', monto: 6000, nota: '', activo: true }), 'crea un gasto fijo');
+  await no(fsMod.setDoc(g('u1', 'GV-3'), { ...nuevo, id: 'GV-3', fecha: '10/11/2026' }), 'fecha inválida');
+  await no(fsMod.setDoc(g('u1', 'GV-4'), { ...nuevo, id: 'otro' }), 'id distinto del documento');
+  await no(fsMod.setDoc(g('u1', 'GV-5'), { ...nuevo, id: 'GV-5', kind: 'regalo' }), 'tipo inventado');
+  await no(fsMod.setDoc(g('u1', 'GV-6'), { ...nuevo, id: 'GV-6', monto: '120' }), 'monto como texto');
+  await no(fsMod.setDoc(g('u1', 'GV-7'), { ...nuevo, id: 'GV-7', extra: 1 }), 'campos extra');
+  await no(fsMod.setDoc(g('u1', 'GV-8'), { ...nuevo, id: 'GV-8', migration: { hash: 'x' } }), 'no se fabrica una marca de migración');
+  await ok(fsMod.setDoc(g('u1'), { monto: 650, nota: 'subió' }, { merge: true }), 'edita un gasto migrado (merge)');
+  await no(fsMod.updateDoc(g('u1'), { legacyId: 'otro' }), 'lo migrado no cambia');
+  await no(fsMod.setDoc(g('u1'), { id: 'GV-1', kind: 'variable', fecha: '2026-11-01', concepto: 'Hosting', categoria: 'Software', monto: 1, nota: '' }), 'un set completo borraría la marca de migración');
+  await ok(fsMod.deleteDoc(g('u1', 'GV-2')), 'borra un gasto');
+  await no(fsMod.deleteDoc(g('u2', 'GF-1')), 'producción no borra gastos');
+  await ok(fsMod.setDoc(cfg('u1'), { categorias: ['Redes', 'Web'] }, { merge: true }), 'edita la configuración');
+  await no(fsMod.setDoc(cfg('u1'), { secreto: 1 }, { merge: true }), 'configuración: forma cerrada');
+  await no(fsMod.setDoc(cfg('u1'), { migration: { hash: 'x' } }, { merge: true }), 'configuración: la marca de migración no cambia');
+  await no(fsMod.setDoc(cfg('u2'), { categorias: [] }, { merge: true }), 'producción no edita la configuración comercial');
+  await no(fsMod.deleteDoc(cfg('adm')), 'la configuración no se borra');
 });

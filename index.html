@@ -1777,6 +1777,61 @@ const LoopaFuente = (function () {
     };
   }
 
+  // ── Gastos y configuración comercial en FRAME (tanda 3.8) ──────────
+  // En FRAME cada gasto es un documento (loopa_expenses/{id}, kind variable o
+  // fixed) y la configuración es loopa_config/main. LOOPA los maneja como
+  // siempre ({ variables, fijos } y un objeto de configuración); estas
+  // funciones traducen y calculan qué escribir (sólo lo que cambió).
+  const texto = (v, def = '') => (typeof v === 'string' ? v : v == null ? def : String(v));
+  const monto = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+  function docDeGasto(g, kind) {
+    const base = { id: texto(g && g.id), kind };
+    return kind === 'fixed'
+      ? { ...base, concepto: texto(g.concepto), categoria: texto(g.categoria, 'Otro') || 'Otro', monto: monto(g.monto), activo: g.activo !== false, nota: texto(g.nota) }
+      : { ...base, fecha: texto(g.fecha), concepto: texto(g.concepto), categoria: texto(g.categoria, 'Otro') || 'Otro', monto: monto(g.monto), nota: texto(g.nota) };
+  }
+  function gastosDeDocs(docs) {
+    const variables = [];
+    const fijos = [];
+    (docs || []).forEach(d => {
+      if (!d || typeof d.id !== 'string' || !d.id) return;
+      const { kind, ...g } = docDeGasto(d, d.kind === 'fixed' ? 'fixed' : 'variable');
+      if (d.kind === 'fixed') fijos.push(g);
+      else if (d.kind === 'variable') variables.push(g);
+    });
+    variables.sort((a, b) => (b.fecha < a.fecha ? -1 : b.fecha > a.fecha ? 1 : a.id < b.id ? -1 : 1));
+    fijos.sort((a, b) => (a.id < b.id ? -1 : 1));
+    return { variables, fijos };
+  }
+  const mapaGastos = (g) => {
+    const m = {};
+    ((g && g.variables) || []).forEach(x => { if (x && x.id) m[x.id] = docDeGasto(x, 'variable'); });
+    ((g && g.fijos) || []).forEach(x => { if (x && x.id) m[x.id] = docDeGasto(x, 'fixed'); });
+    return m;
+  };
+  // servidor: lo último que se leyó de FRAME; local: lo que hay en pantalla.
+  function cambiosGastos(servidor, local) {
+    const s = mapaGastos(servidor);
+    const l = mapaGastos(local);
+    const escribir = Object.keys(l).filter(id => !s[id] || JSON.stringify(s[id]) !== JSON.stringify(l[id])).map(id => l[id]);
+    const borrar = Object.keys(s).filter(id => !l[id]);
+    return { escribir, borrar };
+  }
+  const CLAVES_CONFIG = ['payConfig', 'categorias', 'canales', 'gastoTipos', 'moneda'];
+  function configDeDoc(doc) {
+    const out = {};
+    CLAVES_CONFIG.forEach(k => { if (doc && doc[k] !== undefined) out[k] = doc[k]; });
+    return out;
+  }
+  // Sólo las claves comerciales que cambiaron (null si nada).
+  function cambioConfig(servidor, local) {
+    const p = {};
+    CLAVES_CONFIG.forEach(k => {
+      if (local && local[k] !== undefined && JSON.stringify(local[k]) !== JSON.stringify((servidor || {})[k])) p[k] = local[k];
+    });
+    return Object.keys(p).length ? p : null;
+  }
+
   // De dónde salen los datos (tanda 3.7). Nunca cae a la app de siempre si
   // se pidió la fusión y no se puede: 'no-disponible' muestra un aviso.
   //   null           la app de siempre (colección «loopa» de tooned-os)
@@ -1794,7 +1849,7 @@ const LoopaFuente = (function () {
     return conSdk ? 'emulador' : 'no-disponible';
   }
 
-  return { armarDatos, crearCola, normalizarError, adaptadorHttp, adaptadorFirebase, modoDatos, CLAVE };
+  return { armarDatos, crearCola, normalizarError, adaptadorHttp, adaptadorFirebase, modoDatos, gastosDeDocs, cambiosGastos, configDeDoc, cambioConfig, CLAVE };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = LoopaFuente;
 
@@ -3810,6 +3865,46 @@ const produccionTexto = (p) => {
   return `Producción: en preparación · ${t}`;
 };
 
+// ─── Gastos y configuración comercial en FRAME (tanda 3.8) ───
+// Lo último que se leyó de FRAME: contra eso se calcula qué escribir (sólo lo
+// que cambió), así el eco de lo propio no vuelve a escribir. `acceso` es
+// false para quien no es del equipo comercial (no ve montos): nada se escribe.
+const COMERCIAL_FRAME = { gastos: null, config: null, acceso: false };
+async function leerComercialFrame() {
+  const db = FUSION_FB.db;
+  try {
+    const [c, g] = await Promise.all([db.collection('loopa_config').doc('main').get(), db.collection('loopa_expenses').get()]);
+    COMERCIAL_FRAME.config = c.exists ? LoopaFuente.configDeDoc(c.data()) : {};
+    COMERCIAL_FRAME.gastos = LoopaFuente.gastosDeDocs(g.docs.map(d => ({ id: d.id, ...d.data() })));
+    COMERCIAL_FRAME.acceso = true;
+  } catch (e) {
+    if (e && e.code !== 'permission-denied') throw e;
+    COMERCIAL_FRAME.config = {};
+    COMERCIAL_FRAME.gastos = { variables: [], fijos: [] };
+    COMERCIAL_FRAME.acceso = false;
+  }
+  return { config: COMERCIAL_FRAME.config, gastos: COMERCIAL_FRAME.gastos, acceso: COMERCIAL_FRAME.acceso };
+}
+async function guardarComercialFrame(k, data) {
+  if (!COMERCIAL_FRAME.acceso) return; // sin acceso comercial no hay nada propio que guardar
+  const db = FUSION_FB.db;
+  if (k === 'config') {
+    const patch = LoopaFuente.cambioConfig(COMERCIAL_FRAME.config, data);
+    if (!patch) return;
+    await db.collection('loopa_config').doc('main').set(patch, { merge: true });
+    COMERCIAL_FRAME.config = { ...COMERCIAL_FRAME.config, ...patch };
+    return;
+  }
+  const c = LoopaFuente.cambiosGastos(COMERCIAL_FRAME.gastos, data);
+  if (!c.escribir.length && !c.borrar.length) return;
+  const b = db.batch();
+  // merge: lo que trajo la migración (legacyId, migration) queda intacto.
+  c.escribir.forEach(({ id, ...d }) => b.set(db.collection('loopa_expenses').doc(id), { id, ...d }, { merge: true }));
+  c.borrar.forEach(id => b.delete(db.collection('loopa_expenses').doc(id)));
+  await b.commit();
+  COMERCIAL_FRAME.gastos = data;
+}
+
 // ─── Persistencia: Firebase si está configurado, si no este navegador ───
 const DOC_KEYS = ['ventas', 'clientes', 'servicios', 'config', 'gastos'];
 const Store = {
@@ -3828,6 +3923,9 @@ const Store = {
     return out;
   },
   save(k, data) {
+    // Con Firebase de la fusión (real o emulador), gastos y configuración
+    // viven en FRAME (tanda 3.8): iguales en todos los equipos.
+    if (FUSION_FB && (k === 'gastos' || k === 'config')) return guardarComercialFrame(k, data);
     if (DATOS_FUSION) {
       try { localStorage.setItem('loopa-fusion-' + k, JSON.stringify(data)); return Promise.resolve(); }
       catch (e) { return Promise.reject(e); }
@@ -6060,7 +6158,8 @@ function Configuracion({ config, setConfig, allData, onImport, showToast }) {
             <div className="field">
               <label>Dónde se guardan los datos</label>
               <div className="mono" style={{ fontSize: 'var(--fs-s)', lineHeight: 1.7, color: window.USE_FB ? 'var(--ok)' : 'var(--warn)' }}>
-                {DATOS_FUSION ? `● Fusión · ventas, clientes y servicios en ${DATOS_FUSION === 'real' ? 'FRAME (la ficha única)' : DATOS_FUSION === 'emulador' ? 'los emuladores de Firebase' : 'el servidor local'}; configuración y gastos sólo en este navegador` : window.USE_FB ? '● Nube (Firebase) · sincronizado entre dispositivos' : '● Modo local · solo en este navegador'}
+                {DATOS_FUSION === 'real' ? '● FRAME · ventas, clientes, servicios, gastos y configuración sincronizados entre dispositivos'
+                  : DATOS_FUSION ? `● Fusión · todo en ${DATOS_FUSION === 'emulador' ? 'los emuladores de Firebase (gastos y configuración incluidos)' : 'el servidor local; configuración y gastos sólo en este navegador'}` : window.USE_FB ? '● Nube (Firebase) · sincronizado entre dispositivos' : '● Modo local · solo en este navegador'}
               </div>
               {!window.USE_FB && <div className="muted" style={{ fontSize: 'var(--fs-s)', lineHeight: 1.6 }}>Para usarlo desde el celular y la compu con los mismos datos, conectá Firebase (instrucciones en <span className="mono">LEEME.md</span>). Mientras tanto, descargá respaldos seguido.</div>}
             </div>
@@ -6368,12 +6467,18 @@ function App({ onLogout, usuarioFusion = null }) {
     setLoadError(null);
     const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('Tiempo de espera agotado (12 s) — revisá tu conexión')), 12000));
     if (DATOS_FUSION) {
-      Promise.race([FUSION_API.leer(), timeout]).then(docs => {
+      Promise.race([Promise.all([FUSION_API.leer(), FUSION_FB ? leerComercialFrame() : null]), timeout]).then(([docs, comercial]) => {
         const d = LoopaFuente.armarDatos(docs);
         setVentas(d.ventas); setClientes(d.clientes); setServicios(d.servicios);
-        const local = (k) => { try { return JSON.parse(localStorage.getItem('loopa-fusion-' + k) || 'null'); } catch (e) { return null; } };
-        if (local('config')) setConfig({ ...CONFIG_DEFAULT, ...local('config') });
-        if (local('gastos')) setGastos({ ...GASTOS_DEFAULT, ...local('gastos') });
+        if (comercial) {
+          // Tanda 3.8: gastos y configuración desde FRAME.
+          setConfig({ ...CONFIG_DEFAULT, ...comercial.config });
+          setGastos({ ...GASTOS_DEFAULT, ...comercial.gastos });
+        } else {
+          const local = (k) => { try { return JSON.parse(localStorage.getItem('loopa-fusion-' + k) || 'null'); } catch (e) { return null; } };
+          if (local('config')) setConfig({ ...CONFIG_DEFAULT, ...local('config') });
+          if (local('gastos')) setGastos({ ...GASTOS_DEFAULT, ...local('gastos') });
+        }
         setReady(true);
         setColaEstado(cola.current.estado());
         // Retoma lo que quedó sin guardar; si falló por falta de sesión o con
@@ -6432,6 +6537,24 @@ function App({ onLogout, usuarioFusion = null }) {
   useEffect(() => { if (ready && !DATOS_FUSION) queueSave('servicios', { items: servicios }); }, [servicios, ready]);
   useEffect(() => { if (ready) queueSave('config', config); }, [config, ready]);
   useEffect(() => { if (ready) queueSave('gastos', gastos); }, [gastos, ready]);
+  // Tanda 3.8: gastos y configuración en vivo desde FRAME (otro equipo los
+  // cambió). Si hay un cambio propio esperando guardarse, no se pisa: al
+  // guardarse se compara contra lo último de FRAME.
+  useEffect(() => {
+    if (!FUSION_FB || !ready || !COMERCIAL_FRAME.acceso) return;
+    const db = FUSION_FB.db;
+    const offG = db.collection('loopa_expenses').onSnapshot(q => {
+      const g = LoopaFuente.gastosDeDocs(q.docs.map(d => ({ id: d.id, ...d.data() })));
+      COMERCIAL_FRAME.gastos = g;
+      if (pending.current.gastos === undefined) setGastos({ ...GASTOS_DEFAULT, ...g });
+    }, e => console.warn('Gastos en vivo:', e));
+    const offC = db.collection('loopa_config').doc('main').onSnapshot(d => {
+      const c = d.exists ? LoopaFuente.configDeDoc(d.data()) : {};
+      COMERCIAL_FRAME.config = c;
+      if (pending.current.config === undefined) setConfig({ ...CONFIG_DEFAULT, ...c });
+    }, e => console.warn('Configuración en vivo:', e));
+    return () => { offG(); offC(); };
+  }, [ready]);
 
   useEffect(() => { try { localStorage.setItem('loopa-route', route); } catch (e) {} }, [route]);
   // ── Derivados ──

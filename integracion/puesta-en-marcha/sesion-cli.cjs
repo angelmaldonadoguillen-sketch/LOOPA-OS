@@ -16,7 +16,8 @@ function tokenDelCli(proyecto) {
   if (r.status !== 0) throw new Error(`El Firebase CLI no pudo leer ${proyecto} (¿firebase login? ¿esta cuenta tiene acceso?).`);
   const f = path.join(os.homedir(), '.config', 'configstore', 'firebase-tools.json');
   const t = JSON.parse(fs.readFileSync(f, 'utf8')).tokens || {};
-  if (!t.access_token || !(Number(t.expires_at) > Date.now() + 60000)) throw new Error('La sesión del Firebase CLI no tiene un token vigente: correr `firebase login --reauth`.');
+  // Al menos 10 minutos de vigencia: la corrida no se queda sin sesión a mitad.
+  if (!t.access_token || !(Number(t.expires_at) > Date.now() + 10 * 60000)) throw new Error('La sesión del Firebase CLI vence pronto: correr de nuevo en un minuto o `firebase login --reauth`.');
   return t.access_token;
 }
 

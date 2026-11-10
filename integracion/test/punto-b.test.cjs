@@ -27,6 +27,11 @@ test('permitidoB: sólo GET a los documentos de LOOPA y a 3 colecciones de FRAME
     ['GET', 'https://firestore.googleapis.com.evil.test/v1/projects/tooned-os/databases/(default)/documents/loopa/ventas'],
     ['GET', 'http://firestore.googleapis.com/v1/projects/tooned-os/databases/(default)/documents/loopa/ventas'],
   ].forEach(([m, u]) => assert.equal(B.permitidoB(m, u), false, `${m} ${u}`));
+  assert.equal(B.permitidoB('GET', B.urlsB.config('ws123', 'kanban_columns')), true);
+  assert.equal(B.permitidoB('GET', B.urlsB.config('ws123', 'project_types')), true);
+  assert.equal(B.permitidoB('GET', `${base}/frame-studio-3a18f/databases/(default)/documents/frame_workspaces/ws1/config/otra`), false);
+  assert.equal(B.permitidoB('GET', `${base}/frame-studio-3a18f/databases/(default)/documents/frame_workspaces/ws1/members/u1`), false);
+  assert.throws(() => B.urlsB.config('../x', 'kanban_columns'));
   assert.throws(() => B.urlsB.loopa('../x'));
   assert.throws(() => B.urlsB.frame('loopa_sales'));
 });
@@ -92,4 +97,32 @@ test('configurar-c (punto C): sólo personas aprobadas y miembros del tablero', 
   assert.match(armar({ usuarios, tableros, tablero: 'ws', comerciales: ['nadie@x.test'] }).errores.join(), /No hay una cuenta/);
   assert.match(armar({ usuarios, tableros, tablero: 'otro', comerciales: ['u1'] }).errores.join(), /No existe el tablero/);
   assert.match(armar({ usuarios, tableros, tablero: 'ws', comerciales: [] }).errores.join(), /al menos una/);
+});
+
+test('configurar-c: nunca deja claves extra y la lista comercial suma (revisión)', () => {
+  const { combinar } = require('../puesta-en-marcha/configurar-c.cjs');
+  assert.deepEqual(combinar('access', null, { commercialUids: ['u1'] }).datos, { commercialUids: ['u1'] });
+  assert.deepEqual(combinar('access', { commercialUids: ['u9'] }, { commercialUids: ['u1'] }).datos, { commercialUids: ['u1', 'u9'] }, 'agregar a alguien no saca a nadie');
+  assert.deepEqual(combinar('access', { commercialUids: ['u9'] }, { commercialUids: ['u1'] }, { reemplazar: true }).datos, { commercialUids: ['u1'] });
+  assert.match(combinar('access', { commercialUids: [], extra: 1 }, { commercialUids: ['u1'] }).error, /claves que no corresponden/);
+  assert.match(combinar('production', { defaultWorkspaceId: 'w', allowedWorkspaceIds: [], secreto: 1 }, { defaultWorkspaceId: 'w', allowedWorkspaceIds: ['w'] }).error, /secreto/);
+  assert.deepEqual(combinar('production', { defaultWorkspaceId: 'v', allowedWorkspaceIds: ['v'] }, { defaultWorkspaceId: 'w', allowedWorkspaceIds: ['w'] }).datos, { defaultWorkspaceId: 'w', allowedWorkspaceIds: ['w'] });
+});
+
+test('migrar: la copia archivada va aparte y es idéntica al respaldo (revisión)', () => {
+  const os = require('node:os');
+  const crypto = require('node:crypto');
+  const { leerArchivado } = require('../puesta-en-marcha/migrar.cjs');
+  const resp = fs.mkdtempSync(path.join(os.tmpdir(), 'resp-'));
+  const fuera = fs.mkdtempSync(path.join(os.tmpdir(), 'copia-'));
+  const texto = '{"app":"LOOPA OS"}';
+  fs.writeFileSync(path.join(resp, 'loopa-respaldo.json'), texto);
+  fs.writeFileSync(path.join(resp, 'sha256.txt'), `${crypto.createHash('sha256').update(texto).digest('hex')}  loopa-respaldo.json\n`);
+  fs.writeFileSync(path.join(fuera, 'copia.json'), texto);
+  fs.writeFileSync(path.join(fuera, 'otra.json'), texto + ' ');
+  assert.equal(leerArchivado({ respaldo: resp, archivado: path.join(fuera, 'copia.json') }), texto);
+  assert.throws(() => leerArchivado({ respaldo: resp, archivado: path.join(resp, 'loopa-respaldo.json') }), /APARTE/);
+  assert.throws(() => leerArchivado({ respaldo: resp, archivado: path.join(fuera, 'otra.json') }), /no es idéntica/);
+  fs.rmSync(resp, { recursive: true, force: true });
+  fs.rmSync(fuera, { recursive: true, force: true });
 });

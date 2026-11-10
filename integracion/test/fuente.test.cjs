@@ -683,3 +683,36 @@ test('modoDatos (tanda 3.7): de dónde salen los datos, caso por caso', () => {
   assert.equal(m('', PUB, { corte: true, conSdk: false }), 'no-disponible');
   assert.equal(m('', PUB, { corte: 'true' }), null, 'sólo el booleano verdadero');
 });
+
+test('tanda 3.8: gastos y configuración entre FRAME y LOOPA (sólo lo que cambió)', () => {
+  const docs = [
+    { id: 'GV-1', kind: 'variable', fecha: '2026-11-01', concepto: 'Hosting', categoria: 'Software', monto: 500, nota: '', legacyId: 'GV-1', migration: { hash: 'h' } },
+    { id: 'GV-2', kind: 'variable', fecha: '2026-11-05', concepto: 'Taxi', categoria: 'Transporte', monto: 120 },
+    { id: 'GF-1', kind: 'fixed', concepto: 'Renta', categoria: 'Local', monto: 6000, activo: false, nota: 'x' },
+    { id: 'raro', kind: 'otro' }, null, { kind: 'variable' },
+  ];
+  const g = LoopaFuente.gastosDeDocs(docs);
+  assert.deepEqual(g.variables.map(x => x.id), ['GV-2', 'GV-1'], 'los más nuevos primero');
+  assert.deepEqual(g.variables[1], { id: 'GV-1', fecha: '2026-11-01', concepto: 'Hosting', categoria: 'Software', monto: 500, nota: '' }, 'sin lo de la migración');
+  assert.deepEqual(g.fijos, [{ id: 'GF-1', concepto: 'Renta', categoria: 'Local', monto: 6000, activo: false, nota: 'x' }]);
+  // Sin cambios: nada que escribir (el eco de lo propio no vuelve a escribir).
+  assert.deepEqual(LoopaFuente.cambiosGastos(g, structuredClone(g)), { escribir: [], borrar: [] });
+  // Editar, agregar y borrar.
+  const local = structuredClone(g);
+  local.variables[0].monto = '150';
+  local.variables.unshift({ id: 'GV-3', fecha: '2026-11-10', concepto: 'Café', categoria: undefined, monto: 50 });
+  local.fijos = [];
+  const c = LoopaFuente.cambiosGastos(g, local);
+  assert.deepEqual(c.borrar, ['GF-1']);
+  assert.deepEqual(c.escribir.map(d => d.id).sort(), ['GV-2', 'GV-3']);
+  const nuevo = c.escribir.find(d => d.id === 'GV-3');
+  assert.deepEqual(nuevo, { id: 'GV-3', kind: 'variable', fecha: '2026-11-10', concepto: 'Café', categoria: 'Otro', monto: 50, nota: '' }, 'forma que aceptan las reglas, sin undefined');
+  assert.equal(c.escribir.find(d => d.id === 'GV-2').monto, 150, 'monto como número');
+  assert.ok(c.escribir.every(d => !('migration' in d) && !('legacyId' in d)), 'nunca toca lo migrado');
+  // Configuración.
+  const srv = LoopaFuente.configDeDoc({ payConfig: [1], categorias: ['A'], moneda: 'L', migration: { hash: 'h' } });
+  assert.deepEqual(srv, { payConfig: [1], categorias: ['A'], moneda: 'L' });
+  assert.equal(LoopaFuente.cambioConfig(srv, { ...srv, canales: undefined }), null);
+  assert.deepEqual(LoopaFuente.cambioConfig(srv, { ...srv, categorias: ['A', 'B'], otra: 1 }), { categorias: ['A', 'B'] });
+  assert.deepEqual(LoopaFuente.cambioConfig(null, { moneda: 'L' }), { moneda: 'L' });
+});

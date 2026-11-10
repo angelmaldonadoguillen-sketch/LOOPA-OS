@@ -71,6 +71,16 @@ async function coleccion(c, tk) {
     id: w.id, nombre: w.name || '', dueño: w.ownerId || '', miembros: w.memberIds || [],
     fichas: clientes.filter(c => c.workspaceId === w.id).length,
   })), null, 2));
+  // Columnas y tipos de cada tablero (para validar las plantillas de producción).
+  const configs = {};
+  for (const w of tableros) {
+    configs[w.id] = {};
+    for (const doc of ['kanban_columns', 'project_types']) {
+      const d = await leer(B.urlsB.config(w.id, doc), tk);
+      configs[w.id][doc] = d ? B.decodificar(d).datos : null;
+    }
+  }
+  fs.writeFileSync(path.join(dir, 'tableros-config.json'), JSON.stringify(configs, null, 2));
   fs.writeFileSync(path.join(dir, 'usuarios.json'), JSON.stringify(usuarios.map(u => ({
     uid: u.id, nombre: u.name || u.displayName || '', email: u.email || '', estado: u.status || '', admin: u.platformAdmin === true,
   })), null, 2));

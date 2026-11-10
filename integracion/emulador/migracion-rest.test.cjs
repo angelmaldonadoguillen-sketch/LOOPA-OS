@@ -27,7 +27,8 @@ function carpeta() {
   const d = fs.mkdtempSync(path.join(os.tmpdir(), 'loopa-migracion-'));
   fs.copyFileSync(path.join(FX, 'loopa-backup.json'), path.join(d, 'loopa-respaldo.json'));
   fs.copyFileSync(path.join(FX, 'frame-clients.json'), path.join(d, 'frame-clients.json'));
-  const archivado = path.join(d, 'copia-archivada.json');
+  // La copia archivada va APARTE (migrar.cjs rechaza la de la misma carpeta).
+  const archivado = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'loopa-copia-')), 'copia-archivada.json');
   fs.copyFileSync(path.join(FX, 'loopa-backup.json'), archivado);
   return { d, archivado };
 }
@@ -104,5 +105,12 @@ test('migración por REST en el emulador = la misma corrida en memoria; se reanu
       });
     }
   }
+  // Revisión: con un conflicto en el destino, --escribir no escribe nada.
+  const ventas = await (await fetch(`${base2}/documents/loopa_sales?pageSize=1`, { headers: { Authorization: 'Bearer owner' } })).json();
+  const nombre = ventas.documents[0].name;
+  await fetch(`http://${EMU}/v1/${nombre}?updateMask.fieldPaths=migration`, { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { migration: { mapValue: { fields: { hash: { stringValue: 'otra' } } } } } }) });
+  const conConflicto = await M.ejecutar({ ...a, escribir: true, huella: seco.plan.fingerprint }, { pedir: real, base: base2, log });
+  assert.equal(conConflicto.codigo, 3, 'con conflictos no se escribe');
+  assert.equal(conConflicto.corrida, undefined);
   fs.rmSync(d, { recursive: true, force: true });
 });

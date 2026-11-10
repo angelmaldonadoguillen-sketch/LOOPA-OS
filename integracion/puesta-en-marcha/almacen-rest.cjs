@@ -32,7 +32,8 @@ function aValor(v, ruta = '') {
   if (typeof v === 'string') return { stringValue: v };
   if (typeof v === 'number') {
     if (!Number.isFinite(v)) throw new Error(`número no finito en ${ruta}`);
-    return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+    // Como el SDK: entero exacto sólo dentro del rango seguro; si no, double.
+    return Number.isSafeInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
   }
   if (Array.isArray(v)) return { arrayValue: { values: v.map((x, i) => aValor(x, `${ruta}[${i}]`)) } };
   if (typeof v === 'object') {
@@ -164,8 +165,17 @@ class AlmacenRest {
   async transaction(fn, maxAttempts = 5) {
     if (!Number.isInteger(maxAttempts) || maxAttempts < 1) throw Object.assign(new Error('maxAttempts debe ser un entero ≥ 1'), { code: 'invalid-argument' });
     let ultimo;
+    const reintentable = (e) => e && (e.code === 'aborted' || e.code === 'unavailable');
     for (let intento = 1; intento <= maxAttempts; intento += 1) {
-      const { transaction: t } = await this.llamar('POST', `${this.base}/documents:beginTransaction`, { options: { readWrite: {} } });
+      if (intento > 1) await new Promise(r => setTimeout(r, Math.min(4000, 250 * 2 ** (intento - 2))));
+      let t;
+      try {
+        ({ transaction: t } = await this.llamar('POST', `${this.base}/documents:beginTransaction`, { options: { readWrite: {} } }));
+      } catch (err) {
+        ultimo = err;
+        if (reintentable(err)) continue;
+        throw err;
+      }
       const writes = [];
       const tx = {
         get: async (col, id) => {
@@ -195,7 +205,7 @@ class AlmacenRest {
         // antes de seguir (si el commit sí entró, el rollback falla y no importa).
         await this.llamar('POST', `${this.base}/documents:rollback`, { transaction: t }).catch(() => {});
         // Contención: se repite fn entera (como el SDK). Por eso fn debe ser idempotente.
-        if (err.code !== 'aborted' && err.code !== 'unavailable') throw err;
+        if (!reintentable(err)) throw err;
       }
     }
     throw ultimo;

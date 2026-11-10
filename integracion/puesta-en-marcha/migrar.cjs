@@ -55,14 +55,37 @@ function plan(a) {
   return { plan: buildMigrationPlan({ backup, frameClients: frame.clients || [], decisions, workspaceId: a.tablero }), frame: frame.clients || [] };
 }
 
-// El transporte: fetch con el token (real) o con «owner» (emulador).
+// La copia archivada: guardada APARTE (no dentro de la carpeta del respaldo)
+// y con el mismo contenido que el respaldo de B0 (su sha256.txt).
+function leerArchivado(a) {
+  const crypto = require('node:crypto');
+  const real = fs.realpathSync(a.archivado);
+  const carpeta = fs.realpathSync(a.respaldo);
+  if (real === carpeta || real.startsWith(carpeta + path.sep)) {
+    throw new Error('--archivado tiene que ser la copia guardada APARTE (Drive u otro disco), no el archivo de la carpeta del respaldo');
+  }
+  const buf = fs.readFileSync(real);
+  const linea = fs.existsSync(path.join(a.respaldo, 'sha256.txt')) ? fs.readFileSync(path.join(a.respaldo, 'sha256.txt'), 'utf8') : '';
+  const esperado = (linea.match(/^[0-9a-f]{64}/) || [])[0];
+  const sha = crypto.createHash('sha256').update(buf).digest('hex');
+  if (esperado && sha !== esperado) throw new Error(`La copia archivada no es idéntica al respaldo (sha256 ${sha.slice(0, 12)}… ≠ ${esperado.slice(0, 12)}…)`);
+  return buf.toString('utf8').replace(/^﻿/, '');
+}
+
+// El transporte: fetch con el token (real) o con «owner» (emulador). Sin
+// respuesta en 30 s, o sin red, es un error «unavailable» (reintentable).
 function transporte(token) {
   return async (metodo, url, cuerpo) => {
-    const r = await fetch(url, {
-      method: metodo, redirect: 'error',
-      headers: { Authorization: `Bearer ${token}`, ...(cuerpo ? { 'Content-Type': 'application/json' } : {}) },
-      ...(cuerpo ? { body: JSON.stringify(cuerpo) } : {}),
-    });
+    let r;
+    try {
+      r = await fetch(url, {
+        method: metodo, redirect: 'error', signal: AbortSignal.timeout(30000),
+        headers: { Authorization: `Bearer ${token}`, ...(cuerpo ? { 'Content-Type': 'application/json' } : {}) },
+        ...(cuerpo ? { body: JSON.stringify(cuerpo) } : {}),
+      });
+    } catch (e) {
+      return { status: 503, cuerpo: { error: { status: 'UNAVAILABLE', message: 'sin respuesta de la red' } } };
+    }
     return { status: r.status, cuerpo: await r.json().catch(() => ({})) };
   };
 }
@@ -93,17 +116,25 @@ async function ejecutar(a, { pedir, base, log = console.log } = {}) {
     log(`✖ La huella no coincide (plan ${p.fingerprint}, pedida ${a.huella}): el respaldo, las decisiones o el tablero cambiaron. No se escribe.`);
     return { codigo: 3, plan: p, previo };
   }
-  const archivado = fs.readFileSync(a.archivado, 'utf8');
+  // Con conflictos no se escribe: el ejecutor los saltearía y la corrida
+  // quedaría «terminada» sin poder reintentarlos. Se resuelven antes.
+  if (previo.conflicts.length) {
+    log('✖ Hay conflictos en el destino: no se escribe nada. Revisalos (o ajustá las decisiones) y volvé a correr.');
+    return { codigo: 3, plan: p, previo };
+  }
+  const archivado = leerArchivado(a);
   const r = await runMigration(store, p, { runId: `migracion-${p.fingerprint.slice(0, 16)}`, archivedBackupText: archivado, checkpointEvery: 5 });
   log(`Corrida: ${r.status}${r.reason ? ` (${r.reason})` : ''} ${r.counts ? JSON.stringify(r.counts) : ''}${r.conflicts && r.conflicts.length ? ` · conflictos ${r.conflicts.length}` : ''}`);
   const despues = await dryRun(store, p);
   log(`Destino después: ${JSON.stringify(despues.counts)}`);
   const todo = despues.counts.same === p.ops.length;
-  log(todo ? '✔ Todo migrado: cada documento del plan está en el destino.' : '⚠ No quedó todo: volver a correr el mismo comando la retoma donde quedó.');
+  log(todo ? '✔ Todo migrado: cada documento del plan está en el destino.'
+    : r.status === 'failed' ? '⚠ Se cortó: volver a correr el mismo comando la retoma donde quedó.'
+      : '⚠ No quedó todo y la corrida no se puede retomar sola (conflictos): revisar el destino antes de seguir.');
   return { codigo: r.status === 'done' && todo ? 0 : 1, plan: p, corrida: r, despues };
 }
 
-module.exports = { ejecutar, args, plan, transporte, PROYECTO_REAL, PROYECTO_EMU };
+module.exports = { ejecutar, args, plan, transporte, leerArchivado, PROYECTO_REAL, PROYECTO_EMU };
 
 if (require.main === module) {
   (async () => {

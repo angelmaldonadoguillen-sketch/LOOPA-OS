@@ -226,6 +226,41 @@ service cloud.firestore {
     // Quién ve ventas: una lista de uids que mantiene el admin de plataforma
     // en loopa_config/access.commercialUids. Las ventas no viven en un
     // tablero de producción: los montos no se mezclan con el calendario (D8).
+    // ── LOOPA: configuración comercial y gastos (tanda 3.8) ──────
+    function shortText(v, max) {
+      return v is string && v.size() <= max;
+    }
+    // Lo que trae la migración no cambia; y no se crea desde el navegador.
+    function migrationUntouched(keys) {
+      return resource == null
+             ? !request.resource.data.keys().hasAny(keys)
+             : request.resource.data.diff(resource.data).affectedKeys().hasAny(keys) == false;
+    }
+    function validCommercialConfig() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['payConfig', 'categorias', 'canales', 'gastoTipos', 'moneda', 'migration'])
+             && d.get('payConfig', []) is list && d.get('payConfig', []).size() <= 30
+             && d.get('categorias', []) is list && d.get('categorias', []).size() <= 100
+             && d.get('canales', []) is list && d.get('canales', []).size() <= 100
+             && d.get('gastoTipos', []) is list && d.get('gastoTipos', []).size() <= 100
+             && shortText(d.get('moneda', 'L'), 8)
+             && migrationUntouched(['migration']);
+    }
+    function validExpense(expenseId) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['id', 'kind', 'fecha', 'concepto', 'categoria', 'monto', 'nota', 'activo', 'legacyId', 'legacyRaw', 'migration'])
+             && d.id == expenseId
+             && d.kind in ['variable', 'fixed']
+             && shortText(d.concepto, 200)
+             && shortText(d.categoria, 80)
+             && d.monto is number
+             && shortText(d.get('nota', ''), 1000)
+             && (d.kind == 'fixed'
+                 ? (d.get('activo', true) is bool && !d.keys().hasAny(['fecha']))
+                 : (d.fecha is string && d.fecha.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') && !d.keys().hasAny(['activo'])))
+             && migrationUntouched(['legacyId', 'legacyRaw', 'migration']);
+    }
+
     function isCommercial() {
       return approved()
              && exists(/databases/$(database)/documents/loopa_config/access)
@@ -486,9 +521,14 @@ service cloud.firestore {
       // (sólo ids: la app los necesita para pedir las fichas de cliente).
       // Producción en LOOPA (tanda 3.5): un miembro del tablero de producción
       // también lee cuál es (no ve ventas: eso sigue siendo del equipo comercial).
-      allow read: if isPlatformAdmin() || ((doc == 'access' || doc == 'production') && isCommercial())
+      allow read: if isPlatformAdmin() || ((doc == 'access' || doc == 'production' || doc == 'main') && isCommercial())
                   || (doc == 'production' && resource.data.defaultWorkspaceId is string && isMember(resource.data.defaultWorkspaceId));
+      // LOOPA (tanda 3.8): la configuración comercial (main: formas de pago,
+      // categorías, canales, tipos de gasto, moneda) la edita el equipo
+      // comercial desde LOOPA. Forma cerrada; la marca de la migración no se toca.
+      allow create, update: if doc == 'main' && isCommercial() && validCommercialConfig();
       allow create, update: if isPlatformAdmin()
+                            && (doc != 'main' || validCommercialConfig())
                             && (doc != 'access'
                                 || (request.resource.data.keys().hasOnly(['commercialUids'])
                                     && request.resource.data.commercialUids is list
@@ -501,6 +541,16 @@ service cloud.firestore {
                                     && request.resource.data.allowedWorkspaceIds is list
                                     && request.resource.data.allowedWorkspaceIds.size() <= 20));
       allow delete: if false;
+    }
+
+    // ── LOOPA: gastos (tanda 3.8) ────────────────────────────────
+    // Los gastos variables y fijos del estudio: sólo el equipo comercial (son
+    // montos). Un documento por gasto; la app los edita y los borra. Lo que
+    // trae la migración (legacyId, legacyRaw, migration) no se cambia ni se
+    // inventa desde el navegador.
+    match /loopa_expenses/{expenseId} {
+      allow read, delete: if isCommercial();
+      allow create, update: if isCommercial() && validExpense(expenseId);
     }
 
     // Outbox, correlativo y corridas de migración: sólo el servidor.
