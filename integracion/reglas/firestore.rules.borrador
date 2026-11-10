@@ -9,6 +9,10 @@ rules_version = '2';
 // reglas.test.cjs). Las reglas activas de frame-studio-3a18f no se tocan:
 // publicar esto es parte de la Fase 3 y requiere aprobación explícita.
 //
+// La base incluye el cambio de FRAME publicado el 2026-10-15 que no estaba en
+// el repo (editar con la membresía de hoy: memberOfAnyBoard,
+// visibilityUnchanged). Se recuperó de las reglas activas en el punto A0.
+//
 // Lo que agrega la fusión:
 //   · loopa_sales: sólo lectura para el equipo comercial (D15); se escribe
 //     sólo desde el servidor (createSale/updateSale/addPayment, D9).
@@ -156,6 +160,32 @@ service cloud.firestore {
              || (ids.size() > 2 && isMember(ids[2]))
              || (ids.size() > 3 && isMember(ids[3]))
              || (ids.size() > 4 && isMember(ids[4]));
+    }
+
+    // Miembro de alguno de los tableros donde vive la tarjeta, según la
+    // membresía de HOY (no la foto que quedó en viewerIds al compartirla). Es
+    // la autoridad para editar: cualquier integrante del equipo puede tocar
+    // cualquier tarjeta del tablero, aunque se haya sumado después de crearse.
+    // Las tareas anteriores sin workspaceIds viven en un solo tablero.
+    function memberOfAnyBoard(data) {
+      return data.keys().hasAll(['workspaceIds'])
+             ? memberOfSelectedWorkspace(data)
+             : isMember(data.workspaceId);
+    }
+
+    // Una edición de contenido no cambia en qué tableros se ve la tarjeta: deja
+    // intactos el tablero principal, la lista de tableros y la ACL. Cambiar eso
+    // es otra operación, con sus propias reglas.
+    function visibilityUnchanged() {
+      return request.resource.data.workspaceId == resource.data.workspaceId
+             && (
+               (!resource.data.keys().hasAny(['workspaceIds', 'viewerIds'])
+                && !request.resource.data.keys().hasAny(['workspaceIds', 'viewerIds']))
+               || (resource.data.keys().hasAll(['workspaceIds', 'viewerIds'])
+                   && request.resource.data.keys().hasAll(['workspaceIds', 'viewerIds'])
+                   && request.resource.data.workspaceIds == resource.data.workspaceIds
+                   && request.resource.data.viewerIds == resource.data.viewerIds)
+             );
     }
 
     // ── LOOPA: procedencia de las tareas ─────────────────────────
@@ -328,26 +358,33 @@ service cloud.firestore {
                     && request.resource.data.keys().hasAll(['workspaceIds', 'viewerIds'])
                     && request.resource.data.workspaceIds == [request.resource.data.workspaceId]
                     && request.resource.data.viewerIds == ws(request.resource.data.workspaceId).memberIds;
+      // Editar una tarjeta es cosa de cualquier miembro vivo de alguno de sus
+      // tableros. Antes la autoridad era viewerIds —la foto del equipo tomada al
+      // compartir la tarjeta—: quien entraba al tablero después no figuraba ahí y
+      // no podía tocar nada, y cada cambio de equipo dejaba esa foto vieja, así
+      // que terminaba bloqueando a todos. Ahora manda la membresía de hoy.
       allow update: if (
         // LOOPA: procedencia, entrega de venta y clientId (ver projectEditAllowed).
         projectEditAllowed()
         // LOOPA: el campo id, si cambia, sólo puede ser el id del documento.
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['id']) || request.resource.data.id == doc)
-        && hasProjectAccess(resource.data)
-        && hasProjectAccess(request.resource.data)
-        && validProjectVisibility(request.resource.data)
-        && request.resource.data.workspaceId == resource.data.workspaceId
-        // Sólo un miembro del tablero principal cambia la ACL.
-        && ((memberOfExisting()
-             && (!request.resource.data.keys().hasAny(['workspaceIds', 'viewerIds'])
-                 || validVisibilitySelection(request.resource.data)))
-            || (request.resource.data.keys().hasAll(['workspaceIds', 'viewerIds'])
-                && resource.data.keys().hasAll(['workspaceIds', 'viewerIds'])
-                && request.resource.data.workspaceIds == resource.data.workspaceIds
-                && request.resource.data.viewerIds == resource.data.viewerIds))
+        && ((
+          // A) Contenido: miembro de un tablero de la tarjeta, sin cambiar en qué
+          //    tableros se ve.
+          visibilityUnchanged()
+          && memberOfAnyBoard(resource.data)
+        ) || (
+          // B) Cambiar en qué tableros se ve: miembro del tablero principal, y la
+          //    selección nueva es válida (acá sí se materializa la ACL).
+          request.resource.data.workspaceId == resource.data.workspaceId
+          && hasProjectAccess(request.resource.data)
+          && validProjectVisibility(request.resource.data)
+          && memberOfExisting()
+          && validVisibilitySelection(request.resource.data)
+        ))
       ) || (
-        // Al entrar una persona nueva a un tablero compartido, puede agregarse
-        // únicamente a sí misma a la ACL de las tareas ya vinculadas allí.
+        // C) Al entrar una persona nueva a un tablero compartido, puede agregarse
+        //    únicamente a sí misma a la ACL de las tareas ya vinculadas allí.
         approved()
         && resource.data.keys().hasAll(['workspaceIds', 'viewerIds'])
         && !(myUid() in resource.data.viewerIds)

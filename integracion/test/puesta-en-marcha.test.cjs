@@ -76,16 +76,31 @@ test('reglasParaFrame: el encabezado de FRAME vuelve; las reglas no cambian', ()
   assert.throws(() => A.reglasParaFrame("rules_version = '2';\nservice cloud.firestore {}"));
 });
 
-test('reglasParaFrame contra FRAME: sólo cambia lo de LOOPA (si FRAME_REPO)', { skip: process.env.FRAME_REPO ? false : 'sin FRAME_REPO' }, () => {
-  const { spawnSync } = require('node:child_process');
-  const main = spawnSync('git', ['show', 'main:firestore.rules.v2'], { cwd: process.env.FRAME_REPO, encoding: 'utf8' }).stdout;
-  assert.ok(main && main.length > 1000);
-  const nuevo = A.normalizar(A.reglasParaFrame(BORRADOR)).split('\n');
-  const viejo = A.normalizar(main).split('\n');
-  // Cada línea de main sigue estando, salvo las que el borrador cambió a propósito (LOOPA).
-  const faltan = viejo.filter(l => !nuevo.includes(l));
-  faltan.forEach(l => assert.match(l, /allow (read, )?delete|allow create|allow update|hasProjectAccess\(resource\.data\)/, `línea de FRAME perdida: ${l}`));
-  assert.ok(faltan.length <= 6, `demasiadas líneas de FRAME cambiadas: ${faltan.length}`);
+// La base del borrador son las reglas PUBLICADAS (respaldo de A0, 2026-11-10:
+// incluían un cambio de FRAME del 2026-10-15 que no estaba en su repo).
+test('reglasParaFrame: las reglas publicadas siguen todas, salvo lo que cambia LOOPA', () => {
+  const base = fs.readFileSync(path.join(RAIZ, 'integracion', 'reglas', 'base-frame-publicada.rules'), 'utf8');
+  const lineas = (t) => A.normalizar(t).split('\n').map(l => l.trim());
+  const nuevas = lineas(A.reglasParaFrame(BORRADOR));
+  const nuevo = new Set(nuevas);
+  // Como multiconjunto: una línea repetida en varios bloques cuenta cada vez.
+  const cuenta = {};
+  nuevas.forEach(l => { cuenta[l] = (cuenta[l] || 0) + 1; });
+  const faltan = lineas(base).filter(l => !(cuenta[l]-- > 0));
+  // Sólo las 4 que LOOPA reemplaza a propósito (borrar tareas de venta, fichas con ventas).
+  assert.deepEqual(faltan, [
+    'allow delete: if memberOfExisting();',
+    'allow read, delete: if memberOfExisting();',
+    'allow create:       if memberOfIncoming();',
+    'allow update:       if memberOfExisting() && memberOfIncoming();',
+  ]);
+  // Y lo publicado el 2026-10-15 está.
+  ['function memberOfAnyBoard(data) {', 'function visibilityUnchanged() {', '&& memberOfAnyBoard(resource.data)'].forEach(l => assert.ok(nuevo.has(l), l));
+});
+
+test('reglasParaFrame: el archivo de FRAME es el generado (si FRAME_REPO)', { skip: process.env.FRAME_REPO ? false : 'sin FRAME_REPO' }, () => {
+  const frame = fs.readFileSync(path.join(process.env.FRAME_REPO, 'firestore.rules.v2'), 'utf8');
+  assert.ok(A.mismasReglas(frame, A.reglasParaFrame(BORRADOR)), 'correr reglas-para-frame.cjs --escribir');
 });
 
 const LISTO = {
@@ -168,6 +183,16 @@ test('evaluarProyecto: reglas activas', () => {
   assert.equal(estados(A.evaluarProyecto(despuesDeA1))['reglas-activas'], 'ok');
   // Antes del commit de la fusión en FRAME: igual.
   assert.equal(estados(A.evaluarProyecto({ ...PROY, versionesFrame: PROY.versionesFrame.slice(1) }))['reglas-activas'], 'ok');
+});
+
+test('evaluarProyecto: con el respaldo de A0 como base (A3/A4)', () => {
+  // A0 encontró reglas publicadas que no estaban en el repo; las nuevas se
+  // armaron sobre ese respaldo, así que la referencia es el respaldo.
+  const conBase = { ...PROY, reglasActivas: 'vivo', reglasBase: 'vivo\r\n' };
+  assert.equal(estados(A.evaluarProyecto(conBase))['reglas-activas'], 'ok');
+  assert.equal(estados(A.evaluarProyecto({ ...conBase, reglasActivas: 'otra' }))['reglas-activas'], 'falta', 'alguien publicó después de A0');
+  assert.equal(estados(A.evaluarProyecto({ ...conBase, reglasActivas: 'fusion' }))['reglas-activas'], 'aviso', 'ya publicadas');
+  assert.equal(estados(A.evaluarProyecto({ ...PROY, reglasActivas: 'vivo' }))['reglas-activas'], 'falta', 'sin base: no está en el repo');
 });
 
 test('evaluarProyecto: una lectura fallida nunca cuenta como «todo bien»', () => {

@@ -18,7 +18,8 @@ if (!EMU && process.env.REQUIRE_EMULATOR === '1') throw new Error('REQUIRE_EMULA
 const skip = EMU ? false : 'sin emulador de Firestore (node integracion/emulador/correr.cjs)';
 
 const ARCHIVOS = [['borrador', path.join(__dirname, '..', 'reglas', 'firestore.rules.borrador')]];
-if (process.env.LOOPA_REGLAS_ACTIVAS) ARCHIVOS.push(['activas', path.resolve(process.env.LOOPA_REGLAS_ACTIVAS)]);
+// Una ruta relativa es relativa a la raíz del repo (el emulador corre en otra carpeta).
+if (process.env.LOOPA_REGLAS_ACTIVAS) ARCHIVOS.push(['activas', path.resolve(__dirname, '..', '..', process.env.LOOPA_REGLAS_ACTIVAS)]);
 
 ARCHIVOS.forEach(([nombre, archivo], n) => {
   let env;

@@ -163,6 +163,21 @@ test('tarea de una venta: el equipo la trabaja, pero no toca procedencia, entreg
   await no(fsMod.getDoc(ref(as('u3'), 'frame_projects', 'tSale')), 'otro tablero no la ve (FRAME)');
 });
 
+// Punto A0: las reglas activas traían un cambio de FRAME (2026-10-15) que no
+// estaba en el repo: edita la membresía de HOY, no la foto de viewerIds. u5
+// entró a ws1 pero no figura en viewerIds de las tareas.
+test('quien entró después al tablero edita, con los límites de LOOPA', { skip }, async () => {
+  const t = ref(as('u5'), 'frame_projects', 'tSale');
+  await ok(fsMod.updateDoc(t, { checklist: [{ id: 'k1', text: 'Grabar', done: true }] }), 'miembro de hoy edita el contenido');
+  await no(fsMod.updateDoc(t, { deadline: '2026-11-30' }), 'pero la entrega de la venta no');
+  await no(fsMod.updateDoc(t, { sourceSaleStatus: 'cancelled' }), 'ni la procedencia');
+  await no(fsMod.updateDoc(t, { viewerIds: ['u5'] }), 'el contenido no cambia la ACL');
+  await ok(fsMod.updateDoc(ref(as('u5'), 'frame_projects', 'tManual'), { deadline: '2026-11-26' }), 'en una manual, la entrega sí');
+  await ok(fsMod.updateDoc(ref(as('u5'), 'frame_projects', 'tLegacy'), { status: 'done' }), 'tarea vieja sin workspaceIds: por su tablero');
+  await no(fsMod.updateDoc(ref(as('u3'), 'frame_projects', 'tManual'), { title: 'x' }), 'de otro tablero, no');
+  await no(fsMod.updateDoc(ref(as('pend'), 'frame_projects', 'tManual'), { title: 'x' }), 'miembro pendiente, no');
+});
+
 test('tarea manual: reglas de FRAME intactas (entrega editable, se puede borrar)', { skip }, async () => {
   const t = ref(as('u2'), 'frame_projects', 'tManual');
   await ok(fsMod.updateDoc(t, { deadline: '2026-11-25' }), 'entrega editable');

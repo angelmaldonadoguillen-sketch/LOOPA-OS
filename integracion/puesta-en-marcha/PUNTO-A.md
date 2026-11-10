@@ -1,6 +1,8 @@
 # Punto A — publicar la fusión en frame-studio-3a18f
 
-Fecha de preparación: 2026-11-10. Estado: **preparado, nada ejecutado.**
+Fecha de preparación: 2026-11-10. Estado: **A0 hecho el 2026-11-10** (respaldo `respaldo/2026-11-10-101612`, ver ADR-0004 §14). A1–A4 sin ejecutar.
+
+Desde A3, los chequeos llevan `--base integracion/puesta-en-marcha/respaldo/2026-11-10-101612`. Las reglas nuevas se armaron sobre ese respaldo, así que lo único que importa es que nadie haya publicado otra cosa después.
 
 Cada paso marcado 🔒 cambia o lee algo real. Se hace sólo con un «sí» explícito de Ángel para ESE paso. Ningún «sí» anterior lo cubre.
 
@@ -110,7 +112,7 @@ firebase deploy --only functions:loopa --project frame-studio-3a18f
 
 ## A3 · Invocación de las callables 🔒 (IAM), sólo si hace falta
 
-Volver a correr el chequeo de A0. Ahora informa cada callable de LOOPA.
+Volver a correr el chequeo con `--leer-proyecto` y `--base`. Ahora informa cada callable de LOOPA.
 
 Si alguna dice «no acepta llamadas desde el navegador», hay que abrirla. Es la misma situación que el 403 de `reservePortfolioAsset` (`FIREBASE-PENDIENTE.md` §1 en FRAME). Abrirla es lo normal para una `onCall`: la seguridad la hace la función, que exige sesión, usuario aprobado y estar en `commercialUids`.
 
@@ -123,7 +125,7 @@ Si alguna dice «no acepta llamadas desde el navegador», hay que abrirla. Es la
 Recién cuando el equipo ya recargó FRAME (A1). Antes:
 
 ```bash
-node integracion/puesta-en-marcha/chequeo-a.cjs --leer-proyecto --frame "<repo FRAME>"
+node integracion/puesta-en-marcha/chequeo-a.cjs --leer-proyecto --frame "<repo FRAME>" --base integracion/puesta-en-marcha/respaldo/2026-11-10-101612
 node integracion/emulador/correr.cjs
 ```
 

@@ -501,3 +501,30 @@ La revisión también confirmó:
 - las formas de las APIs son correctas;
 - el token no se imprime;
 - no hacen falta índices.
+
+## 14. A0 hecho (2026-11-10, sólo lectura)
+
+Corrido con aprobación («Sí, corré A0»). El respaldo está en `integracion/puesta-en-marcha/respaldo/2026-11-10-101612/`, fuera de git: reglas de Firestore y de Storage, releases, funciones e informe.
+
+**Lo que se encontró:**
+- **Base de datos:** está en `us-central1`, así que el trigger sirve tal como está.
+- **Funciones de FRAME:**
+  - son 6: `accountPortfolioAsset`, `carryOverIncompleteTasks`, `purgeExpiredTrash`, `releaseExpiredPortfolioReservations`, `releasePortfolioAsset` y `reservePortfolioAsset`;
+  - ningún nombre choca con los de LOOPA.
+- **Invocación:**
+  - la callable de FRAME **no** está abierta a `allUsers` (de ahí su 403);
+  - el proyecto no pertenece a una organización, así que no hay política que lo impida;
+  - después de A2 hay que verificar las de LOOPA (A3).
+- **Reglas activas** (publicadas el 2026-10-15): **no eran ninguna versión del repo de FRAME.**
+  - Tienen un cambio que nunca llegó al repo: edita la tarjeta cualquier miembro de hoy de alguno de sus tableros, no la foto de `viewerIds` (`memberOfAnyBoard`, `visibilityUnchanged`).
+  - Publicar el borrador de antes lo hubiera deshecho sin aviso: quien entró a un tablero después de crearse una tarjeta habría vuelto a no poder editarla.
+  - Ninguna otra cosa difiere de `55a4976`.
+- **§7.3:** las reglas activas, probadas en el emulador, niegan escribir `loopa_config`, eventos, ventas y el correlativo, y que alguien se apruebe o se haga admin a sí mismo.
+
+**Qué se hizo con eso:**
+- El borrador ahora parte de lo publicado. `integracion/reglas/base-frame-publicada.rules` es la copia de referencia, y lo de LOOPA sigue encima: en la edición se aplican primero sus límites (procedencia, entrega, `clientId`, id) y después las ramas A y B de FRAME.
+- **Pruebas:**
+  - `puesta-en-marcha.test.cjs` comprueba que cada línea publicada sigue en las reglas nuevas, salvo las 4 que LOOPA reemplaza a propósito;
+  - `reglas.test.cjs` suma «quien entró después al tablero edita, con los límites de LOOPA».
+- **FRAME:** `firestore.rules.v2` se regeneró; `workspace-visibility-contract.test.js` ahora verifica la regla de edición publicada.
+- **Chequeo:** la opción `--base <respaldo>` compara las reglas activas con el respaldo de A0. Desde A3 se usa así, y vuelta a correr dio sin bloqueos.

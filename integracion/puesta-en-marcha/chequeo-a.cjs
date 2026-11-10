@@ -31,6 +31,11 @@ const LEER = args.includes('--leer-proyecto');
 const iFrame = args.indexOf('--frame');
 const FRAME = iFrame >= 0 ? args[iFrame + 1] : process.env.FRAME_REPO;
 const RAMA = 'fusion/reglas-loopa';
+// --base <carpeta de respaldo de A0>: las reglas activas se comparan con ese
+// respaldo (A3/A4), no con la historia de FRAME.
+const iBase = args.indexOf('--base');
+const BASE = iBase >= 0 ? path.resolve(args[iBase + 1] || '', 'firestore.rules') : null;
+if (BASE && !fs.existsSync(BASE)) { console.error(`✖ No existe ${BASE}`); process.exit(2); }
 
 const git = (cwd, ...a) => {
   const r = spawnSync('git', a, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
@@ -74,7 +79,11 @@ function local() {
 function token() {
   // Un comando de lectura del CLI renueva la sesión si hace falta (y de paso
   // confirma que el CLI ve el proyecto).
-  const r = spawnSync('firebase', ['functions:list', '--project', A.PROYECTO], { encoding: 'utf8', shell: process.platform === 'win32' });
+  // En Windows el CLI se busca con el shell: el comando va en un solo texto
+  // (fijo, sin datos de afuera).
+  const r = process.platform === 'win32'
+    ? spawnSync(`firebase functions:list --project ${A.PROYECTO}`, { encoding: 'utf8', shell: true })
+    : spawnSync('firebase', ['functions:list', '--project', A.PROYECTO], { encoding: 'utf8' });
   if (r.status !== 0) throw new Error('El Firebase CLI no pudo leer el proyecto (¿firebase login?).');
   const f = path.join(os.homedir(), '.config', 'configstore', 'firebase-tools.json');
   const t = JSON.parse(fs.readFileSync(f, 'utf8')).tokens || {};
@@ -154,6 +163,7 @@ async function proyecto(reglasNuevas, frame) {
     funciones, inalcanzables, iamFrame, iamLoopa, proyecto: pr.error ? pr : { parent: pr.parent || null },
     politicaDominios, reglasActivas, reglasNuevas,
     versionesFrame: frame ? versionesFrame(frame) : [],
+    reglasBase: BASE ? fs.readFileSync(BASE, 'utf8') : undefined,
   });
   return { items, dir };
 }

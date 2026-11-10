@@ -179,7 +179,8 @@ const abiertaATodos = (politica) => ((politica && politica.bindings) || [])
 //      reglasActivas: texto|null, reglasNuevas: texto,
 //      versionesFrame: [{commit, texto}] del archivo de reglas de FRAME, de la
 //        más nueva a la más vieja (un valor FIJO: no depende de dónde esté
-//        main, así el chequeo sirve igual antes y después de A1) }
+//        main, así el chequeo sirve igual antes y después de A1),
+//      reglasBase: texto del respaldo de A0 (--base) | undefined }
 function evaluarProyecto(d) {
   const out = [];
   // 1. Ubicación de la base.
@@ -223,6 +224,13 @@ function evaluarProyecto(d) {
   const igual = previas.findIndex(v => mismasReglas(d.reglasActivas, v.texto));
   if (d.reglasActivas == null) out.push(item('reglas-activas', 'falta', 'No se pudieron leer las reglas activas de Firestore: sin respaldo no se publica.'));
   else if (mismasReglas(d.reglasActivas, d.reglasNuevas)) out.push(item('reglas-activas', 'aviso', 'Las reglas activas YA son las de la fusión.'));
+  // Con --base: el respaldo de A0 es la referencia fija (las reglas nuevas se
+  // armaron sobre él). Sólo importa que nadie haya publicado otra cosa después.
+  else if (d.reglasBase != null) {
+    out.push(mismasReglas(d.reglasActivas, d.reglasBase)
+      ? item('reglas-activas', 'ok', 'Las reglas activas siguen siendo las del respaldo de A0 (sobre las que se armaron las nuevas).')
+      : item('reglas-activas', 'falta', 'Las reglas activas CAMBIARON desde el respaldo de A0: alguien publicó otra cosa. Comparar antes de publicar.'));
+  }
   else if (!previas.length) out.push(item('reglas-activas', 'falta', 'No se encontraron versiones de firestore.rules.v2 en el repo de FRAME para comparar.'));
   else if (igual === 0) out.push(item('reglas-activas', 'ok', `Las reglas activas son la última versión de FRAME antes de la fusión (commit ${String(previas[0].commit).slice(0, 7)}): publicar encima no pierde nada.`));
   else if (igual > 0) out.push(item('reglas-activas', 'aviso', `Las reglas activas son una versión VIEJA de FRAME (commit ${String(previas[igual].commit).slice(0, 7)}): publicar también estrena lo de FRAME que nunca se publicó.`));

@@ -1,0 +1,669 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────
+// FRAME Studio Manager — Reglas v2: tableros (workspaces)
+//
+// Estas son las reglas que espera el código de hoy: tableros, portal del
+// cliente y portfolio. Es el único archivo de reglas del proyecto
+// frame-studio-3a18f y el que apunta firebase.json.
+//
+// Se publican con: firebase deploy --only firestore:rules
+// Antes de publicar, correr las pruebas de contrato (node security-contract.test.js
+// y las demás *-contract*), que leen este archivo.
+//
+// ── El modelo ──
+// Dos niveles de permiso, que hoy están mezclados en uno solo:
+//
+//   1. APROBACIÓN DE PLATAFORMA — frame_users/{uid}.status == 'active'
+//      Decide quién puede usar FRAME. La otorga un platformAdmin.
+//
+//   2. PERTENENCIA A UN TABLERO — uid dentro de workspace.memberIds
+//      Decide qué ve cada quien. Un usuario aprobado sin tablero no ve
+//      absolutamente nada.
+//
+// ── Por qué memberIds es un array y no una subcolección ──
+// Las reglas de Firestore no pueden contar documentos de una subcolección,
+// así que el límite de 6 personas sería inaplicable desde el servidor y
+// quedaría sólo en la interfaz — es decir, se saltaría desde la consola del
+// navegador. Con un array se valida con memberIds.size() <= 6.
+// ─────────────────────────────────────────────────────────────────────
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function myUid() {
+      return request.auth.uid;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/frame_users/$(myUid())).data;
+    }
+
+    function userExists() {
+      return exists(/databases/$(database)/documents/frame_users/$(myUid()));
+    }
+
+    // Nivel 1: aprobado para usar la plataforma.
+    function approved() {
+      return signedIn() && userExists() && userDoc().status == 'active';
+    }
+
+    function isPlatformAdmin() {
+      return approved() && userDoc().platformAdmin == true;
+    }
+
+    function ws(wsId) {
+      return get(/databases/$(database)/documents/frame_workspaces/$(wsId)).data;
+    }
+
+    function wsExists(wsId) {
+      return exists(/databases/$(database)/documents/frame_workspaces/$(wsId));
+    }
+
+    // Nivel 2: pertenece a ese tablero.
+    function isMember(wsId) {
+      return approved() && wsExists(wsId) && myUid() in ws(wsId).memberIds;
+    }
+
+    // Los datos de un proyecto/cliente viven o van a vivir en un tablero.
+    // En create hay que mirar el documento entrante; en el resto, el guardado.
+    function memberOfIncoming() {
+      return isMember(request.resource.data.workspaceId);
+    }
+    function memberOfExisting() {
+      return isMember(resource.data.workspaceId);
+    }
+
+    // Las tareas nuevas pueden aparecer en varios tableros sin duplicarse.
+    // viewerIds materializa la unión de miembros para que tanto las consultas
+    // como Storage puedan autorizar sin recorrer una cantidad variable de
+    // documentos. Las tareas antiguas siguen usando workspaceId.
+    function hasProjectAccess(data) {
+      return approved() && (
+        (data.keys().hasAll(['viewerIds'])
+         && data.viewerIds is list
+         && myUid() in data.viewerIds)
+        || isMember(data.workspaceId)
+      );
+    }
+
+    function validProjectVisibility(data) {
+      return (
+        // Compatibilidad no destructiva con tareas anteriores.
+        (!data.keys().hasAny(['workspaceIds', 'viewerIds']))
+        ||
+        (data.keys().hasAll(['workspaceIds', 'viewerIds'])
+         && data.workspaceIds is list
+         && data.viewerIds is list
+         && data.workspaceIds.size() >= 1
+         && data.workspaceIds.size() <= 5
+         && data.viewerIds.size() >= 1
+         && data.viewerIds.size() <= 30
+         && data.workspaceId in data.workspaceIds
+         && myUid() in data.viewerIds)
+      );
+    }
+
+    function selectedWorkspaceMembers(data) {
+      let ids = data.workspaceIds;
+      let members = ws(ids[0]).memberIds.toSet();
+      return members
+        .union(ids.size() > 1 ? ws(ids[1]).memberIds.toSet() : [].toSet())
+        .union(ids.size() > 2 ? ws(ids[2]).memberIds.toSet() : [].toSet())
+        .union(ids.size() > 3 ? ws(ids[3]).memberIds.toSet() : [].toSet())
+        .union(ids.size() > 4 ? ws(ids[4]).memberIds.toSet() : [].toSet());
+    }
+
+    function validVisibilitySelection(data) {
+      let ids = data.workspaceIds;
+      return isMember(ids[0])
+             && (ids.size() < 2 || isMember(ids[1]))
+             && (ids.size() < 3 || isMember(ids[2]))
+             && (ids.size() < 4 || isMember(ids[3]))
+             && (ids.size() < 5 || isMember(ids[4]))
+             && data.viewerIds.toSet() == selectedWorkspaceMembers(data);
+    }
+
+    function memberOfSelectedWorkspace(data) {
+      let ids = data.workspaceIds;
+      return isMember(ids[0])
+             || (ids.size() > 1 && isMember(ids[1]))
+             || (ids.size() > 2 && isMember(ids[2]))
+             || (ids.size() > 3 && isMember(ids[3]))
+             || (ids.size() > 4 && isMember(ids[4]));
+    }
+
+    // Miembro de alguno de los tableros donde vive la tarjeta, según la
+    // membresía de HOY (no la foto que quedó en viewerIds al compartirla). Es
+    // la autoridad para editar: cualquier integrante del equipo puede tocar
+    // cualquier tarjeta del tablero, aunque se haya sumado después de crearse.
+    // Las tareas anteriores sin workspaceIds viven en un solo tablero.
+    function memberOfAnyBoard(data) {
+      return data.keys().hasAll(['workspaceIds'])
+             ? memberOfSelectedWorkspace(data)
+             : isMember(data.workspaceId);
+    }
+
+    // Una edición de contenido no cambia en qué tableros se ve la tarjeta: deja
+    // intactos el tablero principal, la lista de tableros y la ACL. Cambiar eso
+    // es otra operación, con sus propias reglas.
+    function visibilityUnchanged() {
+      return request.resource.data.workspaceId == resource.data.workspaceId
+             && (
+               (!resource.data.keys().hasAny(['workspaceIds', 'viewerIds'])
+                && !request.resource.data.keys().hasAny(['workspaceIds', 'viewerIds']))
+               || (resource.data.keys().hasAll(['workspaceIds', 'viewerIds'])
+                   && request.resource.data.keys().hasAll(['workspaceIds', 'viewerIds'])
+                   && request.resource.data.workspaceIds == resource.data.workspaceIds
+                   && request.resource.data.viewerIds == resource.data.viewerIds)
+             );
+    }
+
+    // ── Tableros ─────────────────────────────────────────────────
+    match /frame_workspaces/{wsId} {
+
+      // Se mira resource.data directamente en vez de isMember(), que haría un
+      // get() del mismo documento que se está leyendo. En una consulta de
+      // lista —que es como la app pide los tableros del usuario— Firestore ya
+      // tiene el documento a mano; el get() sobra y hace fallar la consulta.
+      allow read: if approved() && myUid() in resource.data.memberIds;
+
+      // Crear: sólo para uno mismo, arrancando como único miembro y dueño.
+      // Sin esto, alguien podría crear un tablero poniendo a otro de dueño.
+      allow create: if approved()
+                    && request.resource.data.ownerId == myUid()
+                    && request.resource.data.memberIds == [myUid()]
+                    && request.resource.data.kind in ['personal', 'team'];
+
+      // Actualizar: cualquier miembro puede editar el tablero (nombre, etc.),
+      // pero el dueño no se puede cambiar y el límite de 6 es infranqueable.
+      // Los tableros personales no admiten un segundo miembro.
+      // Dos caminos distintos, y por eso el OR:
+      //
+      //   1. Un miembro editando su tablero.
+      //   2. Un invitado entrando. Este NO es miembro todavía, así que no
+      //      puede pasar por el primero — pero sólo se le permite agregarse
+      //      a sí mismo, y únicamente si existe una invitación para su email.
+      //
+      // Igual que en read, se usa resource.data en vez de isMember()/isOwner():
+      // traerían con get() el mismo documento que la operación ya tiene.
+      allow update: if approved() && (
+
+        ( myUid() in resource.data.memberIds
+          && request.resource.data.ownerId == resource.data.ownerId
+          && request.resource.data.kind    == resource.data.kind
+          && request.resource.data.memberIds.size() <=
+             (resource.data.kind == 'personal' ? 1 : 6)
+          // Sólo el dueño toca la lista de miembros; el resto puede editar
+          // todo lo demás pero no invitar ni expulsar.
+          && (request.resource.data.memberIds == resource.data.memberIds
+              || resource.data.ownerId == myUid()
+              // salvo irse por cuenta propia
+              || (request.resource.data.memberIds ==
+                  resource.data.memberIds.removeAll([myUid()]))) )
+
+        ||
+
+        ( !(myUid() in resource.data.memberIds)
+          && resource.data.kind == 'team'
+          && request.resource.data.ownerId == resource.data.ownerId
+          && request.resource.data.kind    == resource.data.kind
+          // Exactamente él mismo, ni uno más.
+          && request.resource.data.memberIds == resource.data.memberIds.concat([myUid()])
+          && request.resource.data.memberIds.size() <= 6
+          && exists(/databases/$(database)/documents/frame_invites/$(wsId + '__' + request.auth.token.email)) )
+      );
+
+      // El dueño puede borrar cualquier tablero suyo, personal incluido.
+      // Antes sólo se permitía borrar los de equipo, con lo cual los tableros
+      // personales duplicados —que se generaron cuando el listener fallaba y
+      // el alta automática los leía como "no tiene ninguno"— quedaban para
+      // siempre y sin forma de limpiarlos desde la app.
+      // Que no se quede sin ninguno se controla en la interfaz: es una regla
+      // de usabilidad, no de seguridad.
+      allow delete: if approved() && resource.data.ownerId == myUid();
+
+      // ── Config por tablero ──
+      // kanban_columns, project_types, display_settings. Antes eran
+      // singletons globales en frame_config: con varios tableros, las
+      // columnas de uno se le aplicaban a todos.
+      match /config/{doc} {
+        allow read, write: if isMember(wsId)
+                           && doc in ['kanban_columns', 'project_types', 'display_settings', 'daily_routine'];
+      }
+
+    }
+
+    // ── Invitaciones ─────────────────────────────────────────────
+    // Va en la raíz y no dentro del tablero a propósito: el invitado todavía
+    // no es miembro, así que no puede leer nada de adentro. Acá puede
+    // consultar las suyas filtrando por su email.
+    //
+    // El id es workspaceId + '__' + email, para que la regla de alta del
+    // tablero pueda comprobar que existe sin tener que buscarla.
+    //
+    // La invitación lleva copiado el nombre del tablero: sin eso el invitado
+    // vería una invitación sin poder saber a qué lo invitan.
+    match /frame_invites/{inviteId} {
+
+      allow read: if signedIn() && (
+        resource.data.email == request.auth.token.email
+        || myUid() in ws(resource.data.workspaceId).memberIds
+      );
+
+      allow create: if approved()
+                    && ws(request.resource.data.workspaceId).ownerId == myUid()
+                    && ws(request.resource.data.workspaceId).kind == 'team'
+                    && inviteId == request.resource.data.workspaceId + '__' + request.resource.data.email;
+
+      // La borra quien invitó (se arrepintió) o el invitado (al aceptar o
+      // rechazar). Que el invitado pueda borrarla es lo que evita que una
+      // invitación usada quede sirviendo para volver a entrar.
+      allow delete: if signedIn() && (
+        resource.data.email == request.auth.token.email
+        || ws(resource.data.workspaceId).ownerId == myUid()
+      );
+    }
+
+    // ── Datos del tablero ────────────────────────────────────────
+    match /frame_projects/{doc} {
+      allow read: if hasProjectAccess(resource.data);
+      // El borrado completo permanece reservado al tablero principal. Desde
+      // otro tablero se puede dejar de mostrar, pero no destruir para todos.
+      allow delete: if memberOfExisting();
+      allow create: if memberOfIncoming()
+                    && validProjectVisibility(request.resource.data)
+                    && validVisibilitySelection(request.resource.data)
+                    && request.resource.data.keys().hasAll(['workspaceIds', 'viewerIds'])
+                    && request.resource.data.workspaceIds == [request.resource.data.workspaceId]
+                    && request.resource.data.viewerIds == ws(request.resource.data.workspaceId).memberIds;
+      // Editar una tarjeta es cosa de cualquier miembro vivo de alguno de sus
+      // tableros. Antes la autoridad era viewerIds —la foto del equipo tomada al
+      // compartir la tarjeta—: quien entraba al tablero después no figuraba ahí y
+      // no podía tocar nada, y cada cambio de equipo dejaba esa foto vieja, así
+      // que terminaba bloqueando a todos. Ahora manda la membresía de hoy.
+      allow update: if (
+        // A) Contenido: miembro de un tablero de la tarjeta, sin cambiar en qué
+        //    tableros se ve.
+        visibilityUnchanged()
+        && memberOfAnyBoard(resource.data)
+      ) || (
+        // B) Cambiar en qué tableros se ve: miembro del tablero principal, y la
+        //    selección nueva es válida (acá sí se materializa la ACL).
+        request.resource.data.workspaceId == resource.data.workspaceId
+        && hasProjectAccess(request.resource.data)
+        && validProjectVisibility(request.resource.data)
+        && memberOfExisting()
+        && validVisibilitySelection(request.resource.data)
+      ) || (
+        // C) Al entrar una persona nueva a un tablero compartido, puede agregarse
+        //    únicamente a sí misma a la ACL de las tareas ya vinculadas allí.
+        approved()
+        && resource.data.keys().hasAll(['workspaceIds', 'viewerIds'])
+        && !(myUid() in resource.data.viewerIds)
+        && memberOfSelectedWorkspace(resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewerIds'])
+        && request.resource.data.viewerIds == resource.data.viewerIds.concat([myUid()])
+        && request.resource.data.viewerIds.size() <= 30
+      );
+
+      match /comments/{commentId} {
+        function parentProject() {
+          return get(/databases/$(database)/documents/frame_projects/$(doc)).data;
+        }
+
+        allow read: if hasProjectAccess(parentProject());
+        allow create: if hasProjectAccess(parentProject())
+                      && request.resource.data.id == commentId
+                      && request.resource.data.userId == myUid()
+                      && request.resource.data.text is string
+                      && request.resource.data.text.size() > 0
+                      && request.resource.data.text.size() <= 5000
+                      && request.resource.data.at is string;
+        allow update: if false;
+        allow delete: if hasProjectAccess(parentProject())
+                      && resource.data.userId == myUid();
+      }
+
+      match /activity/{activityId} {
+        function parentProject() {
+          return get(/databases/$(database)/documents/frame_projects/$(doc)).data;
+        }
+
+        allow read: if hasProjectAccess(parentProject());
+        // El historial es inmutable: cada persona sólo puede agregar un evento
+        // propio, nunca modificar o borrar el rastro de otra persona.
+        allow create: if hasProjectAccess(parentProject())
+                      && request.resource.data.id == activityId
+                      && request.resource.data.actorId == myUid()
+                      && request.resource.data.actorName is string
+                      && request.resource.data.summary is string
+                      && request.resource.data.summary.size() > 0
+                      && request.resource.data.summary.size() <= 300
+                      && request.resource.data.at is string;
+        allow update, delete: if false;
+      }
+    }
+
+    match /frame_clients/{doc} {
+      allow read, delete: if memberOfExisting();
+      allow create:       if memberOfIncoming();
+      allow update:       if memberOfExisting() && memberOfIncoming();
+    }
+
+    // ── Portfolio personal ──────────────────────────────────────
+    // El id siempre es el uid: existe exactamente una web por cuenta, sin
+    // importar desde qué tablero se abra. El borrador permanece privado y la
+    // copia pública no expone tareas, clientes ni configuración de FRAME.
+    match /frame_portfolio_drafts/{uid} {
+      function validDraft(data) {
+        return data.keys().hasOnly(['ownerId', 'title', 'chunkCount', 'version', 'contentHash', 'schemaVersion', 'updatedAt'])
+               && data.keys().hasAll(['ownerId', 'title', 'chunkCount', 'version', 'contentHash', 'schemaVersion', 'updatedAt'])
+               && data.ownerId == uid
+               && data.title is string
+               && data.title.size() > 0
+               && data.title.size() <= 200
+               && data.chunkCount is int
+               && data.chunkCount >= 1
+               && data.chunkCount <= 10
+               && data.version is string
+               && data.version.matches('^[a-f0-9]{32}$')
+               && data.contentHash is string
+               && data.contentHash.matches('^[a-f0-9]{8}$')
+               && data.schemaVersion == 1
+               && data.updatedAt == request.time;
+      }
+
+      allow get: if approved() && myUid() == uid;
+      allow list: if false;
+      allow create, update: if approved() && myUid() == uid && validDraft(request.resource.data);
+      allow delete: if approved() && myUid() == uid;
+
+      match /chunks/{chunkId} {
+        function validDraftChunk(data) {
+          return data.keys().hasOnly(['ownerId', 'index', 'version', 'payload'])
+                 && data.keys().hasAll(['ownerId', 'index', 'version', 'payload'])
+                 && data.ownerId == uid
+                 && data.index is int
+                 && data.index >= 0
+                 && data.index < 10
+                 && chunkId.matches('^0[0-9]$')
+                 && data.version is string
+                 && data.version.matches('^[a-f0-9]{32}$')
+                 && data.payload is string
+                 && data.payload.size() > 0
+                 && data.payload.size() <= 400000;
+        }
+        allow get: if approved() && myUid() == uid;
+        allow list: if false;
+        allow create, update: if approved() && myUid() == uid && validDraftChunk(request.resource.data);
+        allow delete: if approved() && myUid() == uid;
+      }
+    }
+
+    match /frame_portfolios/{uid} {
+      function validPublication(data) {
+        return data.keys().hasOnly(['ownerId', 'title', 'published', 'chunkCount', 'version', 'contentHash', 'schemaVersion', 'updatedAt'])
+               && data.keys().hasAll(['ownerId', 'title', 'published', 'chunkCount', 'version', 'contentHash', 'schemaVersion', 'updatedAt'])
+               && data.ownerId == uid
+               && data.title is string
+               && data.title.size() > 0
+               && data.title.size() <= 200
+               && data.published is bool
+               && data.chunkCount is int
+               && data.chunkCount >= 1
+               && data.chunkCount <= 10
+               && data.version is string
+               && data.version.matches('^[a-f0-9]{32}$')
+               && data.contentHash is string
+               && data.contentHash.matches('^[a-f0-9]{8}$')
+               && data.schemaVersion == 1
+               && data.updatedAt == request.time;
+      }
+
+      allow get: if resource.data.published == true || (approved() && myUid() == uid);
+      allow list: if false;
+      allow create: if approved() && myUid() == uid && validPublication(request.resource.data);
+      allow update: if approved() && myUid() == uid
+                    && request.resource.data.ownerId == resource.data.ownerId
+                    && validPublication(request.resource.data);
+      allow delete: if approved() && myUid() == uid;
+
+      match /chunks/{chunkId} {
+        function publication() {
+          return get(/databases/$(database)/documents/frame_portfolios/$(uid)).data;
+        }
+        function validChunk(data) {
+          return data.keys().hasOnly(['ownerId', 'index', 'version', 'payload'])
+                 && data.keys().hasAll(['ownerId', 'index', 'version', 'payload'])
+                 && data.ownerId == uid
+                 && data.index is int
+                 && data.index >= 0
+                 && data.index < 10
+                 && chunkId.matches('^0[0-9]$')
+                 && data.version is string
+                 && data.version.matches('^[a-f0-9]{32}$')
+                 && data.payload is string
+                 && data.payload.size() > 0
+                 && data.payload.size() <= 400000;
+        }
+
+        allow get: if (
+          publication().published == true
+          && resource.data.version == publication().version
+          && resource.data.index < publication().chunkCount
+        ) || (approved() && myUid() == uid);
+        allow list: if false;
+        allow create, update: if approved() && myUid() == uid && validChunk(request.resource.data);
+        allow delete: if approved() && myUid() == uid;
+      }
+    }
+
+    // Las funciones administradoras contabilizan bytes y crean reservas.
+    // El navegador sólo puede leer su consumo; nunca alterarlo.
+    match /frame_portfolio_usage/{uid} {
+      allow get: if approved() && myUid() == uid;
+      allow list, create, update, delete: if false;
+    }
+    match /frame_portfolio_uploads/{uid}/portfolio_assets/{assetId} {
+      allow get: if approved() && myUid() == uid;
+      allow list, create, update, delete: if false;
+    }
+
+    // ── Portales de cliente ─────────────────────────────────────
+    // El id aleatorio funciona como capacidad de lectura. El visitante sólo
+    // puede pedir un documento exacto y publicado; nunca listar portales ni
+    // consultar las tareas internas del estudio.
+    match /frame_client_portals/{token} {
+      function validPortal(data) {
+        return token.size() == 48
+               && data.keys().hasOnly(['workspaceId', 'clientId', 'clientName', 'clientInitials', 'clientColor', 'studioName', 'studioAvatar', 'published', 'updatedAt', 'taskIds', 'tasks'])
+               && data.keys().hasAll(['workspaceId', 'clientId', 'clientName', 'studioName', 'published', 'updatedAt', 'taskIds', 'tasks'])
+               && data.workspaceId is string
+               && data.clientId is string
+               && data.clientName is string
+               && data.clientName.size() <= 200
+               && (!data.keys().hasAny(['clientInitials']) || (data.clientInitials is string && data.clientInitials.size() > 0 && data.clientInitials.size() <= 4))
+               && (!data.keys().hasAny(['clientColor']) || (data.clientColor is string && data.clientColor.size() > 0 && data.clientColor.size() <= 64))
+               && data.studioName is string
+               && data.studioName.size() <= 200
+               && (!data.keys().hasAny(['studioAvatar']) || (
+                 data.studioAvatar is string
+                 && data.studioAvatar.size() <= 350000
+                 && (data.studioAvatar == '' || data.studioAvatar.matches('data:image/(jpeg|png|webp);base64,.*'))
+               ))
+               && data.published is bool
+               && data.updatedAt is string
+               && data.taskIds is list
+               && data.taskIds.size() <= 100
+               && data.tasks is list
+               && data.tasks.size() <= 100;
+      }
+
+      allow get: if resource.data.published == true;
+      allow list: if false;
+      allow create: if memberOfIncoming() && validPortal(request.resource.data);
+      allow update: if memberOfExisting() && memberOfIncoming()
+                    && request.resource.data.workspaceId == resource.data.workspaceId
+                    && request.resource.data.clientId == resource.data.clientId
+                    && validPortal(request.resource.data);
+      allow delete: if memberOfExisting();
+
+      match /comments/{commentId} {
+        function portal() {
+          return get(/databases/$(database)/documents/frame_client_portals/$(token)).data;
+        }
+        function validComment() {
+          return request.resource.data.keys().hasOnly(['id', 'projectId', 'authorType', 'authorName', 'text', 'at', 'editedAt', 'attachmentUrl', 'attachmentName'])
+                 && request.resource.data.id == commentId
+                 && request.resource.data.projectId is string
+                 && request.resource.data.projectId in portal().taskIds
+                 && request.resource.data.authorType in ['client', 'studio']
+                 && request.resource.data.authorName is string
+                 && request.resource.data.authorName.size() > 0
+                 && request.resource.data.authorName.size() <= 80
+                 && request.resource.data.text is string
+                 && request.resource.data.text.size() <= 2000
+                 && (!request.resource.data.keys().hasAny(['editedAt']) || (request.resource.data.editedAt is string && request.resource.data.editedAt.size() > 0))
+                 && (!request.resource.data.keys().hasAny(['attachmentUrl', 'attachmentName']) || (
+                   request.resource.data.keys().hasAll(['attachmentUrl', 'attachmentName'])
+                   && request.resource.data.attachmentUrl is string
+                   && request.resource.data.attachmentUrl.size() > 0
+                   && request.resource.data.attachmentUrl.size() <= 2000
+                   && request.resource.data.attachmentUrl.matches('https://firebasestorage.googleapis.com/.*')
+                   && request.resource.data.attachmentName is string
+                   && request.resource.data.attachmentName.size() > 0
+                   && request.resource.data.attachmentName.size() <= 200
+                 ))
+                 && (request.resource.data.text.size() > 0 || request.resource.data.keys().hasAll(['attachmentUrl', 'attachmentName']))
+                 && request.resource.data.at is string;
+        }
+        allow read: if portal().published == true || isMember(portal().workspaceId);
+        allow create: if validComment()
+                      && !request.resource.data.keys().hasAny(['editedAt'])
+                      && (
+          (portal().published == true
+           && request.resource.data.authorType == 'client'
+           && request.resource.data.authorName == portal().clientName)
+          || (isMember(portal().workspaceId) && request.resource.data.authorType == 'studio')
+        );
+        // El estudio sólo toca lo que escribió el estudio.
+        //
+        // Antes estas dos reglas sólo pedían isMember, sin mirar de quién era
+        // el comentario: el equipo podía reescribir o borrar lo que había
+        // dicho el cliente. La interfaz no lo ofrecía, pero desde la consola
+        // del navegador se hacía en un minuto. En una herramienta cuya promesa
+        // es servir de garantía, que la parte que rinde cuentas pueda editar
+        // en silencio lo que dijo la otra vacía la promesa entera.
+        //
+        // Lo que escribe el cliente es inmutable para ambos lados. Si se
+        // equivocó, escribe otro comentario: así es un registro.
+        allow update: if isMember(portal().workspaceId)
+                      && resource.data.authorType == 'studio'
+                      && request.resource.data.authorType == 'studio'
+                      && validComment()
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'editedAt'])
+                      && request.resource.data.text.size() > 0
+                      && request.resource.data.keys().hasAll(['editedAt']);
+        allow delete: if isMember(portal().workspaceId)
+                      && resource.data.authorType == 'studio';
+      }
+    }
+
+    match /frame_trash/{doc} {
+      allow read, delete: if memberOfExisting();
+      allow create:       if memberOfIncoming();
+      allow update:       if memberOfExisting() && memberOfIncoming();
+    }
+
+    // ── Perfiles ─────────────────────────────────────────────────
+    match /frame_users/{uid} {
+
+      // Antes era `allow read: if signedIn()`, que con varios equipos dejaba
+      // que cualquier registrado leyera el email, nombre y rol de todos los
+      // usuarios de todos los demás tableros. Ahora: sólo el propio perfil,
+      // y el admin para poder aprobar.
+      allow read: if signedIn() && (myUid() == uid || isPlatformAdmin());
+
+      // Alta obligatoriamente pendiente y sin privilegios: si se permitiera
+      // cualquier valor, bastaría con registrarse mandando status:'active'
+      // y platformAdmin:true para tomar control de la plataforma.
+      allow create: if signedIn() && myUid() == uid
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.get('platformAdmin', false) == false;
+
+      // Editar el propio perfil sin poder auto-promoverse.
+      allow update: if signedIn() && myUid() == uid
+                    && request.resource.data.status == resource.data.status
+                    && request.resource.data.get('platformAdmin', false)
+                       == resource.data.get('platformAdmin', false);
+
+      // Aprobar, rechazar y dar de baja: sólo el admin de plataforma.
+      // Antes lo podía hacer cualquier miembro activo, con lo cual el primer
+      // aprobado podía aprobar a cualquiera.
+      allow update, delete: if isPlatformAdmin();
+    }
+
+    // ── Configuración global retirada ───────────────────────────
+    // La app v2 no lee ni escribe acá: cada tablero, personal o de equipo,
+    // mantiene su propia configuración bajo frame_workspaces/{wsId}/config.
+    // El documento remoto heredado se elimina sólo como operación manual y
+    // confirmada después de publicar código + reglas; hasta entonces queda
+    // inaccesible para todos los clientes.
+    match /frame_config/{doc} {
+      allow read, create, update, delete: if false;
+    }
+
+    // ── Notificaciones ───────────────────────────────────────────
+    match /frame_notifications/{uid} {
+      allow read: if signedIn() && myUid() == uid;
+      allow create, update, delete: if false;
+
+      match /items/{item} {
+        allow read, delete: if signedIn() && myUid() == uid;
+        allow update: if signedIn() && myUid() == uid
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['read', 'resolved', 'resolvedAction']);
+        // Los únicos avisos creados por el cliente son menciones y cambios de
+        // estado de un proyecto compartido. Emisor y receptor deben ser
+        // miembros del mismo tablero, y el proyecto debe pertenecer a él.
+        // El límite de seis miembros del tablero acota además los receptores.
+        allow create: if approved()
+                      && uid != myUid()
+                      && request.resource.data.senderId == myUid()
+                      && request.resource.data.id == item
+                      && request.resource.data.read == false
+                      && request.resource.data.type in ['mention', 'status']
+                      && request.resource.data.body is string
+                      && request.resource.data.body.size() <= 500
+                      && request.resource.data.workspaceId is string
+                      && request.resource.data.projectId is string
+                      && isMember(request.resource.data.workspaceId)
+                      && uid in ws(request.resource.data.workspaceId).memberIds
+                      && exists(/databases/$(database)/documents/frame_projects/$(request.resource.data.projectId))
+                      && (
+                        get(/databases/$(database)/documents/frame_projects/$(request.resource.data.projectId)).data.workspaceId
+                          == request.resource.data.workspaceId
+                        || (
+                          get(/databases/$(database)/documents/frame_projects/$(request.resource.data.projectId)).data.keys().hasAll(['workspaceIds'])
+                          && request.resource.data.workspaceId in
+                             get(/databases/$(database)/documents/frame_projects/$(request.resource.data.projectId)).data.workspaceIds
+                        )
+                      );
+      }
+    }
+
+    // Sin comodín: lo que ninguna regla concede queda denegado.
+    // Cualquier colección nueva nace cerrada y hay que habilitarla acá a
+    // propósito.
+    //
+    // TOONED-OS ya no aparece: vive en su propio proyecto Firebase
+    // (tooned-os) con sus propias reglas. Esa separación es la que hace que
+    // una regla mal escrita acá no pueda tocar el sistema de ventas.
+  }
+}
