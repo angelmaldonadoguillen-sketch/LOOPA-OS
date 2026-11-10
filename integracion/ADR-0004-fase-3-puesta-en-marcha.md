@@ -649,3 +649,31 @@ El detalle y el orden del corte están en `integracion/puesta-en-marcha/PUNTO-B-
 **Un solo comando para el corte:** `corte.cjs` (migración → configuración → plantillas). Su corrida en seco contra el proyecto real da 29 documentos para crear, 0 conflictos, la configuración que se escribiría y 10 plantillas válidas.
 
 **Pruebas:** 259 sin red, 34 en el emulador (reglas 3.8 incluidas), 11 de funciones y 22 de FRAME.
+
+## 19. El corte, hecho (2026-11-10)
+
+**Pasos:**
+1. **Paso 0.** Ángel publicó las reglas de la tanda 3.8 desde FRAME `main` (`1e0c5a6`). El chequeo de sólo lectura confirma que las activas son las de la fusión.
+2. **B0 al momento del corte:** `respaldo/b-2026-11-10-143935`.
+   - La huella del plan no cambió: `2b025fc8…`.
+   - La copia archivada está en `Documentos\LOOPA-respaldos\loopa-respaldo-corte-2026-11-10-143935.json`, para subir a Drive.
+3. **Ángel corrió `corte.cjs --escribir`:**
+   - **Migración:** done, 29 creados; después, `same` 29.
+   - **Configuración:** `loopa_config/production` (Loopa Estudio) y `access` (Ángel).
+   - **Plantillas:** 10 cargadas.
+4. **LOOPA publicado:**
+   - build `LOOPA_FUSION_REAL=1`, commit `018a5b3`;
+   - push de `feat/fusion-fase-0-1` a `main` (`4fcebd6..018a5b3`) y de la rama;
+   - GitHub Pages: `built`.
+5. **Verificado en la página publicada**, sin iniciar sesión:
+   - sólo existe la app `loopa-fusion` sobre frame-studio-3a18f;
+   - `USE_FB = false`;
+   - aparece la pantalla «Misma cuenta que FRAME»;
+   - la consola no muestra errores.
+
+**Falta:**
+- **La verificación con sesión (Ángel):**
+  - las 6 ventas #1001–#1006, con sus montos;
+  - los 8 gastos y la configuración;
+  - que una venta nueva tome el número #1007 y cree su tarea en «Loopa Estudio».
+- **El chequeo de pestañas viejas** (paso 8 de PUNTO-B-C.md): B0 y la corrida en seco otra vez.
