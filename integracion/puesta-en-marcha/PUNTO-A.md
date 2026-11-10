@@ -1,6 +1,6 @@
 # Punto A — publicar la fusión en frame-studio-3a18f
 
-Fecha de preparación: 2026-11-10. Estado: **A0 hecho el 2026-11-10** (respaldo `respaldo/2026-11-10-101612`, ver ADR-0004 §14). A1–A4 sin ejecutar.
+Fecha de preparación: 2026-11-10. Estado: **A0 hecho el 2026-11-10** (respaldo `respaldo/2026-11-10-101612`, ver ADR-0004 §14). A1–A4 hechos el 2026-11-10 (A3 no hizo falta; ver ADR-0004 §15–16).
 
 Desde A3, los chequeos llevan `--base integracion/puesta-en-marcha/respaldo/2026-11-10-101612`. Las reglas nuevas se armaron sobre ese respaldo, así que lo único que importa es que nadie haya publicado otra cosa después.
 

@@ -548,3 +548,21 @@ Corrido con aprobación («Sí, corré A0»). El respaldo está en `integracion/
 - **FRAME y `clientId`:** FRAME no usa `clientId` en las tareas (guarda `client` como texto), así que la regla «`clientId` no cambia» no lo afecta.
 
 **A2 (funciones):** el permiso de esta sesión bloqueó el `firebase deploy`. Lo corre Ángel, o se habilita el permiso.
+
+## 16. A2–A4 hechos: punto A completo (2026-11-10)
+
+- **A2.** Ángel corrió `firebase deploy --only functions:loopa --project frame-studio-3a18f` desde su terminal (esta sesión no tiene permiso para publicar en producción).
+  - Se crearon las 8 funciones de LOOPA.
+  - El CLI se aseguró de que estuvieran habilitadas las APIs: Cloud Functions, Cloud Build, Artifact Registry, Cloud Scheduler, Run, Eventarc, Pub/Sub y Storage. También generó las identidades de servicio de Pub/Sub y Eventarc.
+  - No se borró nada. Las 6 funciones de FRAME siguen.
+- **A3: no hizo falta.** El chequeo (con `--base`) da las 6 callables de LOOPA abiertas a `allUsers`. Una llamada sin sesión a `loopaCreateSale` responde 401 `UNAUTHENTICATED` («Iniciá sesión para vender»).
+- **A4.** Ángel corrió `firebase deploy --only firestore:rules --project frame-studio-3a18f` desde FRAME `main` (`c503340`).
+  - Las reglas compilaron y se publicaron.
+  - El chequeo confirma que las reglas activas son las de la fusión: la release `cloud.firestore` es del 2026-11-10 16:56 UTC. Las de Storage no se tocaron (siguen siendo las del 2026-10-15).
+- **Respaldos:**
+  - `respaldo/2026-11-10-101612`: antes de todo;
+  - `respaldo/2026-11-10-105209`: después de A2;
+  - `respaldo/2026-11-10-105649`: después de A4.
+- **Volver atrás las reglas:** historial de reglas en la consola, o publicar `respaldo/2026-11-10-101612/firestore.rules` desde FRAME (PUNTO-A.md, A4).
+- **Pendiente:** la revisión con sesión en FRAME (la hace Ángel): mover una tarjeta, editar y marcar favorito, crear y editar una ficha, papelera y restaurar, portal de un cliente.
+- **Sigue:** B (migración), C (configuración y equipo) y D (push de LOOPA).
