@@ -12703,6 +12703,34 @@ const AuthSetupGuide = () => (
   </div>
 );
 
+// ── Alta de una persona del equipo (lo usa el ingreso de LOOPA) ─────
+// Crea la cuenta y su perfil SIEMPRE «pending»: las reglas rechazan otro
+// valor, y un admin aprueba desde Configuración › Tablero y aprobaciones.
+const crearCuentaEquipo = async ({ name, role = '', email, password }) => {
+  const cred = await firebase.auth().createUserWithEmailAndPassword(email.trim(), password);
+  await cred.user.updateProfile({ displayName: name.trim() });
+  const initials = name.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  const colors = typeof TEAM_COLORS !== 'undefined'
+    ? TEAM_COLORS
+    : ['var(--resource-green)', 'var(--resource-coral)', 'var(--resource-blue)', 'var(--resource-violet)', 'var(--warn)', 'var(--resource-pink)', 'var(--resource-teal)'];
+  await window.db.collection('frame_users').doc(cred.user.uid).set({
+    id: cred.user.uid,
+    name: name.trim(),
+    role: role.trim() || 'Colaborador',
+    initials,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    email: email.trim().toLowerCase(),
+    phone: '—',
+    skills: [],
+    bio: '',
+    availability: 'available',
+    joinedAt: localISO(new Date()),
+    status: 'pending',
+  });
+  return cred.user;
+};
+const mensajeAuth = (code) => AUTH_ERRORS[code] ?? `Error inesperado (${code})`;
+
 // ── Login screen ─────────────────────────────────────────────────
 const LoginScreen = () => {
   const [mode, setMode]           = useState('login'); // 'login' | 'register'
@@ -17335,7 +17363,7 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null } = {}) => {
 // En LOOPA no hay raíz propia: LOOPA monta <App> (como EstudioApp) dentro de
 // su área de contenido, y el portal del cliente (?portal=) en su lugar.
 
-return { EstudioApp: App, ClientPortal, capaEstudio };
+return { EstudioApp: App, ClientPortal, capaEstudio, crearCuentaEquipo, mensajeAuth };
 })();
 
 // ── app.jsx ──
@@ -19913,34 +19941,60 @@ const LOOPA_AUTH_ERRORS = {
 };
 
 function LoginScreen() {
+  // Con Producción integrada, quien se suma al equipo crea su cuenta acá: queda
+  // pendiente hasta que un admin la apruebe.
+  const puedeRegistrarse = PROD_ON === 'estudio';
+  const [modo, setModo] = useState('entrar'); // 'entrar' | 'crear'
+  const [nombre, setNombre] = useState('');
+  const [rol, setRol] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmar, setConfirmar] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [shake, setShake] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const crear = modo === 'crear';
+  const fallar = (msg) => { setErrorMsg(msg); setShake(true); setTimeout(() => setShake(false), 500); setSubmitting(false); };
   const tryLogin = async () => {
     if (!email.trim() || !password || submitting) return;
     setSubmitting(true); setErrorMsg('');
     try { await (FUSION_FB ? FUSION_FB.auth : firebase.auth()).signInWithEmailAndPassword(email.trim(), password); }
-    catch (e) {
-      setErrorMsg(LOOPA_AUTH_ERRORS[e.code] || `Error inesperado (${e.code || e.message})`);
-      setPassword(''); setShake(true); setTimeout(() => setShake(false), 500); setSubmitting(false);
-    }
+    catch (e) { setPassword(''); fallar(LOOPA_AUTH_ERRORS[e.code] || `Error inesperado (${e.code || e.message})`); }
   };
-  const onKey = (e) => { if (e.key === 'Enter') tryLogin(); };
+  const tryCrear = async () => {
+    if (!nombre.trim() || !email.trim() || !password || submitting) return;
+    if (password !== confirmar) { fallar('Las contraseñas no coinciden.'); return; }
+    setSubmitting(true); setErrorMsg('');
+    // Al crearse, la sesión queda abierta: LOOPA muestra «pendiente de aprobación».
+    try { await LoopaEstudio.crearCuentaEquipo({ name: nombre, role: rol, email, password }); }
+    catch (e) { fallar(LoopaEstudio.mensajeAuth(e.code || e.message)); }
+  };
+  const enviar = crear ? tryCrear : tryLogin;
+  const onKey = (e) => { if (e.key === 'Enter') enviar(); };
+  const cambiar = (m) => { setModo(m); setErrorMsg(''); setPassword(''); setConfirmar(''); };
+  const listo = crear ? (nombre.trim() && email.trim() && password && confirmar) : (email.trim() && password);
   return (
     <div className="login">
       <div style={{ width: 380, maxWidth: '100%', textAlign: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 22, color: 'var(--accent)' }}><LoopaMark height={21} largo /></div>
-        <div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--dim)', letterSpacing: '0.22em', marginBottom: 44, textTransform: 'uppercase' }}>Acceso privado · cuenta del equipo</div>
+        <div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--dim)', letterSpacing: '0.22em', marginBottom: 44, textTransform: 'uppercase' }}>{crear ? 'Sumarte al equipo' : 'Acceso privado · cuenta del equipo'}</div>
         <div className={shake ? 'shake' : ''} style={{ background: 'var(--card)', border: `1px solid ${errorMsg ? 'var(--danger)' : 'var(--line)'}`, borderRadius: 18, padding: '32px 28px' }}>
-          <input className="input mono" type="email" autoFocus autoComplete="username" placeholder="email" value={email} onChange={e => { setEmail(e.target.value); setErrorMsg(''); }} onKeyDown={onKey} style={{ marginBottom: 10 }} />
-          <input className="input mono" type="password" autoComplete="current-password" placeholder="contraseña" value={password} onChange={e => { setPassword(e.target.value); setErrorMsg(''); }} onKeyDown={onKey} />
+          {crear && <input className="input mono" autoFocus autoComplete="name" placeholder="nombre y apellido" value={nombre} onChange={e => { setNombre(e.target.value); setErrorMsg(''); }} onKeyDown={onKey} style={{ marginBottom: 10 }} />}
+          {crear && <input className="input mono" autoComplete="organization-title" placeholder="rol (opcional · ej. editor, diseño)" value={rol} onChange={e => setRol(e.target.value)} onKeyDown={onKey} style={{ marginBottom: 10 }} />}
+          <input className="input mono" type="email" autoFocus={!crear} autoComplete="username" placeholder="email" value={email} onChange={e => { setEmail(e.target.value); setErrorMsg(''); }} onKeyDown={onKey} style={{ marginBottom: 10 }} />
+          <input className="input mono" type="password" autoComplete={crear ? 'new-password' : 'current-password'} placeholder={crear ? 'contraseña (mínimo 6)' : 'contraseña'} value={password} onChange={e => { setPassword(e.target.value); setErrorMsg(''); }} onKeyDown={onKey} />
+          {crear && <input className="input mono" type="password" autoComplete="new-password" placeholder="repetir contraseña" value={confirmar} onChange={e => { setConfirmar(e.target.value); setErrorMsg(''); }} onKeyDown={onKey} style={{ marginTop: 10 }} />}
           {errorMsg && <div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--danger)', marginTop: 10, lineHeight: 1.6 }}>{errorMsg}</div>}
-          <button className="btn primary" onClick={tryLogin} disabled={submitting || !email.trim() || !password} style={{ width: '100%', justifyContent: 'center', padding: 14, marginTop: 20 }}>
-            {submitting ? 'VERIFICANDO…' : 'ENTRAR AL SISTEMA'}
+          <button className="btn primary" onClick={enviar} disabled={submitting || !listo} style={{ width: '100%', justifyContent: 'center', padding: 14, marginTop: 20 }}>
+            {submitting ? (crear ? 'CREANDO…' : 'VERIFICANDO…') : (crear ? 'CREAR CUENTA' : 'ENTRAR AL SISTEMA')}
           </button>
+          {crear && <div className="mono muted" style={{ fontSize: 'var(--fs-s)', marginTop: 14, lineHeight: 1.6 }}>Un admin tiene que aprobar tu cuenta antes de que puedas trabajar.</div>}
         </div>
+        {puedeRegistrarse && (
+          <button className="linkbtn" onClick={() => cambiar(crear ? 'entrar' : 'crear')} style={{ marginTop: 18, fontSize: 'var(--fs-s)' }}>
+            {crear ? '← Ya tengo cuenta' : '¿Sos nuevo en el equipo? Crear cuenta'}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -20159,6 +20213,8 @@ function App({ onLogout, usuarioFusion = null }) {
   // Quien no es del equipo comercial (no ve ventas ni montos) usa LOOPA sólo
   // para Producción.
   const [soloProduccion, setSoloProduccion] = useState(false);
+  // 'pending' | 'rejected' | null: cuenta que todavía no puede trabajar.
+  const [cuentaEnEspera, setCuentaEnEspera] = useState(null);
   const [ventas, setVentas] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [servicios, setServicios] = useState([]);
@@ -20256,7 +20312,13 @@ function App({ onLogout, usuarioFusion = null }) {
         // sigue siendo su programa, sólo con Producción.
         const n = LoopaFuente.normalizarError(e);
         if (PRODUCCION_ESTUDIO && n.tipo === 'permission-denied') {
-          setSoloProduccion(true); setRoute('produccion'); setReady(true);
+          // Una cuenta todavía sin aprobar (o rechazada) sólo ve el aviso.
+          const uid = FUSION_FB.auth.currentUser && FUSION_FB.auth.currentUser.uid;
+          const perfil = uid ? FUSION_FB.db.collection('frame_users').doc(uid).get().then(d => (d.exists ? d.data() : null)).catch(() => null) : Promise.resolve(null);
+          perfil.then(p => {
+            if (!p || p.status !== 'active') setCuentaEnEspera(p ? p.status : 'pending');
+            setSoloProduccion(true); setRoute('produccion'); setReady(true);
+          });
           return;
         }
         console.error('Carga (fusión):', e); setLoadError(n.mensaje);
@@ -20641,6 +20703,28 @@ function App({ onLogout, usuarioFusion = null }) {
           <div style={{ width: 180, height: 2, background: '#20201f', overflow: 'hidden' }}><div className="loadbar" /></div>
         </>
       )}
+    </div>
+  );
+
+  if (cuentaEnEspera) return (
+    <div className="login">
+      <div style={{ width: 420, maxWidth: '100%', textAlign: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 22, color: 'var(--accent)' }}><LoopaMark height={21} largo /></div>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 18, padding: '32px 28px' }}>
+          <div className="mono" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.18em', textTransform: 'uppercase', color: cuentaEnEspera === 'rejected' ? 'var(--danger)' : 'var(--warn)', marginBottom: 12 }}>
+            {cuentaEnEspera === 'rejected' ? 'Acceso no aprobado' : 'Esperando aprobación'}
+          </div>
+          <div className="muted" style={{ fontSize: 'var(--fs-m)', lineHeight: 1.6 }}>
+            {cuentaEnEspera === 'rejected'
+              ? 'Tu solicitud no fue aprobada. Si creés que es un error, hablá con quien administra LOOPA.'
+              : 'Tu cuenta está creada. Un admin tiene que aprobarla; cuando lo haga, recargá esta página.'}
+          </div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 22 }}>
+            <button className="btn" onClick={() => window.location.reload()}>↺ Recargar</button>
+            {onLogout && <button className="btn ghost" onClick={onLogout}>Cerrar sesión</button>}
+          </div>
+        </div>
+      </div>
     </div>
   );
 

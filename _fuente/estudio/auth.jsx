@@ -26,6 +26,34 @@ const AuthSetupGuide = () => (
   </div>
 );
 
+// ── Alta de una persona del equipo (lo usa el ingreso de LOOPA) ─────
+// Crea la cuenta y su perfil SIEMPRE «pending»: las reglas rechazan otro
+// valor, y un admin aprueba desde Configuración › Tablero y aprobaciones.
+const crearCuentaEquipo = async ({ name, role = '', email, password }) => {
+  const cred = await firebase.auth().createUserWithEmailAndPassword(email.trim(), password);
+  await cred.user.updateProfile({ displayName: name.trim() });
+  const initials = name.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  const colors = typeof TEAM_COLORS !== 'undefined'
+    ? TEAM_COLORS
+    : ['var(--resource-green)', 'var(--resource-coral)', 'var(--resource-blue)', 'var(--resource-violet)', 'var(--warn)', 'var(--resource-pink)', 'var(--resource-teal)'];
+  await window.db.collection('frame_users').doc(cred.user.uid).set({
+    id: cred.user.uid,
+    name: name.trim(),
+    role: role.trim() || 'Colaborador',
+    initials,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    email: email.trim().toLowerCase(),
+    phone: '—',
+    skills: [],
+    bio: '',
+    availability: 'available',
+    joinedAt: localISO(new Date()),
+    status: 'pending',
+  });
+  return cred.user;
+};
+const mensajeAuth = (code) => AUTH_ERRORS[code] ?? `Error inesperado (${code})`;
+
 // ── Login screen ─────────────────────────────────────────────────
 const LoginScreen = () => {
   const [mode, setMode]           = useState('login'); // 'login' | 'register'

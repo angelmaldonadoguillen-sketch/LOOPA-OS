@@ -734,11 +734,29 @@ test('Fase 4: un solo sistema (Producción es parte de LOOPA, sin FRAME aparte)'
   // Una falla de Producción no tumba el resto de LOOPA.
   assert.match(app, /<MuroProduccion><LoopaEstudio\.EstudioApp/);
   // Quien no vende: sólo Producción.
-  assert.match(app, /if \(PRODUCCION_ESTUDIO && n\.tipo === 'permission-denied'\) \{\s*setSoloProduccion\(true\); setRoute\('produccion'\); setReady\(true\);/);
+  assert.match(app, /if \(PRODUCCION_ESTUDIO && n\.tipo === 'permission-denied'\) \{/);
+  assert.match(app, /setSoloProduccion\(true\); setRoute\('produccion'\); setReady\(true\);/);
   // El portal del cliente es una página de LOOPA.
   assert.match(app, /if \(PORTAL_TOKEN && PROD_ON === 'estudio'\) return \(/);
   // Un solo ámbito para el código de Producción y estilos sólo dentro de .estudio.
   assert.match(build, /const LoopaEstudio = \(\(\) => \{/);
   assert.match(build, /important: '\.estudio'/);
   assert.match(build, /corePlugins: \{ preflight: false \}/);
+});
+
+test('Fase 4: crear cuenta desde LOOPA (queda pendiente hasta que un admin apruebe)', () => {
+  const app = fs.readFileSync(path.join(ROOT, '_fuente', 'app.jsx'), 'utf8');
+  const auth = fs.readFileSync(path.join(ROOT, '_fuente', 'estudio', 'auth.jsx'), 'utf8');
+  const build = fs.readFileSync(path.join(ROOT, '_fuente', 'build.js'), 'utf8');
+  // El alta la hace Producción y siempre queda «pending» (las reglas rechazan otro valor).
+  assert.match(auth, /const crearCuentaEquipo = async \(\{ name, role = '', email, password \}\) => \{/);
+  assert.match(auth.slice(auth.indexOf('const crearCuentaEquipo')), /status: 'pending',/);
+  assert.match(build, /crearCuentaEquipo, mensajeAuth \};/);
+  // El ingreso de LOOPA ofrece crear cuenta sólo con Producción integrada.
+  assert.match(app, /const puedeRegistrarse = PROD_ON === 'estudio';/);
+  assert.match(app, /await LoopaEstudio\.crearCuentaEquipo\(\{ name: nombre, role: rol, email, password \}\)/);
+  assert.match(app, /if \(password !== confirmar\) \{ fallar\('Las contraseñas no coinciden\.'\); return; \}/);
+  // Una cuenta sin aprobar sólo ve el aviso (sin menú).
+  assert.match(app, /if \(!p \|\| p\.status !== 'active'\) setCuentaEnEspera\(p \? p\.status : 'pending'\);/);
+  assert.match(app, /if \(cuentaEnEspera\) return \(/);
 });

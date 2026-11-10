@@ -48,7 +48,7 @@ const estudio = `// ═══ Producción de LOOPA: un solo ámbito ═══
 const LoopaEstudio = (() => {
 const { useReducer, useEffect, useState, useMemo, useRef, useCallback, useContext, useLayoutEffect } = React;
 ${estudioSrc}
-return { EstudioApp: App, ClientPortal, capaEstudio };
+return { EstudioApp: App, ClientPortal, capaEstudio, crearCuentaEquipo, mensajeAuth };
 })();
 `;
 
