@@ -639,7 +639,7 @@ const Sidebar = ({ state, dispatch, onSignOut, onCreateTeam, onDeleteWorkspace, 
         <NavItem collapsed={collapsed} icon="users"   label="Asignados a mí"     count={counts.mine}                   active={sf === 'mine'}      onClick={() => setFilter('mine')} />
         {/* Rojo sólo cuando de verdad hay algo por vencer. Encendido siempre,
             el color no avisaba nada: era parte del decorado. */}
-        <NavItem collapsed={collapsed} icon="alert"   label="Fechas límite urgentes" count={counts.urgent}              active={sf === 'urgent'}    accent={counts.urgent > 0} onClick={() => setFilter('urgent')} />
+        <NavItem collapsed={collapsed} icon="alert"   label="Entregas urgentes" count={counts.urgent}              active={sf === 'urgent'}    accent={counts.urgent > 0} onClick={() => setFilter('urgent')} />
         <NavItem collapsed={collapsed} icon="check"   label="Completadas"        count={counts.delivered}              active={sf === 'delivered'} onClick={() => setFilter('delivered')} />
         <NavItem collapsed={collapsed} icon="trash"   label="Papelera"           count={counts.trash || undefined}     active={sf === 'trash'}     onClick={() => setFilter('trash')} />
 
@@ -1001,7 +1001,7 @@ const Header = ({ columns = [], state, dispatch, filteredCount, notifications, o
     { id: 'today', label: 'Vencen hoy' },
     { id: 'next_7_days', label: 'Próximos 7 días' },
     { id: 'this_month', label: 'Este mes' },
-    { id: 'no_date', label: 'Sin fecha límite' },
+    { id: 'no_date', label: 'Sin fecha de entrega' },
   ];
   const progressOptions = [
     { id: 'no_checklist', label: 'Sin checklist' },
@@ -1386,7 +1386,7 @@ const NewProjectModal = ({ onCreate, onClose, clients = [], onCreateClient, cust
       deadline,
       sessionDate: deadline || localISO(new Date()),
       budget: 0,
-      currency: 'USD',
+      currency: 'HNL',
       tags: [],
       cover: { type: 'color', value: '#1a1a1f' },
       description: [{ type: 'p', text: 'Briefing inicial — añadí el contexto de la tarea acá.' }],
@@ -1739,7 +1739,7 @@ const SettingsSection = ({ previewFields, onToggle, carryOverProjects, onToggleC
             onClick={onToggleCarryOverProjects}
             icon="alert"
             label="Arrastrar tareas incompletas al siguiente día"
-            description="La fecha límite se conserva."
+            description="La fecha de entrega se conserva."
           /></div>
         </div>
 
@@ -2853,12 +2853,18 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null, comercial = n
   const activitySummary = (before, after) => {
     if (before.status !== after.status) return `cambió el estado a ${getStatus(after.status)?.label || after.status}`;
     if (before.startDate !== after.startDate) return 'reprogramó la fecha de inicio';
-    if (before.deadline !== after.deadline) return 'cambió la fecha límite';
-    if (before.sessionDate !== after.sessionDate) return 'reprogramó la próxima fecha de trabajo';
+    if (before.deadline !== after.deadline) return 'cambió la fecha de entrega';
+    if (before.sessionDate !== after.sessionDate) return 'cambió la fecha de trabajo';
+    if (before.title !== after.title) return 'cambió el título';
+    if (before.client !== after.client) return 'cambió el cliente';
+    if (before.type !== after.type) return 'cambió el tipo';
+    if (before.priority !== after.priority) return 'cambió la prioridad';
     if (JSON.stringify(before.assignees) !== JSON.stringify(after.assignees)) return 'actualizó los responsables';
     if (JSON.stringify(before.checklist) !== JSON.stringify(after.checklist)) return 'actualizó el checklist';
-    if (JSON.stringify(before.deliverables) !== JSON.stringify(after.deliverables)) return 'actualizó los entregables';
+    if (JSON.stringify(before.deliverables) !== JSON.stringify(after.deliverables)) return 'actualizó los recursos';
     if (JSON.stringify(before.description) !== JSON.stringify(after.description)) return 'actualizó el brief';
+    if (JSON.stringify(before.tags) !== JSON.stringify(after.tags)) return 'actualizó los tags';
+    if (JSON.stringify(before.timeline) !== JSON.stringify(after.timeline)) return 'actualizó el timeline';
     if (before.cover?.value !== after.cover?.value) return 'actualizó la portada';
     return null;
   };
@@ -2935,7 +2941,7 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null, comercial = n
       id,
       title:      (title && title.trim()) || 'Nueva tarea',
       client:     '',
-      type:       type   || 'reel',
+      type:       type   || 'other',
       status:     status || (state.kanbanColumns[0] && state.kanbanColumns[0].id) || 'briefing',
       priority:   'medium',
       assignees:  [],
@@ -2943,7 +2949,7 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null, comercial = n
       deadline:   dl,
       sessionDate: sessionDate || startDate || dl || start,
       budget:     0,
-      currency:   'USD',
+      currency:   'HNL',
       tags:       [],
       cover:      { type: 'color', value: '#1a1a1f' },
       description: [{ type: 'p', text: '' }],
@@ -3112,6 +3118,9 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null, comercial = n
   // El detalle es el mismo en los dos tamaños, con los mismos handlers. Se
   // arma una sola vez y se le pasa a la vista que corresponda: si se
   // duplicara, cada arreglo habría que hacerlo dos veces.
+  // Los campos los decide el tablero DE LA TAREA, no el que esté abierto: desde
+  // «Mi tablero» una tarea de equipo sigue teniendo responsables y comentarios.
+  const tableroDeLaTarea = openProject && state.workspaces.find(w => w.id === openProject.workspaceId);
   const modalDetalle = openProject && (
     <ProjectModal
       key={openProject.id}
@@ -3119,7 +3128,7 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null, comercial = n
       projects={filtered}
       onNavigate={(id) => dispatch({ type: 'open_project', id })}
       currentUserId={state.currentUserId}
-      team={workspaceMembers(state.workspaces.find(w => w.id === state.activeWorkspaceId))}
+      team={workspaceMembers(tableroDeLaTarea || state.workspaces.find(w => w.id === state.activeWorkspaceId))}
       clients={state.clients}
       onCreateClient={handleCreateClient}
       onClose={() => dispatch({ type: 'close_project' })}
@@ -3133,7 +3142,7 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null, comercial = n
       onCreateCustomType={handleCreateCustomType}
       onUpdateCustomType={handleUpdateCustomType}
       onDeleteCustomType={handleDeleteCustomType}
-      workspaceKind={activeWs?.kind || 'personal'}
+      workspaceKind={tableroDeLaTarea?.kind || activeWs?.kind || 'personal'}
       clientPortalToken={state.clients.find(client => client.name.toLowerCase() === String(openProject.client || '').toLowerCase())?.portalToken || ''}
     />
   );

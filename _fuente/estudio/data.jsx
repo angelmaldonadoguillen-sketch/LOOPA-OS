@@ -505,7 +505,9 @@ const boardOrigin = (project) => {
   return boardOf(project).includes(info.activeId) ? '' : (info.names?.[project.workspaceId] || 'Otro tablero');
 };
 
-const fmtMoney = (n, c = 'USD') => new Intl.NumberFormat('en-US', { style: 'currency', currency: c, maximumFractionDigits: 0 }).format(n);
+const fmtMoney = (n, c = 'HNL') => new Intl.NumberFormat('en-US', { style: 'currency', currency: c, maximumFractionDigits: 0 }).format(n);
+// Lo que se muestra junto a un monto: el estudio trabaja en lempiras.
+const currencyLabel = (c) => (!c || c === 'HNL' ? 'L' : c);
 const fmtDate  = (iso) => {
   const dt = new Date(iso + 'T00:00');
   return dt.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
@@ -751,7 +753,8 @@ const normalizeProject = (p) => ({
   startDate:    p.startDate    || localISO(new Date()),
   deadline:     p.deadline     ?? '',
   sessionDate:  p.sessionDate  || p.startDate || p.deadline || localISO(new Date()),
-  currency:     p.currency     ?? 'USD',
+  // Las tareas sin presupuesto nacieron en USD sólo por el valor por defecto.
+  currency:     (p.currency === 'USD' && !p.budget) ? 'HNL' : (p.currency ?? 'HNL'),
   budget:       typeof p.budget === 'number' ? p.budget : 0,
   tags:         Array.isArray(p.tags)         ? p.tags         : [],
   assignees:    Array.isArray(p.assignees)    ? p.assignees    : [],

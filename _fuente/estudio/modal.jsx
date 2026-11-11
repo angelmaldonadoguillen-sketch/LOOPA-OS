@@ -275,13 +275,15 @@ const PropRow = ({ icon, label, children }) => (
 );
 
 // ── Editable text ───────────────────────────────────────────────
-const InlineEdit = ({ value, onChange, placeholder, className = '', multiline = false }) => {
+const InlineEdit = ({ value, onChange, placeholder, className = '', multiline = false, required = false }) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   useEffect(() => setDraft(value), [value]);
 
   const commit = () => {
     setEditing(false);
+    // Obligatorio (el título): vacío no se guarda, vuelve a lo que había.
+    if (required && !String(draft || '').trim()) { setDraft(value); return; }
     if (draft !== value) onChange(draft);
   };
 
@@ -631,6 +633,7 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
   const [dragOverCheckId, setDragOverCheckId] = useState(null); // ítem sobre el que se suelta
   const [editingDvId, setEditingDvId]     = useState(null);
   const [editingDvData, setEditingDvData] = useState({});
+  const [confirmDvId, setConfirmDvId]     = useState(null); // recurso a punto de borrarse
   const editDvNameRef = useRef(null);
   const [confirmDel, setConfirmDel]       = useState(false);
   const [visibilityOpen, setVisibilityOpen] = useState(false);
@@ -726,7 +729,18 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
   // ── Teclado: Esc cierra, ← → navega ──────────────────────────
   useEffect(() => {
     const handler = (e) => {
-      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key === 'Escape') {
+        // Escribiendo, Esc sólo sale del campo (y el brief se guarda al salir):
+        // la ficha se cierra con el siguiente Esc. Se mira e.target porque
+        // cancelar una edición ya quitó el campo de la pantalla.
+        const campo = e.target;
+        if (campo && (campo.tagName === 'INPUT' || campo.tagName === 'TEXTAREA' || campo.isContentEditable)) {
+          if (campo.isConnected) campo.blur();
+          return;
+        }
+        onClose();
+        return;
+      }
       const tag = document.activeElement?.tagName;
       const typing = tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable;
       if (typing) return;
@@ -843,23 +857,35 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
       .catch(err => console.error('Error al eliminar comentario:', err));
   };
 
-  const addTag = (text) => {
-    if (!text.trim()) return;
-    upd({ tags: [...new Set([...project.tags, text.trim()])] });
-  };
+  // Recibe la lista completa: varios tags pegados se guardan en un solo cambio.
+  const addTags = (list) => upd({ tags: [...new Set([...project.tags, ...list])] });
   const removeTag = (t) => upd({ tags: project.tags.filter(x => x !== t) });
 
   const updateDeliverable = (id, patch) => upd({ deliverables: project.deliverables.map(dv => dv.id === id ? { ...dv, ...patch } : dv) });
 
   const startEditDv = (dv) => {
     setEditingDvId(dv.id);
-    setEditingDvData({ name: dv.name, kind: dv.kind, url: dv.url || '' });
+    // Un archivo subido sólo cambia de nombre: su dirección y su clase las
+    // puso la subida, y tocarlas dejaría el archivo sin enlace.
+    setEditingDvData({ name: dv.name, kind: dv.kind, url: dv.url || '', subido: !!dv.storagePath });
     setTimeout(() => { editDvNameRef.current?.focus(); editDvNameRef.current?.select(); }, 0);
   };
   const saveEditDv = () => {
     if (!editingDvId) return;
     const name = editingDvData.name?.trim();
-    if (name) updateDeliverable(editingDvId, { name, kind: editingDvData.kind, url: editingDvData.url?.trim() || '' });
+    const url = editingDvData.url?.trim() || '';
+    if (name && !editingDvData.subido) {
+      // La misma validación que al crearlo: el enlace también llega al portal.
+      if (!FrameAttachments.validateImageUrl(url)) {
+        window.frameToast?.('Ingresá un enlace http o https válido.');
+        return;
+      }
+      if (editingDvData.kind === 'photos' && !FrameAttachments.looksLikeImageUrl(url)) {
+        window.frameToast?.('Ese enlace no es una imagen directa: dejalo como Enlace.');
+        return;
+      }
+    }
+    if (name) updateDeliverable(editingDvId, editingDvData.subido ? { name } : { name, kind: editingDvData.kind, url });
     setEditingDvId(null);
     setEditingDvData({});
   };
@@ -878,8 +904,9 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
     const item = project.deliverables.find(dv => dv.id === id);
     if (item?.storagePath && window.storage) {
       window.storage.ref(item.storagePath).delete()
-        .catch(() => window.frameToast?.('Se eliminó el entregable de la tarea, pero no se pudo borrar su archivo.'));
+        .catch(() => window.frameToast?.('Se eliminó el recurso de la tarea, pero no se pudo borrar su archivo.'));
     }
+    setConfirmDvId(null);
     upd({ deliverables: project.deliverables.filter(dv => dv.id !== id) });
   };
 
@@ -889,7 +916,11 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
 
   const progress = progressOf(project);
   const days = daysUntil(project.deadline);
-  const isUrgent = days >= 0 && days < 3 && !isClosed(project);
+  const urgente = isUrgent(project); // el mismo criterio que tarjetas y filtros
+  const deVenta = !!window.FrameLoopa?.isFromSale(project);
+  // El día que la ubica en el calendario, con la misma precedencia que él.
+  const fechaTrabajo = project.sessionDate || project.startDate || project.deadline || '';
+  const realizados = project.checklist.filter(c => c.done).length;
 
   return (
     <div className="fixed inset-0 z-50 backdrop flex items-stretch justify-end anim-fade-in" onClick={onClose}>
@@ -902,8 +933,7 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
         <div className="flex items-center justify-between px-5 py-3 border-b border-app">
           <div className="flex items-center gap-2 text-[12px] text-[var(--text-muted)]">
             <Icon name="folder" size={13} />
-            <span>{project.client}</span>
-            <span>›</span>
+            {project.client && <><span>{project.client}</span><span>›</span></>}
             <span className="text-[var(--text-dim)]">Tarea</span>
             {/* Navegación posicional */}
             {navLabel && onNavigate && (
@@ -929,7 +959,7 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
             )}
           </div>
           <div className="flex items-center gap-1">
-            {isUrgent && (
+            {urgente && (
               <span className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded-md mr-2"
                 style={{ background: 'var(--danger-soft-2)', color: 'var(--danger)' }}>
                 <Icon name="alert" size={11} /> URGENTE
@@ -1038,7 +1068,7 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
                 textShadow: project.cover?.type === 'image' ? '0 1px 3px rgba(0,0,0,.72)' : 'none',
               }}
             >
-              <InlineEdit value={project.title} onChange={updField('title')} className="!px-0 !py-0 hover:!bg-transparent" />
+              <InlineEdit value={project.title} onChange={(v) => updField('title')(v.trim())} required placeholder="Sin título" className="!px-0 !py-0 hover:!bg-transparent" />
             </h1>
           </div>
         </div>
@@ -1060,12 +1090,18 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
             <div className="ui-section-label basis-full mb-3">Propiedades</div>
 
             <PropRow icon="briefcase" label="Cliente">
-              <ClientAutocomplete
-                value={project.client}
-                onChange={updField('client')}
-                clients={clients}
-                onCreateClient={onCreateClient}
-              />
+              {/* El portal agrupa las tareas por el nombre del cliente: cambiarlo
+                  en una tarjeta de venta la mandaría al portal de otro. */}
+              {deVenta ? (
+                <div className="text-sm truncate px-2 py-1 -mx-2" title="El cliente lo fija la venta en LOOPA">{project.client || 'Sin cliente'}</div>
+              ) : (
+                <ClientAutocomplete
+                  value={project.client}
+                  onChange={updField('client')}
+                  clients={clients}
+                  onCreateClient={onCreateClient}
+                />
+              )}
             </PropRow>
 
             <PropRow icon="film" label="Tipo">
@@ -1090,7 +1126,9 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
               <Dropdown trigger={<button className="text-left -mx-2 px-2 py-1 rounded hover:bg-[var(--surface-2)] w-full"><StatusPill status={project.status} /></button>}>
                 {(close) => allStatuses.map(s => (
                   <MenuItem key={s.id} onClick={() => {
-                    if (collaborationEnabled && s.id !== project.status && window.pushNotif) {
+                    // Sin el checklist completo el cambio se rechaza: no se avisa.
+                    const rechazado = requiresChecklistForStatus(s.id) && project.checklist?.length > 0 && progress < 100;
+                    if (collaborationEnabled && s.id !== project.status && !rechazado && window.pushNotif) {
                       const changer = resolveUser(currentUserId);
                       const newSt   = getStatus(s.id);
                       project.assignees.forEach(uid => {
@@ -1158,6 +1196,22 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
 
 
 
+            {/* La que ubica la tarjeta en el calendario. Siempre tiene un valor:
+                una tarea no se queda sin día. */}
+            <PropRow icon="calendar" label="Fecha de trabajo">
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={fechaTrabajo}
+                  onChange={(e) => { if (e.target.value) upd(window.FrameLoopa.workDatePatch(project, e.target.value)); }}
+                  title="El día en que la tarjeta aparece en el calendario"
+                  className="text-sm hover:bg-[var(--surface-2)] rounded px-2 py-1 -mx-2 cursor-pointer"
+                  style={{ colorScheme: 'var(--color-scheme)' }}
+                />
+                {project.deadline && fechaTrabajo > project.deadline && !isClosed(project) && <span className="text-[10px] font-semibold" style={{ color: 'var(--warn)' }}>después de la entrega</span>}
+              </div>
+            </PropRow>
+
             <PropRow icon="calendar" label="Fecha de entrega">
               <div className="flex items-center gap-2">
                 <input
@@ -1166,21 +1220,19 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
                   // Opcional: conserva el compromiso aunque la sesión cambie.
                   onChange={(e) => updField('deadline')(e.target.value)}
                   // Tarea de una venta de LOOPA: la entrega la fija la venta.
-                  disabled={!!window.FrameLoopa?.isFromSale(project)}
-                  title={window.FrameLoopa?.isFromSale(project) ? 'La entrega la fija la venta en LOOPA' : undefined}
+                  disabled={deVenta}
+                  title={deVenta ? 'La fija la venta en LOOPA; se mueve junto con la fecha de trabajo' : undefined}
                   className="text-sm hover:bg-[var(--surface-2)] rounded px-2 py-1 -mx-2 cursor-pointer"
                   style={{ colorScheme: 'var(--color-scheme)' }}
                 />
-                {isUrgent && <span className="text-[10px] font-semibold" style={{ color: 'var(--danger)' }}>en {days}d</span>}
+                {urgente && <span className="text-[10px] font-semibold" style={{ color: 'var(--danger)' }}>en {days}d</span>}
                 {project.deadline && days < 0 && !isClosed(project) && <span className="text-[10px] font-semibold" style={{ color: 'var(--danger)' }}>Atrasada {Math.abs(days)}d</span>}
               </div>
             </PropRow>
 
-            {/* La sesión se gestiona desde el calendario; la entrega es el compromiso. */}
-
             {collaborationEnabled && <PropRow icon="zap" label="Presupuesto">
               <div className="flex items-center gap-1 text-sm">
-                <span className="text-[var(--text-muted)]">{project.currency}</span>
+                <span className="text-[var(--text-muted)]">{currencyLabel(project.currency)}</span>
                 <InlineEdit
                   value={String(project.budget)}
                   // Math.max(0, …) porque un presupuesto negativo no significa
@@ -1201,7 +1253,7 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
                     </button>
                   </span>
                 ))}
-                <TagAdd onAdd={addTag} />
+                <TagAdd onAdd={addTags} />
               </div>
             </PropRow>
 
@@ -1218,7 +1270,7 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
                 <div className="h-full transition duration-500" style={{ width: progress + '%', background: 'var(--accent)' }}></div>
               </div>
               <div className="text-[11px] text-[var(--text-muted)] mt-2">
-                {project.checklist.filter(c => c.done).length} de {project.checklist.length} tareas completadas
+                {project.checklist.length ? `${realizados} de ${project.checklist.length} ítems completados` : 'Sin ítems en el checklist'}
               </div>
             </div>
           </div>
@@ -1256,7 +1308,7 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
 
                 {/* Checklist */}
                 <section>
-                  <SectionTitle icon="check" right={`${project.checklist.filter(c => c.done).length}/${project.checklist.length}`}>
+                  <SectionTitle icon="check" right={`${realizados}/${project.checklist.length}`}>
                     Checklist
                   </SectionTitle>
                   <div className="space-y-1">
@@ -1335,31 +1387,35 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
                                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveEditDv(); } if (e.key === 'Escape') cancelEditDv(); }}
                                 className="flex-1 text-[13px] bg-transparent outline-none border-b"
                                 style={{ borderColor: 'var(--accent)', color: 'var(--text)' }}
-                                placeholder="Nombre del entregable"
+                                placeholder="Nombre del recurso"
                               />
-                              <select
-                                value={editingDvData.kind}
-                                onChange={(e) => setEditingDvData(d => ({ ...d, kind: e.target.value }))}
-                                className="text-[11px] px-1.5 py-0.5 rounded border cursor-pointer"
-                               
-                              >
-                                <option value="video">Video</option>
-                                <option value="photos">Foto</option>
-                                <option value="audio">Audio</option>
-                              </select>
+                              {!editingDvData.subido && (
+                                <select
+                                  value={editingDvData.kind}
+                                  onChange={(e) => setEditingDvData(d => ({ ...d, kind: e.target.value }))}
+                                  className="text-[11px] px-1.5 py-0.5 rounded border cursor-pointer"
+                                >
+                                  <option value="video">Enlace</option>
+                                  <option value="photos">Foto</option>
+                                  <option value="audio">Audio</option>
+                                  {editingDvData.kind === 'file' && <option value="file">Archivo</option>}
+                                </select>
+                              )}
                             </div>
-                            {/* Fila 2: URL */}
-                            <div className="flex items-center gap-2">
-                              <Icon name="link" size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                              <input
-                                value={editingDvData.url}
-                                onChange={(e) => setEditingDvData(d => ({ ...d, url: e.target.value }))}
-                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveEditDv(); } if (e.key === 'Escape') cancelEditDv(); }}
-                                className="flex-1 text-[12px] bg-transparent outline-none border-b font-mono"
-                                style={{ borderColor: 'var(--border-2)', color: 'var(--text-dim)' }}
-                                placeholder="https://drive.google.com/…"
-                              />
-                            </div>
+                            {/* Fila 2: URL (los archivos subidos no la cambian) */}
+                            {!editingDvData.subido && (
+                              <div className="flex items-center gap-2">
+                                <Icon name="link" size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                                <input
+                                  value={editingDvData.url}
+                                  onChange={(e) => setEditingDvData(d => ({ ...d, url: e.target.value }))}
+                                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveEditDv(); } if (e.key === 'Escape') cancelEditDv(); }}
+                                  className="flex-1 text-[12px] bg-transparent outline-none border-b font-mono"
+                                  style={{ borderColor: 'var(--border-2)', color: 'var(--text-dim)' }}
+                                  placeholder="https://drive.google.com/…"
+                                />
+                              </div>
+                            )}
                             {/* Acciones */}
                             <div className="flex items-center justify-end gap-2 pt-0.5">
                               <button onClick={cancelEditDv} className="text-[11px] px-2 py-0.5 rounded" style={{ color: 'var(--text-muted)' }}>Cancelar</button>
@@ -1386,7 +1442,7 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
                                 {dv.kind === 'photos' ? 'Imagen' : dv.kind === 'file' ? (dv.name.split('.').pop() || 'Archivo') : 'Enlace externo'}
                               </div>
                             </div>
-                            {dv.url && (
+                            {enlaceSeguro(dv.url) && (
                               <a href={dv.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="flex-shrink-0 p-1.5 rounded-md hover:bg-[var(--surface-3)]" style={{ color: 'var(--text-dim)' }} title="Abrir recurso">
                                 <Icon name="external" size={13} />
                               </a>
@@ -1412,9 +1468,18 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
                                 </button>
                               );
                             })()}
-                            <button onClick={() => removeDeliverable(dv.id)} className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-[var(--danger)] transition-opacity flex-shrink-0">
-                              <Icon name="trash" size={13} />
-                            </button>
+                            {/* Un archivo subido se borra para siempre: dos pasos. */}
+                            {confirmDvId === dv.id ? (
+                              <span className="flex items-center gap-1 flex-shrink-0">
+                                <span className="text-[11px] font-medium" style={{ color: 'var(--danger)' }}>{dv.storagePath ? '¿Borrar el archivo?' : '¿Quitar?'}</span>
+                                <button onClick={() => removeDeliverable(dv.id)} className="px-2 py-0.5 rounded text-[11px] font-semibold" style={{ background: 'var(--danger-soft-2)', color: 'var(--danger)' }}>Sí</button>
+                                <button onClick={() => setConfirmDvId(null)} className="px-2 py-0.5 rounded text-[11px]" style={{ background: 'var(--surface-3)', color: 'var(--text-muted)' }}>No</button>
+                              </span>
+                            ) : (
+                              <button onClick={() => setConfirmDvId(dv.id)} title="Eliminar recurso" className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-[var(--danger)] transition-opacity flex-shrink-0">
+                                <Icon name="trash" size={13} />
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1432,7 +1497,8 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
                         los puntos se veían montados sobre ella en vez de
                         ensartados. */}
                     <div className="absolute left-[10px] top-1 bottom-1 w-px bg-[var(--border-2)]"></div>
-                    {project.timeline.map((t, i) => (
+                    {/* Por fecha; los que no tienen, al final. */}
+                    {[...project.timeline].sort((a, b) => String(a.date || '9').localeCompare(String(b.date || '9'))).map((t) => (
                       <div key={t.id} className="group relative flex items-start gap-3 py-2">
                         <button
                           onClick={() => toggleTimeline(t.id)}
@@ -1446,7 +1512,7 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
                         <div className="ml-3 flex-1 flex items-center justify-between">
                           <div>
                             <div className={`text-[13px] ${t.status === 'done' ? 'line-through text-[var(--text-dim)]' : ''}`}>{t.label}</div>
-                            <div className="text-[11px] text-[var(--text-muted)] font-mono">{fmtDateLong(t.date)}</div>
+                            <div className="text-[11px] text-[var(--text-muted)] font-mono">{t.date ? fmtDateLong(t.date) : 'Sin fecha'}</div>
                           </div>
                           <div className="flex items-center gap-2">
                             {t.status === 'done' && <span className="text-[10px]" style={{ color: 'var(--accent)' }}>✓ HECHO</span>}
@@ -1465,7 +1531,7 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
                   <button type="button" onClick={() => setActivityOpen(open => !open)} className="w-full flex items-center justify-between rounded-md px-2 py-2 -mx-2 hover:bg-[var(--surface-2)] transition-colors" aria-expanded={activityOpen}>
                     <span className="ui-section-label flex items-center gap-2"><Icon name="clock" size={14} /> Actividad</span>
                     <span className="flex items-center gap-2 text-[11px] text-[var(--text-muted)] font-mono">
-                      {activity.length ? `${activity.length} eventos` : ''}
+                      {activity.length ? `${activity.length}${activity.length >= 30 ? '+' : ''} evento${activity.length === 1 ? '' : 's'}` : ''}
                       <span className={`transition-transform ${activityOpen ? 'rotate-180' : ''}`}><Icon name="chevronDown" size={13} /></span>
                     </span>
                   </button>
@@ -1525,17 +1591,25 @@ const SectionTitle = ({ icon, right, children }) => (
   </div>
 );
 
+// Un enlace sólo se abre si es http(s): lo que venga guardado de antes se
+// muestra, pero no se convierte en un enlace ejecutable.
+const enlaceSeguro = (url) => /^https?:\/\//i.test(String(url || ''));
+
 const TagAdd = ({ onAdd }) => {
   const [v, setV] = useState('');
+  const descartar = useRef(false); // Esc: salir sin guardar lo escrito
 
+  // onAdd recibe la lista entera: todos los tags pegados van en un solo cambio.
   const flush = (raw) => {
-    raw.split(/[,;\n]+/).map(t => t.trim()).filter(Boolean).forEach(t => onAdd(t));
+    const list = raw.split(/[,;\n]+/).map(t => t.trim()).filter(Boolean);
+    if (list.length) onAdd(list);
   };
 
   return (
     <input
       value={v}
       onChange={(e) => {
+        descartar.current = false;
         // Si el usuario escribió una coma, agregar el tag inmediatamente
         if (e.target.value.includes(',')) {
           flush(e.target.value);
@@ -1546,6 +1620,11 @@ const TagAdd = ({ onAdd }) => {
       }}
       onKeyDown={(e) => {
         if (e.key === 'Enter') { flush(v); setV(''); }
+        if (e.key === 'Escape') { descartar.current = true; setV(''); }
+      }}
+      onBlur={() => {
+        if (descartar.current) { descartar.current = false; return; }
+        flush(v); setV('');
       }}
       onPaste={(e) => {
         e.preventDefault();
@@ -1561,14 +1640,22 @@ const TagAdd = ({ onAdd }) => {
 
 const ChecklistAdd = ({ onAdd }) => {
   const [v, setV] = useState('');
+  const descartar = useRef(false); // Esc: salir sin guardar lo escrito
   return (
     <div className="flex items-center gap-2.5 py-1 px-2 -mx-2">
       <span className="check"></span>
       <input
         value={v}
         onChange={(e) => setV(e.target.value)}
-        onKeyDown={(e) => { if (e.key === 'Enter' && v.trim()) { onAdd(v); setV(''); } }}
-        placeholder="Agregar tarea…"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && v.trim()) { onAdd(v); setV(''); }
+          if (e.key === 'Escape') { descartar.current = true; setV(''); }
+        }}
+        onBlur={() => {
+          if (descartar.current) { descartar.current = false; return; }
+          if (v.trim()) { onAdd(v); setV(''); }
+        }}
+        placeholder="Agregar ítem…"
         className="flex-1 text-[13px]"
       />
     </div>
@@ -1654,7 +1741,7 @@ const TimelineAdd = ({ onAdd }) => {
   const [date, setDate] = useState(() => localISO(new Date(TODAY)));
 
   const submit = () => {
-    if (!label.trim()) return;
+    if (!label.trim() || !date) return;
     onAdd({ id: 'tl' + Date.now() + Math.random().toString(36).slice(2, 5), label: label.trim(), date, status: 'pending' });
     setLabel('');
     setOpen(false);
@@ -1693,7 +1780,7 @@ const TimelineAdd = ({ onAdd }) => {
       </div>
       <div className="flex justify-end gap-2 mt-3">
         <button onClick={() => { setOpen(false); setLabel(''); }} className="px-3 py-1.5 text-[12px] rounded-md" style={{ color: 'var(--text-muted)' }}>Cancelar</button>
-        <button onClick={submit} disabled={!label.trim()} className="px-3 py-1.5 text-[12px] font-semibold rounded-md disabled:opacity-40" style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}>Agregar hito</button>
+        <button onClick={submit} disabled={!label.trim() || !date} className="px-3 py-1.5 text-[12px] font-semibold rounded-md disabled:opacity-40" style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}>Agregar hito</button>
       </div>
     </div>
   );

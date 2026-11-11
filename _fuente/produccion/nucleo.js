@@ -82,7 +82,7 @@ const LoopaProduccion = (function () {
       startDate:    p.startDate    || today,
       deadline:     p.deadline     ?? '',
       sessionDate:  p.sessionDate  || p.startDate || p.deadline || today,
-      currency:     p.currency     ?? 'USD',
+      currency:     (p.currency === 'USD' && !p.budget) ? 'HNL' : (p.currency ?? 'HNL'),
       budget:       typeof p.budget === 'number' ? p.budget : 0,
       tags:         Array.isArray(p.tags)         ? p.tags         : [],
       assignees:    Array.isArray(p.assignees)    ? p.assignees    : [],

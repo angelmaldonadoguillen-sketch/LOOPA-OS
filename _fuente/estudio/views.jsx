@@ -165,7 +165,7 @@ const ProjectCardMini = ({ project, onClick, draggable, onDragStart, onDragEnd, 
   // renglones apilados. Es lo que hace que la tarjeta se lea de un vistazo.
   const meta = [];
   if (pf.cliente !== false && project.client) meta.push(project.client);
-  if (hasBudget) meta.push(`${project.currency || 'USD'} ${project.budget.toLocaleString()}`);
+  if (hasBudget) meta.push(`${currencyLabel(project.currency)} ${project.budget.toLocaleString()}`);
 
   return (
     <div
@@ -944,7 +944,8 @@ const CalendarView = ({ projects, onOpenProject, onDeleteProject, onDuplicatePro
     if (currentDate === iso) { setDragging(null); setDragOverDate(null); return; }
     // Arrastrar reagenda el arranque y deja la fecha límite intacta: es un
     // compromiso con el cliente, no algo que cambie por reordenar la semana.
-    onUpdateProject && onUpdateProject({ ...project, sessionDate: iso });
+    // (Salvo en una tarjeta de venta día por día: ver workDatePatch.)
+    onUpdateProject && onUpdateProject({ ...project, ...window.FrameLoopa.workDatePatch(project, iso) });
     setDragging(null); setDragOverDate(null); lastOverRef.current = null;
   };
 
@@ -1240,9 +1241,10 @@ const WeekView = ({ refDate, projectsByDate, onOpenProject, onDeleteProject, onD
     if (!found) return;
     const currentDate = found.sessionDate || found.startDate;
     if (currentDate === iso) { setDragging(null); setDragOverDate(null); return; }
-    // Sólo la fecha de inicio: la límite es un dato, no una posición.
+    // Sólo la fecha de inicio: la límite es un dato, no una posición
+    // (salvo en una tarjeta de venta día por día: ver workDatePatch).
     const cleanProject = found;
-    onUpdateProject && onUpdateProject({ ...cleanProject, sessionDate: iso });
+    onUpdateProject && onUpdateProject({ ...cleanProject, ...window.FrameLoopa.workDatePatch(cleanProject, iso) });
     setDragging(null); setDragOverDate(null); lastOverRef.current = null;
   };
   return (
@@ -1457,7 +1459,7 @@ const GalleryCard = ({ project, onClick, onDelete, onDuplicate, onToggleFavorite
   // Misma línea de metadatos que la tarjeta del tablero.
   const meta = [];
   if (pf.presupuesto && project.budget > 0) {
-    meta.push(`${project.currency || 'USD'} ${project.budget.toLocaleString()}`);
+    meta.push(`${currencyLabel(project.currency)} ${project.budget.toLocaleString()}`);
   }
 
   return (

@@ -217,8 +217,12 @@ service cloud.firestore {
     function projectEditAllowed() {
       let changed = request.resource.data.diff(resource.data).affectedKeys();
       return !changed.hasAny(provenanceKeys())
-             // La entrega de una tarea de venta la fija la venta.
-             && (!fromSale(resource.data) || !changed.hasAny(['deadline']))
+             // La entrega de una tarea de venta la fija la venta. La única
+             // excepción: en una tarjeta día por día (trabajo = entrega), las
+             // dos fechas se mueven juntas al reprogramarla.
+             && (!fromSale(resource.data) || !changed.hasAny(['deadline'])
+                 || (resource.data.deadline == resource.data.sessionDate
+                     && request.resource.data.deadline == request.resource.data.sessionDate))
              // clientId: sólo se asigna una vez (enlazar una tarea vieja a su
              // ficha) y nunca se cambia ni se quita.
              && (!changed.hasAny(['clientId'])

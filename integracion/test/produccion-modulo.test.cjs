@@ -57,6 +57,30 @@ test('la barra lateral se contrae y lo recuerda en este equipo', () => {
   assert.match(app, /onClick=\{\(\) => setBarraPlegada\(v => !v\)\} aria-expanded=\{!barraPlegada\}/);
 });
 
+test('mover una tarjeta: entrega y trabajo van juntas sólo en la de venta día por día', () => {
+  const { workDatePatch } = require(path.join(ROOT, '_fuente/estudio/loopa-fusion.js'));
+  const venta = { sourceSystem: 'loopa', sessionDate: '2026-11-18', deadline: '2026-11-18' };
+  assert.deepEqual(workDatePatch(venta, '2026-11-20'), { sessionDate: '2026-11-20', deadline: '2026-11-20' });
+  assert.deepEqual(workDatePatch({ ...venta, deadline: '2026-11-25' }, '2026-11-20'), { sessionDate: '2026-11-20' }, 'con entrega aparte no se junta');
+  assert.deepEqual(workDatePatch({ sessionDate: '2026-11-18', deadline: '2026-11-18' }, '2026-11-20'), { sessionDate: '2026-11-20' }, 'en una manual la entrega es otro compromiso');
+  assert.deepEqual(workDatePatch({ sourceSystem: 'loopa', sessionDate: '2026-11-18', deadline: '' }, '2026-11-20'), { sessionDate: '2026-11-20' }, 'sin entrega no inventa una');
+});
+
+test('ficha de tarea: lo auditado sigue corregido', () => {
+  const modal = read('_fuente/estudio/modal.jsx');
+  assert.match(modal, /validateImageUrl\(url\)/, 'editar un enlace lo valida como al crearlo');
+  assert.match(modal, /enlaceSeguro\(dv\.url\) && \(/, 'sólo http(s) se abre');
+  assert.match(read('_fuente/estudio/portal.jsx'), /enlaceSeguro\(item\.url\) \?/, 'también en el portal');
+  assert.match(modal, /<InlineEdit value=\{project\.title\}[^\n]*\brequired\b/, 'el título no queda vacío');
+  assert.match(modal, /campo\.tagName === 'INPUT'[^\n]*isContentEditable\)\) \{\s*if \(campo\.isConnected\) campo\.blur\(\);\s*return;/, 'Esc escribiendo no cierra');
+  assert.match(modal, /if \(list\.length\) onAdd\(list\);/, 'los tags pegados van juntos');
+  assert.match(modal, /setConfirmDvId\(dv\.id\)/, 'borrar un recurso pide confirmación');
+  assert.match(modal, /const urgente = isUrgent\(project\);/, 'mismo criterio de urgencia');
+  assert.match(modal, /label="Fecha de trabajo"/);
+  assert.match(modal, /if \(!label\.trim\(\) \|\| !date\) return;/, 'un hito lleva fecha');
+  assert.match(read('_fuente/estudio/app.jsx'), /workspaceKind=\{tableroDeLaTarea\?\.kind/, 'los campos dependen del tablero de la tarea');
+});
+
 test('el módulo no depende de globales de FRAME ni escribe datos', () => {
   // TODOS los archivos del módulo (y la navegación).
   const archivos = ['_fuente/produccion/calendario.jsx', '_fuente/produccion/nucleo.js', '_fuente/produccion/datos-reales.js', '_fuente/produccion/tablero.jsx', '_fuente/produccion/resumen.jsx', '_fuente/produccion/cliente.jsx', '_fuente/shell/navegacion.jsx'];

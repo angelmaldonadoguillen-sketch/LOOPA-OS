@@ -300,7 +300,7 @@ const ClientDetail = ({ client, projects, columns = [], onClose, onUpdate, onDel
   const monthlyProgress = clientMonthlyProgress(projects, client.name);
 
   const upd        = (patch) => onUpdate({ ...client, ...patch });
-  const addTag     = (t) => { if (!t.trim()) return; upd({ tags: [...new Set([...client.tags, t.trim()])] }); };
+  const addTags    = (list) => upd({ tags: [...new Set([...client.tags, ...list])] });
   const removeTag  = (t) => upd({ tags: client.tags.filter(x => x !== t) });
 
   // Status breakdown
@@ -493,7 +493,7 @@ const ClientDetail = ({ client, projects, columns = [], onClose, onUpdate, onDel
                     </button>
                   </span>
                 ))}
-                <TagAdd onAdd={addTag} />
+                <TagAdd onAdd={addTags} />
               </div>
             </section>
 
@@ -539,7 +539,7 @@ const ClientDetail = ({ client, projects, columns = [], onClose, onUpdate, onDel
                           <div className="flex items-center gap-2 mt-0.5">
                             <TypePill type={p.type} />
                             <span className="text-[10px] text-[var(--text-muted)] font-mono">
-                              fecha límite {fmtDate(p.deadline)}
+                              entrega {fmtDate(p.deadline)}
                             </span>
                           </div>
                         </div>
@@ -762,8 +762,9 @@ const ClientAutocomplete = ({ value, onChange, clients = [], onCreateClient, fie
     const close = (e) => {
       if (!wrapRef.current?.contains(e.target) && !panelRef.current?.contains(e.target)) {
         setOpen(false);
+        // Vacío también vale: así se le quita el cliente a una tarea.
         const q = query.trim();
-        if (q && q !== value) onChange(q);
+        if (q !== (value || '')) onChange(q);
       }
     };
     document.addEventListener('mousedown', close);

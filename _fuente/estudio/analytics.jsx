@@ -149,7 +149,7 @@ const AnalyticsSection = ({ projects, clients, team, currentUserId }) => {
           />
           <KpiCard
             icon="alert"
-            label="Fechas límite urgentes"
+            label="Entregas urgentes"
             value={urgent.length}
             sub="vencidas o próximas a vencer"
             color="var(--danger)"
@@ -228,7 +228,7 @@ const AnalyticsSection = ({ projects, clients, team, currentUserId }) => {
               <div className="ui-section-label">
                 Tareas por mes — últimos 6 meses
               </div>
-              <div className="text-[10px] text-[var(--text-muted)]">por fecha límite</div>
+              <div className="text-[10px] text-[var(--text-muted)]">por fecha de entrega</div>
             </div>
             <div className="flex items-end gap-3" style={{ height: 120 }}>
               {months.map(m => {
@@ -346,7 +346,7 @@ const AnalyticsSection = ({ projects, clients, team, currentUserId }) => {
         <div className="surf-panel p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="ui-section-label">
-              Próximas fechas límite
+              Próximas entregas
             </div>
             {urgent.length > 0 && (
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'var(--danger-soft-2)', color: 'var(--danger)' }}>
@@ -359,7 +359,7 @@ const AnalyticsSection = ({ projects, clients, team, currentUserId }) => {
               const d        = daysUntil(p.deadline);
               const st       = getStatus(p.status);
               const t        = getType(p.type);
-              const isUrgent = d >= 0 && d < 3;
+              const isUrgent = d >= 0 && d <= URGENT_DAYS;
               const isOver   = d < 0;
               return (
                 <div key={p.id} className="flex items-center gap-3 py-2 border-b border-app last:border-0 min-w-0">
@@ -386,7 +386,7 @@ const AnalyticsSection = ({ projects, clients, team, currentUserId }) => {
               );
             })}
             {upcoming.length === 0 && (
-              <div className="text-[12px] text-[var(--text-muted)] py-4 text-center">Sin tareas activas con fecha límite</div>
+              <div className="text-[12px] text-[var(--text-muted)] py-4 text-center">Sin tareas activas con fecha de entrega</div>
             )}
           </div>
         </div>

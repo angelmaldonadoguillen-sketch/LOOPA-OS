@@ -1116,3 +1116,14 @@ Los «diseños originales» del documento son el ítem Post publicitario. Las hi
 **Pruebas.** 286 sin red (1 nueva), 20 de Producción, 36 en el emulador y 11 de funciones. La simulación en memoria de la carga y una venta de cada plan dio 18, 34 y 47 tarjetas.
 
 **Hay que publicar `functions:loopa`** antes de subir la pantalla y cargar los planes.
+
+## 39. Auditoría de la ficha de tarea (2026-11-10)
+
+Se corrigieron los fallos encontrados al usar la ficha elemento por elemento.
+
+- **Datos.** Editar un enlace lo valida como al crearlo, y ni la ficha ni el portal abren lo que no sea http(s). El título no queda vacío. Esc mientras se escribe sólo sale del campo. Varios tags pegados se guardan juntos. Borrar un recurso pide confirmación.
+- **Fechas.** La ficha muestra la fecha de trabajo, la que ubica la tarjeta en el calendario. En una tarjeta de venta día por día (trabajo = entrega) las dos se mueven juntas: `workDatePatch` en `loopa-fusion.js` y una excepción en `projectEditAllowed`, que sólo acepta ese caso.
+- **Cliente.** En una tarjeta de venta es de sólo lectura, porque el portal agrupa por nombre. En las manuales se puede quitar.
+- **Coherencia.** Urgente usa `isUrgent` en todos lados. Responsables, Presupuesto y Comentarios dependen del tablero de la tarea, no del abierto. Un cambio de estado rechazado no avisa a nadie. Las tareas nuevas nacen como Otro y en lempiras.
+
+**Hay que publicar las reglas** antes de subir la pantalla: sin ellas, mover una tarjeta de venta día por día se rechaza.

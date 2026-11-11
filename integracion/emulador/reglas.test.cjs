@@ -176,6 +176,7 @@ test('tarea de una venta: el equipo la trabaja, pero no toca procedencia, entreg
   await ok(fsMod.updateDoc(t, { sessionDate: '2026-11-19' }), 'reprogramar mueve el día de trabajo');
   await ok(fsMod.updateDoc(t, { clientVisible: true }), 'compartir con el cliente');
   await no(fsMod.updateDoc(t, { deadline: '2026-11-30' }), 'la entrega la fija la venta');
+  await no(fsMod.updateDoc(t, { deadline: '2026-11-25', sessionDate: '2026-11-25' }), 'si trabajo y entrega eran distintas, no se junta');
   for (const k of PROVENANCE) {
     await no(fsMod.updateDoc(t, { [k]: 'x' }), `procedencia ${k}`);
     await no(fsMod.updateDoc(t, { [k]: fsMod.deleteField() }), `quitar ${k}`);
@@ -186,6 +187,15 @@ test('tarea de una venta: el equipo la trabaja, pero no toca procedencia, entreg
   await no(fsMod.deleteDoc(t), 'cancelar nunca borra: se archiva (D14)');
   await ok(fsMod.updateDoc(t, { status: 'archived' }), 'archivar sí');
   await no(fsMod.getDoc(ref(as('u3'), 'frame_projects', 'tSale')), 'otro tablero no la ve (FRAME)');
+});
+
+test('tarjeta de venta día por día: trabajo y entrega se mueven sólo juntas', { skip }, async () => {
+  const admin = (ctx) => fsMod.setDoc(fsMod.doc(ctx.firestore(), 'frame_projects', 'tFicha'), { ...SALE_TASK, id: 'tFicha', sessionDate: '2026-11-18', deadline: '2026-11-18' });
+  await env.withSecurityRulesDisabled(admin);
+  const t = ref(as('u2'), 'frame_projects', 'tFicha');
+  await no(fsMod.updateDoc(t, { deadline: '2026-11-20' }), 'la entrega sola no');
+  await ok(fsMod.updateDoc(t, { sessionDate: '2026-11-20', deadline: '2026-11-20' }), 'las dos juntas sí');
+  await no(fsMod.updateDoc(t, { sessionDate: '2026-11-22', deadline: '2026-11-25' }), 'a días distintos no');
 });
 
 // Punto A0: las reglas activas traían un cambio de FRAME (2026-10-15) que no

@@ -8,6 +8,7 @@
 // van a rechazar (y que la pantalla no quede mintiendo):
 //
 //   isFromSale            ¿la tarea la generó una venta?
+//   workDatePatch         qué cambia al mover una tarjeta a otro día
 //   withoutProvenance     copia sin los campos de procedencia de la venta
 //   duplicateOf           la copia de «Duplicar» (manual, sin procedencia;
 //                         sin ficha si la ficha no es del tablero destino)
@@ -31,6 +32,16 @@
   const CLIENT_SERVER_KEYS = ['commercial', 'legacyLoopaIds', 'hasSales', 'createdBy', 'updatedBy', 'createdAt'];
 
   const isFromSale = (p) => !!p && p.sourceSystem === 'loopa';
+
+  // Lo que cambia al llevar una tarjeta a otro día de trabajo. En una tarjeta
+  // de venta generada día por día, entrega y trabajo son la misma fecha: se
+  // mueven juntas (la regla sólo acepta eso). En lo demás la entrega es un
+  // compromiso aparte y no se toca.
+  const workDatePatch = (p, iso) => {
+    const patch = { sessionDate: iso };
+    if (isFromSale(p) && p.deadline && p.deadline === p.sessionDate) patch.deadline = iso;
+    return patch;
+  };
 
   const withoutProvenance = (p) => {
     const c = { ...p };
@@ -99,5 +110,5 @@
     return Object.keys(prev || {}).filter(k => k !== 'id' && !CLIENT_SERVER_KEYS.includes(k) && !Object.prototype.hasOwnProperty.call(next || {}, k));
   }
 
-  return { PROVENANCE_KEYS, CLIENT_SERVER_KEYS, isFromSale, withoutProvenance, duplicateOf, restorableFromTrash, clientHasSales, clientUpdatePatch, clientRemovedKeys };
+  return { PROVENANCE_KEYS, CLIENT_SERVER_KEYS, isFromSale, workDatePatch, withoutProvenance, duplicateOf, restorableFromTrash, clientHasSales, clientUpdatePatch, clientRemovedKeys };
 });
