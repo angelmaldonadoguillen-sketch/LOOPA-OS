@@ -795,6 +795,20 @@ test('Fase 4.6: el JSX se compila al armar; el navegador no baja Babel', () => {
   assert.ok(html.indexOf('// ── estudio: capa.js') > 0 && html.indexOf('// ── estudio: capa.js') < html.indexOf('// ── app.jsx ──'));
 });
 
+test('Experiencia 5: vista «Ventas» del tablero (una fila por producto vendido)', () => {
+  const build = fs.readFileSync(path.join(ROOT, '_fuente', 'build.js'), 'utf8');
+  const est = fs.readFileSync(path.join(ROOT, '_fuente', 'estudio', 'app.jsx'), 'utf8');
+  const vl = fs.readFileSync(path.join(ROOT, '_fuente', 'estudio', 'ventas-linea.jsx'), 'utf8');
+  assert.match(build, /'views\.jsx', 'ventas-linea\.jsx', 'clients\.jsx'/);
+  assert.match(build, /\['frame\.css', 'ventas-linea\.css'\]/);
+  assert.match(est, /\{ id: 'ventas',\s+icon: 'layers',\s+label: 'Ventas' \}/);
+  assert.match(est, /state\.view === 'ventas'\s+&& <VentasView\s+projects=\{filtered\} columns=\{boardCols\}/);
+  // Agrupa sólo lo que viene de LOOPA, por venta y línea; hecha = columna de cierre.
+  assert.match(vl, /if \(p\.sourceSystem !== 'loopa' \|\| !p\.sourceSaleId \|\| !p\.sessionDate\) return;/);
+  assert.match(vl, /const key = `\$\{p\.sourceSaleId\}\|\$\{linea\}`;/);
+  assert.match(vl, /\.filter\(c => c\.isDone\)/);
+});
+
 test('Fase 4.4: Métricas y Configuración son una sola página (sin pestañas)', () => {
   const app = fs.readFileSync(path.join(ROOT, '_fuente', 'app.jsx'), 'utf8');
   const css = fs.readFileSync(path.join(ROOT, '_fuente', 'shell', 'navegacion.css'), 'utf8');

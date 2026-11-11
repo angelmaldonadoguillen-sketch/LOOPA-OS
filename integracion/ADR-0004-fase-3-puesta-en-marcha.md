@@ -1012,3 +1012,19 @@ El servidor la guardó normalizada, con costo 9.500. El catálogo la muestra «L
   Totales: 282 sin red, 20 de Producción, 36 en el emulador y 11 de funciones.
 - **Verificado en el emulador, desde la pantalla.** Una venta con sesión y 2 reels se movió del 16/11 al 23/11 y después al 01/12. Las 3 tarjetas se reprogramaron solas cada vez y la entrega pasó al 15/12.
 - **Hay que publicar `functions:loopa`.**
+## 34. Experiencia 5: vista «Ventas» en el tablero (2026-11-10)
+
+- **Qué es.** Es el calendario agrupado por lo que se vendió, una nueva vista del tablero junto a Tablero, Calendario, Galería y Lista (`estudio/ventas-linea.jsx` y `.css`).
+- **Filas.** Una por producto vendido: tarjetas con `sourceSystem: 'loopa'`, agrupadas por `sourceSaleId` y la primera `sourceLineIds`. Cada fila muestra:
+  - el cliente, el producto (su etiqueta) y el número de venta;
+  - una barra de avance y el conteo de hechas sobre el total;
+  - si la venta está cancelada, la fila se atenúa.
+- **Línea de tiempo.** Es común a todas las filas, desde una semana antes de hoy (o el primer inicio) hasta dos meses después (o el último fin). Marca hoy, los fines de semana y los meses.
+  - Cada producto tiene una barra del inicio al fin.
+  - Cada entrega es un punto en su fecha, con el color de su tipo: el del tablero o, si no trae, el de FRAME.
+  - El punto se ve relleno si la tarjeta está en una columna de cierre (`isDone`, o `delivered`) y con halo rojo si está atrasada. Al tocarlo se abre la tarjeta.
+- **Controles.** Por defecto se ven sólo los productos en curso; «Ver terminadas» muestra el resto y «Hoy» centra la línea de tiempo. Respeta los filtros del tablero (recibe `filtered`).
+- **Sólo pantalla.** No toca el servidor ni las reglas.
+- **Teléfono.** El tablero usa la app móvil, que no tiene esta vista. Queda para después.
+- **Pruebas.** 283 sin red (1 nueva) y 20 de Producción.
+- **Verificado en el emulador.** 3 productos vendidos (un plan mensual y dos sesiones) dan 3 filas con 17 entregas en su día, una hecha y colores por tipo. Tocar un punto abre la tarjeta.

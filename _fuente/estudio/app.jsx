@@ -1047,6 +1047,8 @@ const Header = ({ columns = [], state, dispatch, filteredCount, notifications, o
             { id: 'calendar', icon: 'calendar', label: 'Calendario' },
             { id: 'gallery',  icon: 'grid',     label: 'Galería' },
             { id: 'list',     icon: 'list',     label: 'Lista' },
+            // Etapa «experiencia»: el calendario agrupado por lo que se vendió.
+            { id: 'ventas',   icon: 'layers',   label: 'Ventas' },
           ].map(v => {
             const isPinned = state.pinnedView === v.id;
             return (
@@ -3251,7 +3253,7 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null, comercial = n
           {state.view === 'kanban' && <StatusStatsBar projects={filtered} columns={boardCols} />}
 
           <div className="flex-1 overflow-hidden">
-            {filtered.length === 0 && state.view !== 'kanban' && state.view !== 'calendar' && state.view !== 'gallery' ? (
+            {filtered.length === 0 && state.view !== 'kanban' && state.view !== 'calendar' && state.view !== 'gallery' && state.view !== 'ventas' ? (
               <EmptyState />
             ) : (
               <CardEditingContext.Provider value={{ columns: boardCols, types: state.customTypes.length ? state.customTypes : PROJECT_TYPES, members: workspaceMembers(state.workspaces.find(w => w.id === wsId)), shared: state.workspaces.find(w => w.id === wsId)?.kind === 'team', update: (id, patch) => { const current = state.projects.find(p => p.id === id); if (current) handleUpdateProject({ ...current, ...patch }); } }}>
@@ -3274,6 +3276,7 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null, comercial = n
                 {state.view === 'calendar' && <CalendarView projects={filtered} onOpenProject={(id) => dispatch({ type: 'open_project', id })} onDeleteProject={handleDeleteProject} onDuplicateProject={handleDuplicateProject} onToggleFavorite={handleToggleFavorite} onUpdateProject={handleUpdateProject} onQuickCreate={handleQuickCreate} previewFields={state.previewFields} />}
                 {state.view === 'gallery'  && <GalleryView  projects={filtered} onOpenProject={(id) => dispatch({ type: 'open_project', id })} onDeleteProject={handleDeleteProject} onDuplicateProject={handleDuplicateProject} onToggleFavorite={handleToggleFavorite} onQuickCreate={handleQuickCreate} previewFields={state.previewFields} />}
                 {state.view === 'list'     && <ListView     projects={filtered} onOpenProject={(id) => dispatch({ type: 'open_project', id })} onDeleteProject={handleDeleteProject} onDuplicateProject={handleDuplicateProject} onToggleFavorite={handleToggleFavorite} />}
+                {state.view === 'ventas'   && <VentasView   projects={filtered} columns={boardCols} onOpenProject={(id) => dispatch({ type: 'open_project', id })} />}
               </CardEditingContext.Provider>
             )}
           </div>

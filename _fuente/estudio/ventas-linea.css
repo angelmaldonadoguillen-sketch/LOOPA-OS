@@ -1,0 +1,43 @@
+/* ═══ Vista «Ventas»: el calendario agrupado por lo que se vendió ═══ */
+.vl { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.vl-barra { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 12px 20px; border-bottom: 1px solid var(--border); }
+.vl-resumen { font-size: 12px; color: var(--text-dim); margin-right: 6px; }
+.vl-chip { padding: 5px 12px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--text-dim); font: inherit; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; }
+.vl-chip:hover { color: var(--text); }
+.vl-chip.on { background: var(--surface-3); color: var(--text); }
+.vl-leyenda { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); }
+.vl-leyenda .vl-p { position: static; display: inline-block; margin: 0 2px 0 8px; --tono: var(--text-dim); }
+
+.vl-cuerpo { flex: 1; min-height: 0; display: flex; overflow: auto; }
+.vl-nombres { position: sticky; left: 0; z-index: 3; flex: 0 0 230px; background: var(--bg, #121211); border-right: 1px solid var(--border); }
+.vl-cab-nombre { height: 44px; display: flex; align-items: flex-end; padding: 0 16px 8px; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+.vl-nombre { height: 64px; padding: 10px 16px; border-bottom: 1px solid var(--border); overflow: hidden; }
+.vl-nombre.cancelada { opacity: .5; }
+.vl-cliente { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vl-prod { font-size: 11px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.vl-prod span { color: var(--text-muted); }
+.vl-avance { height: 3px; margin-top: 7px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+.vl-avance span { display: block; height: 100%; background: var(--ok, #6BF0C0); }
+.vl-cuenta { margin-top: 3px; font-size: 10px; color: var(--text-muted); letter-spacing: .04em; }
+
+.vl-tiempo { flex: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; }
+.vl-cab { display: flex; height: 44px; border-bottom: 1px solid var(--border); }
+.vl-dia { position: relative; flex: 0 0 auto; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px; font-size: 10px; color: var(--text-muted); border-left: 1px solid transparent; }
+.vl-dia.finde { background: color-mix(in srgb, var(--surface) 55%, transparent); }
+.vl-dia.hoy .vl-num { color: #121211; background: var(--accent); border-radius: 999px; padding: 1px 5px; font-weight: 700; }
+.vl-mes { position: absolute; top: 6px; left: 4px; white-space: nowrap; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-dim); }
+.vl-hoy { position: absolute; top: 44px; bottom: 0; width: 1px; background: var(--accent); opacity: .35; z-index: 1; pointer-events: none; }
+.vl-fila { position: relative; height: 64px; border-bottom: 1px solid var(--border); }
+.vl-rango { position: absolute; top: 50%; height: 4px; margin-top: -2px; border-radius: 4px; background: var(--surface-3); }
+.vl-punto, .vl-p { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; border: 2px solid var(--tono); background: var(--bg, #121211); cursor: pointer; padding: 0; z-index: 2; transition: transform .15s ease; }
+.vl-punto:hover { transform: scale(1.35); }
+.vl-punto.hecha, .vl-p.hecha { background: var(--tono); }
+.vl-punto.tarde, .vl-p.tarde { border-color: var(--danger); box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 25%, transparent); }
+
+.vl-vacio { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 40px; text-align: center; color: var(--text-dim); font-size: 13px; }
+.vl-vacio b { color: var(--text); font-size: 15px; font-weight: 600; }
+
+@media (max-width: 640px) {
+  .vl-nombres { flex-basis: 140px; }
+  .vl-leyenda { display: none; }
+}
