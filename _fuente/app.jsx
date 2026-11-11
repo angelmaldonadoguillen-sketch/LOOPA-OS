@@ -743,7 +743,7 @@ function PasoServicios({ cliente, servicios, stats, categorias, items, addItem, 
 
   // Venta cerrada: sólo productos con la ficha completa (qué incluye,
   // proceso, precio). Lo demás se completa en Productos, no acá.
-  const disponibles = servicios.filter(s => s.activo !== false && servicioDisponiblePara(s, cliente));
+  const disponibles = servicios.filter(s => s.activo !== false && servicioDisponiblePara(s, cliente) && !(s.item && s.item.soloPaquete === true));
   const activos = disponibles.filter(s => LoopaFicha.lista(s));
   const incompletos = disponibles.length - activos.length;
   const nq = norm(q);
@@ -1567,14 +1567,14 @@ function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVen
                       <td><span className="srv-chip">{s.categoria}</span></td>
                       <td className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>{s.clase === 'item' ? `${LoopaFicha.normalizarItem(s.item).dias} d de producción` : s.ficha ? LoopaFicha.describirDuracion(LoopaFicha.normalizarFicha(s.ficha).duracion) : '—'}</td>
                       <td><FichaEstado servicio={s} compacto /></td>
-                      <td className="num">{L(s.precio)}</td>
+                      <td className="num">{s.item && s.item.soloPaquete === true ? '—' : L(s.precio)}</td>
                       <td className="num dim">{num(s.costo) > 0 ? L(s.costo) : '—'}</td>
                       <td className="num" style={{ color: margen == null ? 'var(--dim)' : margen >= 50 ? 'var(--ok)' : margen >= 25 ? 'var(--warn)' : 'var(--danger)' }}>{margen == null ? '—' : `${margen.toFixed(0)}%`}</td>
                       <td className="num">{st.q || 0}</td>
                       <td className="num" style={{ fontWeight: 500 }}>{st.ingresos ? L(st.ingresos) : '—'}</td>
                       <td className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>{st.ultima ? fmtFecha(st.ultima) : '—'}</td>
                       <td onClick={e => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
-                        {s.activo !== false && <button className="btn sm ghost" onClick={() => onVender(s)} title="Nueva venta con este servicio"><Icon name="plus" size={11} /> Vender</button>}
+                        {s.activo !== false && !(s.item && s.item.soloPaquete === true) && <button className="btn sm ghost" onClick={() => onVender(s)} title="Nueva venta con este servicio"><Icon name="plus" size={11} /> Vender</button>}
                       </td>
                     </tr>
                   );

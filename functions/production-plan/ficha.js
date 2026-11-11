@@ -184,6 +184,8 @@ var LoopaFicha = (function () {
   // ── ¿Lista para vender? ───────────────────────────────────────────
   // Devuelve lo que falta, en palabras (vacío = lista).
   function faltantes(servicio) {
+    // Un ítem interno nunca se vende suelto, por completo que esté.
+    if (servicio && esObj(servicio.item) && servicio.item.soloPaquete === true) return ['se vende sólo dentro de un paquete'];
     var f = servicio && esObj(servicio.ficha) ? normalizarFicha(servicio.ficha) : null;
     var out = [];
     if (!servicio || !txt(servicio.nombre)) out.push('nombre');
@@ -213,6 +215,8 @@ var LoopaFicha = (function () {
       dias: ent(it.dias, 1, 365, 1),
       costo: monto(it.costo),
       proceso: normalizarProceso(it.proceso),
+      // Interno: sólo existe dentro de paquetes (visita, historias, pauta…).
+      soloPaquete: it.soloPaquete === true,
     };
   }
   function fichaDeItem(id, nombre, item) {

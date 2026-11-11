@@ -329,7 +329,7 @@ function ItemForm({ servicio, servicios, categorias, tiposTarjeta, onClose, onSa
   const [d, setD] = useState(() => ({
     nombre: servicio.nombre || '', categoria: servicio.categoria || categorias[0] || 'Otro',
     precio: servicio.precio != null ? String(servicio.precio) : '', costo: it0.costo ? String(it0.costo) : '',
-    dias: it0.dias, tipo: it0.tipo, detalle: it0.detalle, proceso: it0.proceso, activo: servicio.activo !== false,
+    dias: it0.dias, tipo: it0.tipo, detalle: it0.detalle, proceso: it0.proceso, activo: servicio.activo !== false, soloPaquete: it0.soloPaquete,
   }));
   const set = (k) => (e) => setD(x => ({ ...x, [k]: e.target.value }));
   const dup = servicios.find(s => s.id !== servicio.id && norm(s.nombre) === norm(d.nombre));
@@ -337,14 +337,14 @@ function ItemForm({ servicio, servicios, categorias, tiposTarjeta, onClose, onSa
   const tipos = (tiposTarjeta && tiposTarjeta.length ? tiposTarjeta : TIPOS_TARJETA_BASE).map(t => (
     t.label && t.label !== t.id ? t : { ...t, label: (TIPOS_TARJETA_BASE.find(b => b.id === t.id) || t).label || t.id }));
   const sugerido = !d.tipo ? LoopaFicha.tipoSugerido(d.nombre) : '';
-  const item = { tipo: d.tipo || sugerido, detalle: d.detalle, dias: d.dias, costo: num(d.costo), proceso: d.proceso };
+  const item = { tipo: d.tipo || sugerido, detalle: d.detalle, dias: d.dias, costo: num(d.costo), proceso: d.proceso, soloPaquete: d.soloPaquete };
   const ficha = LoopaFicha.fichaDeItem(servicio.id || 'nuevo', d.nombre, item);
-  const borrador = { nombre: d.nombre, precio: num(d.precio), ficha };
+  const borrador = { nombre: d.nombre, precio: num(d.precio), ficha, item };
   const u = LoopaFicha.utilidad(ficha, num(d.precio));
   const save = () => {
     if (!valido) return;
     onSave({
-      ...servicio, clase: 'item', nombre: d.nombre.trim(), categoria: d.categoria.trim() || 'Otro', precio: num(d.precio), costo: num(d.costo),
+      ...servicio, clase: 'item', nombre: d.nombre.trim(), categoria: d.categoria.trim() || 'Otro', precio: d.soloPaquete ? 0 : num(d.precio), costo: num(d.costo),
       descripcion: d.detalle.trim(), modelo: 'unitario', unidad: 'pieza', recomendado: false, clienteIdEspecial: '', activo: d.activo,
       item: LoopaFicha.normalizarItem(item), ficha,
     });
@@ -381,10 +381,17 @@ function ItemForm({ servicio, servicios, categorias, tiposTarjeta, onClose, onSa
               })}
             </div>
           </div>
-          <div className="field">
+          <div className="field" style={{ gridColumn: '1 / -1' }}>
+            <label>Cómo se vende</label>
+            <div className="segmented" style={{ alignSelf: 'flex-start' }}>
+              <button className={d.soloPaquete ? '' : 'on'} onClick={() => setD(x => ({ ...x, soloPaquete: false }))}>Suelto y en paquetes</button>
+              <button className={d.soloPaquete ? 'on' : ''} onClick={() => setD(x => ({ ...x, soloPaquete: true }))}>Sólo en paquetes</button>
+            </div>
+          </div>
+          {!d.soloPaquete && <div className="field">
             <label>Precio si se vende suelto</label>
             <input className="input mono" inputMode="decimal" value={d.precio} onChange={set('precio')} placeholder="0" />
-          </div>
+          </div>}
           <div className="field">
             <label>Costo <span className="dim">(lo que te cuesta producirlo)</span></label>
             <input className="input mono" inputMode="decimal" value={d.costo} onChange={set('costo')} placeholder="0" />
@@ -409,17 +416,23 @@ function ItemForm({ servicio, servicios, categorias, tiposTarjeta, onClose, onSa
         <div className="service-stage-head"><span>✓</span><div><b>Proceso</b><small>Los pasos que sigue cada vez que se produce. Llegan como checklist a su tarjeta, sola o dentro de un paquete.</small></div></div>
         <FichaProceso proceso={d.proceso} onChange={proceso => setD(x => ({ ...x, proceso }))} />
       </div>
-      <div className="service-finance-preview">
+      {!d.soloPaquete && <div className="service-finance-preview">
         <div><span>Precio suelto</span><b>{L(num(d.precio))}</b></div>
         <div><span>Costo</span><b>{L(u.costo)}</b></div>
         <div><span>Margen</span><b className={u.margen != null && u.margen < 25 ? 'low' : ''}>{u.margen == null ? '—' : `${u.margen.toFixed(0)}%`}</b></div>
-      </div>
+      </div>}
     </Modal>
   );
 }
 
 // ── Estado: ¿se puede vender? ─────────────────────────────────────
 function FichaEstado({ servicio, compacto = false }) {
+  // Ítem interno: listo si tiene proceso; nunca «para vender».
+  if (servicio.item && servicio.item.soloPaquete === true) {
+    return LoopaFicha.normalizarItem(servicio.item).proceso.length
+      ? <span className="ficha-estado ok"><Icon name="check" size={11} /> Sólo en paquetes</span>
+      : <span className="ficha-estado falta">{compacto ? 'Incompleta' : 'Falta: proceso'}</span>;
+  }
   const falta = LoopaFicha.faltantes(servicio);
   if (!falta.length) return <span className="ficha-estado ok"><Icon name="check" size={11} /> Lista para vender</span>;
   return <span className="ficha-estado falta" title={`Falta: ${falta.join(', ')}`}>{compacto ? 'Incompleta' : `Falta: ${falta.join(', ')}`}</span>;

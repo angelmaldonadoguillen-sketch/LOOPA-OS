@@ -188,6 +188,25 @@ test('ítems y paquetes: se guardan, se venden (sueltos o en paquete) y un ítem
   assert.equal(venta.lines[0].ficha.entregables[0].nombre, 'Reel', 'la venta conserva lo que se vendió');
 });
 
+test('ítem interno: entra en un paquete con su tarjeta, pero no se vende suelto', async () => {
+  const store = seeded();
+  await server.saveService(store, U, { service: { id: 'SRV-I-VISITA', clase: 'item', nombre: 'Visita de producción', modelo: 'unitario', precio: 0, item: { tipo: 'photo', dias: 1, soloPaquete: true, proceso: [{ id: 'c', texto: 'Coordinación' }] } } }, { now });
+  assert.equal((await store.get('loopa_services', 'SRV-I-VISITA')).item.soloPaquete, true);
+  const suelto = draftOf('plan-mensual');
+  suelto.lines = [{ lineId: 'l-s', serviceId: 'SRV-I-VISITA', quantity: 1, inicio: '2026-11-16' }];
+  assert.equal(await kindOf(server.createSale(store, U, { draft: suelto }, { now })), 'failed-precondition:service_not_ready');
+  const ficha = { duracion: { cantidad: 1, unidad: 'meses' }, entregables: [{ id: 'v1', itemId: 'SRV-I-VISITA', cantidad: 1, patron: { tipo: 'dia', dia: 1 } }, { id: 'v2', itemId: 'SRV-I-VISITA', cantidad: 1, patron: { tipo: 'dia', dia: 15 } }], proceso: [], costosExtra: [] };
+  await server.saveService(store, U, { service: { id: 'SRV-P-V', clase: 'paquete', nombre: 'Con visitas', modelo: 'plan', precio: 1000, ficha } }, { now });
+  const d = draftOf('plan-mensual');
+  d.lines = [{ lineId: 'l-p', serviceId: 'SRV-P-V', quantity: 1, inicio: '2026-11-16' }];
+  d.commercial = { ...d.commercial, subtotal: 1000, total: 1000 };
+  const r = await server.createSale(store, U, { draft: d }, { now });
+  await server.onEventCreated(store, r.eventId, { now });
+  const tareas = store.list(COLLECTIONS.tasks).filter(t => t.sourceSaleId === d.id);
+  assert.deepEqual(tareas.map(t => t.sessionDate).sort(), ['2026-11-16', '2026-11-30'], 'el mismo ítem puede ir dos veces en el paquete');
+  assert.ok(tareas.every(t => t.type === 'photo' && t.checklist.length === 1));
+});
+
 test('el contexto usa la fecha local de Tegucigalpa, no la UTC', async () => {
   const store = seeded();
   // 03:00 UTC del 10 = 21:00 del 9 en Tegucigalpa.

@@ -1092,3 +1092,27 @@ Los precios salen de `Codex/2026-09-23/v/outputs/traspaso-paquetes-estudio-creat
 **Cómo se cargaron.** Con `saveService`, la misma lógica del servidor, como el usuario comercial, sobre la API REST (`AlmacenRest`). Ids `SRV-ITEM-*`. Primero hubo una prueba en seco. Al final se verificó que hay 9 ítems y los 9 están listos para vender.
 
 **Sigue:** rearmar los paquetes (Esencial, Impulso, Continuidad, Presencia, Crecimiento, Marca Comercial…) con estos ítems.
+## 38. Ítems internos y los 3 planes mensuales (2026-11-10)
+
+**Decisiones del usuario.** Visitas, historias, Meta Ads y reunión son ítems «sólo para paquetes», con tarjeta propia. Las historias salen con una tarjeta por fecha. Se arman los 3 planes mensuales.
+
+**Código.** `item.soloPaquete`:
+- `faltantes` nunca lo da por vendible, así que el servidor rechaza venderlo suelto (`service_not_ready`).
+- Nueva venta no lo muestra.
+- Productos lo marca «Sólo en paquetes», sin precio ni botón Vender.
+- El formulario del ítem tiene el selector «Cómo se vende».
+- El mismo ítem puede ir varias veces en un paquete (visitas en días distintos).
+
+**Planes (1 mes, precios del documento de septiembre).**
+
+| Plan | Precio | Reels | Posts | Visitas (días) | Historias | Meta Ads | Reunión | Tarjetas |
+| --- | ---: | ---: | ---: | --- | ---: | --- | --- | ---: |
+| Esencial | 6.900 | 3 | 4 | 1 (día 1) | 8 | 1 (día 5) | al final | 18 |
+| Impulso (recomendado) | 11.900 | 6 | 8 | 2 (días 1 y 15) | 15 | 2 repartidas | al final | 34 |
+| Continuidad | 18.900 | 12 | 12 | 4 (días 1, 8, 15 y 22) | 15 | 3 repartidas | al final | 47 |
+
+Los «diseños originales» del documento son el ítem Post publicitario. Las historias «día de por medio» son 15 repartidas en el mes. Los días y patrones son una propuesta y se editan en el paquete. Las descripciones vienen del catálogo viejo, sin «registro en FRAME» ni la nota de ID Motos y KM Motos.
+
+**Pruebas.** 286 sin red (1 nueva), 20 de Producción, 36 en el emulador y 11 de funciones. La simulación en memoria de la carga y una venta de cada plan dio 18, 34 y 47 tarjetas.
+
+**Hay que publicar `functions:loopa`** antes de subir la pantalla y cargar los planes.
