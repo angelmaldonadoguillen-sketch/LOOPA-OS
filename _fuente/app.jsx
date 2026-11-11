@@ -1270,7 +1270,9 @@ function VentaModal({ venta: v, config, onClose, onUpdate, onAbono, onDuplicate,
     const items = draft.items.map(({ key, ...i }) => ({ ...i, precio: num(i.precio), costo: num(i.costo), q: num(i.q) || 1 }));
     const subtotal = items.reduce((a, i) => a + i.precio * i.q, 0);
     const descuento = Math.min(subtotal, Math.max(0, num(draft.descuento)));
-    onUpdate({ items, subtotal, descuento, total: subtotal - descuento });
+    // Con productos de ficha, la entrega es el fin del último (se movió el inicio).
+    const fin = items.filter(i => i.ficha && i.inicio).map(i => LoopaFicha.rango(i.inicio, LoopaFicha.normalizarFicha(i.ficha).duracion).fin).sort().pop();
+    onUpdate({ items, subtotal, descuento, total: subtotal - descuento, ...(fin && fin !== v.entrega ? { entrega: fin } : {}) });
     setEditing(false);
   };
   const updD = (key, patch) => setDraft(d => ({ ...d, items: d.items.map(i => i.key === key ? { ...i, ...patch } : i) }));

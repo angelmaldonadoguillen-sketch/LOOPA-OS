@@ -30,7 +30,7 @@
 
 const crypto = require('node:crypto');
 const { validateEvent } = require('./contracts');
-const { planSale, diffPlan, taskContent, isPristine, workItemsOf } = require('./planner');
+const { planSale, diffPlan, taskContent, isPristine, workItemsOf, isFichaTask } = require('./planner');
 const { hasErrors, sanitizeError, sanitizeText, errorsOnly } = require('./errors');
 
 const COLLECTIONS = Object.freeze({
@@ -205,6 +205,23 @@ const updatePristineTask = (store, event, planned) => guarded(store, event, plan
   return 'updated';
 });
 
+// Producto con ficha: la venta movió su inicio. Sólo cambian las fechas (y la
+// huella del plan aplicado); estado, checklist, responsables, comentarios y
+// todo el trabajo hecho quedan como están. Se reverifica en la transacción
+// que siga siendo la misma entrega (mismas unidades de trabajo).
+const rescheduleTask = (store, event, planned) => guarded(store, event, planned.id, (tx, current) => {
+  if (!current || current.idempotencyKey !== planned.idempotencyKey || !isFichaTask(current)) return 'conflict';
+  const a = workItemsOf(current).slice().sort().join('|');
+  if (a !== workItemsOf(planned).slice().sort().join('|')) return 'conflict';
+  const patch = {
+    sessionDate: planned.sessionDate, deadline: planned.deadline, startDate: planned.startDate,
+    sourceWorkItems: planned.sourceWorkItems, sourceEventId: planned.sourceEventId, sourceSaleStatus: planned.sourceSaleStatus,
+    integration: { ...(current.integration || {}), generatedFingerprint: planned.integration.generatedFingerprint },
+  };
+  tx.update(COLLECTIONS.tasks, planned.id, patch);
+  return 'rescheduled';
+});
+
 // Sólo el vínculo con la venta: nunca estado, fechas ni checklist.
 const setSaleStatus = (store, event, taskId, status) => guarded(store, event, taskId, (tx, current) => {
   if (!current) return 'missing';
@@ -267,12 +284,23 @@ async function processEvent(store, eventId, opts) {
 
     const diff = diffPlan(plan.tasks, existing);
     const plannedById = new Map(plan.tasks.map(t => [t.id, t]));
+    const existingById = new Map(existing.map(t => [t.id, t]));
+    // Una entrega de producto con ficha que sólo cambió de fecha (se movió el
+    // inicio) se reprograma sola, aunque ya tenga trabajo: mover una fecha no
+    // pisa nada. Cualquier otro cambio sigue esperando decisión humana.
+    diff.entries = diff.entries.map(e => {
+      if (!['update_pristine', 'conflict_started'].includes(e.action)) return e;
+      const p = plannedById.get(e.taskId), x = existingById.get(e.taskId);
+      const mismas = p && x && isFichaTask(p) && isFichaTask(x)
+        && workItemsOf(p).slice().sort().join('|') === workItemsOf(x).slice().sort().join('|');
+      return mismas ? { ...e, action: 'reschedule' } : e;
+    });
 
     // Editar una venta ya procesada sólo escribe si es inocuo: crear lo que
     // falta sin tocar nada existente. Cualquier otro cambio espera una
     // resincronización explícita.
     if (event.type === 'sale.updated' && existing.length > 0) {
-      const blocking = diff.entries.filter(e => !['unchanged', 'edited_same_plan', 'create'].includes(e.action));
+      const blocking = diff.entries.filter(e => !['unchanged', 'edited_same_plan', 'create', 'reschedule'].includes(e.action));
       if (blocking.length) {
         const lastError = { code: 'resync_required', message: 'La venta cambió después de generar producción' };
         const fin = await finish(store, event, token, now(), { status: 'needs_attention', lastError, result: { diff: diff.counts } },
@@ -285,10 +313,14 @@ async function processEvent(store, eventId, opts) {
     const kept = [];
     const updated = [];
     const conflicts = [];
-    const existingById = new Map(existing.map(t => [t.id, t]));
+    const rescheduled = [];
     for (const entry of diff.entries) {
       let result;
-      if (entry.action === 'create') {
+      if (entry.action === 'reschedule') {
+        result = await rescheduleTask(store, event, plannedById.get(entry.taskId));
+        if (result === 'rescheduled') rescheduled.push(entry.taskId);
+        else if (result === 'conflict') conflicts.push({ taskId: entry.taskId, action: 'conflict_started' });
+      } else if (entry.action === 'create') {
         if (hooks.beforeCreate) await hooks.beforeCreate(entry.taskId);
         result = await createTask(store, event, plannedById.get(entry.taskId));
         if (result === 'created') created.push(entry.taskId);
@@ -317,9 +349,9 @@ async function processEvent(store, eventId, opts) {
     const status = conflicts.length ? 'needs_attention' : 'done';
     const lastError = conflicts.length ? { code: 'conflicts', message: `${conflicts.length} tarjeta(s) requieren revisión` } : null;
     const fin = await finish(store, event, token, now(),
-      { status, lastError, result: { created: created.length, kept: kept.length, updated: updated.length, conflicts } },
+      { status, lastError, result: { created: created.length, kept: kept.length, updated: updated.length, rescheduled: rescheduled.length, conflicts } },
       { status: conflicts.length ? 'attention' : 'ready', taskIds, lastEventId: eventId, lastSuccessAt: conflicts.length ? null : now(), lastError });
-    return { status: fin.owned ? status : 'lease_lost', created, existing: kept, updated, conflicts, plan };
+    return { status: fin.owned ? status : 'lease_lost', created, existing: kept, updated, rescheduled, conflicts, plan };
   } catch (err) {
     const safe = sanitizeError(err);
     const nextAttemptAt = addMs(now(), backoffFor(claimed.attempts, cfg.backoffMs));

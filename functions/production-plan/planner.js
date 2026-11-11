@@ -64,6 +64,9 @@ const isPristine = (task) => !!task && !!task.integration
   && STARTED_SIGNALS.every(k => !Array.isArray(task[k]) || task[k].length === 0);
 
 const workItemsOf = (task) => (Array.isArray(task && task.sourceWorkItems) ? task.sourceWorkItems.map(w => w.workItemKey) : []);
+// Tarjeta de una entrega de producto con ficha (sus unidades son «f-…»).
+const isFichaTask = (task) => Array.isArray(task && task.sourceWorkItems) && task.sourceWorkItems.length > 0
+  && task.sourceWorkItems.every(w => typeof w.templateId === 'string' && w.templateId.startsWith('f-'));
 
 function resolveClient(sale, workspaceId, context, path, out) {
   const clientId = sale.client.clientId;
@@ -510,4 +513,4 @@ function diffPlan(plannedTasks, existingTasks) {
   return { entries, counts };
 }
 
-module.exports = { planSale, diffPlan, taskContent, contentFingerprint, isPristine, workItemsOf, estimateWork, render };
+module.exports = { planSale, diffPlan, taskContent, contentFingerprint, isPristine, workItemsOf, isFichaTask, estimateWork, render };

@@ -994,3 +994,21 @@ El servidor la guardó normalizada, con costo 9.500. El catálogo la muestra «L
 - **Pruebas.** 282 sin red (1 nueva y 2 aserciones de servidor), 20 de Producción, 36 en el emulador y 11 de funciones.
 - **Verificado en el emulador.** Se vendió un producto con Reel ×2, Sesión de fotos y Post (tipo elegido: Campaign). Las 4 tarjetas salieron con tipo photo, reel, reel y campaign, cada una en su fecha.
 - **Hay que publicar `functions:loopa`.**
+## 33. Experiencia 4: mover el inicio reprograma las tarjetas (2026-11-10)
+
+- **Antes.** Si una venta cambiaba después de generar producción, el ejecutor no escribía nada y la marcaba `resync_required`. Mover el inicio dejaba las tarjetas en sus fechas viejas.
+- **Ahora** (`executor.js`): una entrega de producto con ficha (`isFichaTask`, unidades «f-…») cuyo plan cambió pero conserva las mismas unidades de trabajo se clasifica `reschedule`. No bloquea, y `rescheduleTask` actualiza en una transacción con la guardia de revisión:
+  - **Cambia sólo:** `sessionDate`, `deadline`, `startDate`, `sourceWorkItems`, `sourceEventId`, `sourceSaleStatus` y la huella del plan aplicado (`integration.generatedFingerprint`).
+  - **Queda como estaba:** estado, checklist, responsables, comentarios, entregables y timeline.
+  - Funciona aunque la tarjeta ya tenga trabajo: mover una fecha no pisa nada.
+- **Sigue igual:** cualquier otro cambio, como unidades que aparecen o desaparecen o tarjetas no-ficha, sigue esperando decisión humana. Nunca se borra.
+- **Pantalla (Ventas → Editar).** Al guardar, si hay productos con ficha, la entrega de la venta pasa a ser el fin del último.
+- **Pruebas.** En `servidor.test.cjs`: se vende, se marca una tarjeta como trabajada (responsable, un paso hecho, «producing») y se mueve el inicio. Resultado:
+  - las fechas siguen al nuevo rango y el trabajo queda igual;
+  - no se crean tarjetas;
+  - la venta queda `ready`;
+  - repetir el evento no cambia nada.
+
+  Totales: 282 sin red, 20 de Producción, 36 en el emulador y 11 de funciones.
+- **Verificado en el emulador, desde la pantalla.** Una venta con sesión y 2 reels se movió del 16/11 al 23/11 y después al 01/12. Las 3 tarjetas se reprogramaron solas cada vez y la entrega pasó al 15/12.
+- **Hay que publicar `functions:loopa`.**

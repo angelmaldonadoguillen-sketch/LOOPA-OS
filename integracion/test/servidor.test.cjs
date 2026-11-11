@@ -127,10 +127,25 @@ test('venta cerrada con ficha: precio de la ficha, rango desde el inicio y una t
   const d3 = draftOf('plan-mensual'); d3.lines = [{ lineId: 'l-3', serviceId: 'SRV-FICHA-2', quantity: 1, inicio: '2026-11-16' }];
   assert.equal(await kindOf(server.createSale(store, U, { draft: d3 }, { now })), 'failed-precondition:service_not_ready');
   // Mover el inicio de una línea ya vendida recalcula el fin; el precio queda.
+  // Antes, alguien ya trabajó una tarjeta (responsable y un paso hecho).
+  const trabajada = tasks.find(t => t.title.includes('Sesión de fotos'));
+  await store.transaction(async tx => { await tx.get(COLLECTIONS.tasks, trabajada.id); tx.update(COLLECTIONS.tasks, trabajada.id, { assignees: ['u-prod'], checklist: trabajada.checklist.map((c, i) => ({ ...c, done: i === 0 })), status: 'producing' }); });
   const moved = await server.updateSale(store, U, { saleId: draft.id, patch: { lines: [{ lineId: 'l-ficha-1', serviceId: 'SRV-FICHA-1', quantity: 1, precio: 5, inicio: '2026-12-01' }] }, expectedVersion: sale.version }, { now });
   assert.equal(moved.status, 'updated');
   const l2 = (await store.get(COLLECTIONS.sales, draft.id)).lines[0];
   assert.deepEqual([l2.inicio, l2.fin, l2.snapshot.precio], ['2026-12-01', '2027-01-01', 8000]);
+  // Las tarjetas se reprograman solas: cambian sólo las fechas.
+  const re = await server.onEventCreated(store, moved.eventId, { now });
+  assert.equal(re.status, 'done');
+  const despues = store.list(COLLECTIONS.tasks).filter(t => t.sourceSaleId === draft.id);
+  assert.equal(despues.length, 6, 'no se crearon tarjetas nuevas');
+  const s2 = despues.find(t => t.id === trabajada.id);
+  assert.deepEqual([s2.sessionDate, s2.deadline, s2.startDate], ['2026-12-03', '2026-12-03', '2026-12-01'], 'la sesión pasa al día 3 del nuevo rango');
+  assert.deepEqual([s2.status, s2.assignees, s2.checklist.map(c => c.done)], ['producing', ['u-prod'], [true, false, false]], 'el trabajo hecho queda');
+  assert.equal(despues.find(t => t.title.includes('Reporte')).sessionDate, '2027-01-01');
+  assert.equal((await store.get(COLLECTIONS.sales, draft.id)).operations.status, 'ready');
+  // Volver a procesar lo mismo no cambia nada.
+  assert.equal((await server.onEventCreated(store, moved.eventId, { now })).status, 'already_done');
 });
 
 test('el contexto usa la fecha local de Tegucigalpa, no la UTC', async () => {
