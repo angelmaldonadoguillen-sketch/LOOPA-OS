@@ -1067,3 +1067,28 @@ El servidor la guardó normalizada, con costo 9.500. El catálogo la muestra «L
   - La vista fijada muestra un pin chico al lado de su nombre cuando no es la activa.
   - El botón tiene `aria-pressed` y su `title` explica qué hace: «se abre siempre en esta».
 - **Sólo pantalla.** Pruebas: 285 sin red y 20 de Producción.
+## 37. Catálogo nuevo: los 9 ítems unitarios (2026-11-10)
+
+El usuario definió sus ítems unitarios. Antes se fijaron cuatro alcances:
+- Stop motion y arte animado son un solo ítem.
+- La fotografía se vende por sesión (20 fotos editadas).
+- El material POP es sólo diseño, sin impresión.
+- Web y e-commerce no incluyen dominio ni hosting.
+
+Los precios salen de `Codex/2026-09-23/v/outputs/traspaso-paquetes-estudio-creativo.md` y `base-del-estudio.md` (Reel 2.500, diseño estático 650, web 9.900 y e-commerce 19.900) y del catálogo viejo (Logotipo 3.000). Los demás los propuse yo; el usuario bajó Carrusel y Stop motion a 1.000 y aprobó el resto. **Los costos quedan en 0** hasta medirlos: el documento lo deja pendiente.
+
+| Ítem | Precio | Días | Tarjeta | Pasos |
+| --- | ---: | ---: | --- | ---: |
+| Reel | 2.500 | 5 | reel | 7 |
+| Post publicitario | 650 | 2 | campaign | 6 |
+| Carrusel de imágenes | 1.000 | 3 | campaign | 6 |
+| Stop motion / Arte animado | 1.000 | 7 | reel | 6 |
+| Fotografía (sesión, 20 fotos) | 3.000 | 4 | photo | 5 |
+| Logotipo | 3.000 | 7 | other | 6 |
+| Diseño de material POP e impreso | 900 | 3 | campaign | 4 |
+| Página web | 9.900 | 15 | other | 6 |
+| E-commerce | 19.900 | 25 | other | 8 |
+
+**Cómo se cargaron.** Con `saveService`, la misma lógica del servidor, como el usuario comercial, sobre la API REST (`AlmacenRest`). Ids `SRV-ITEM-*`. Primero hubo una prueba en seco. Al final se verificó que hay 9 ítems y los 9 están listos para vender.
+
+**Sigue:** rearmar los paquetes (Esencial, Impulso, Continuidad, Presencia, Crecimiento, Marca Comercial…) con estos ítems.
