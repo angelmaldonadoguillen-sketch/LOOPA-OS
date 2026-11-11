@@ -118,7 +118,9 @@ function expandFichaLine(sale, line, lineIndex, context, out, resolved) {
   const cal = Ficha.calendario(ficha, line.inicio);
   if (!cal.rango) { out.push(issue('line.ficha.inicio', `${path}.inicio`, 'La línea no tiene una fecha de inicio válida')); return []; }
   const status = (workspace.statusIds && workspace.statusIds[0]) || 'briefing';
-  const type = workspace.typeIds ? (workspace.typeIds.includes('other') ? 'other' : workspace.typeIds[0] || 'other') : 'other';
+  // El tipo de tarjeta del entregable, si el tablero lo tiene; si no, «other».
+  const otro = workspace.typeIds ? (workspace.typeIds.includes('other') ? 'other' : workspace.typeIds[0] || 'other') : 'other';
+  const tipoDe = (t) => (t && (!workspace.typeIds || workspace.typeIds.includes(t)) ? t : otro);
   const porEntregable = new Map(ficha.entregables.map((e, i) => [e.id, i]));
   return cal.entregas.map((x) => {
     const workItemKey = ids.workItemKey(sale.id, line.lineId, `f-${x.entregableId}`, x.n);
@@ -140,7 +142,7 @@ function expandFichaLine(sale, line, lineIndex, context, out, resolved) {
       templateVersion: ficha.version,
       label: x.nombre,
       title: clip(`${client.name} · ${titulo}`),
-      type,
+      type: tipoDe(x.tipo),
       initialStatus: status,
       priority: 'medium',
       tags: [clip(line.snapshot.nombre, 40)],

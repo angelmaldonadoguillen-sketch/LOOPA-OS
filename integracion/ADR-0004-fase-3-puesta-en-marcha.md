@@ -973,3 +973,24 @@ El servidor la guardó normalizada, con costo 9.500. El catálogo la muestra «L
 - Elegir el tipo de tarjeta de cada entregable; hoy todas salen «other».
 - Que el calendario se vea por producto o venta.
 - Que mover el inicio de una venta ya confirmada reacomode las tarjetas; hoy el diff lo marca para decidir a mano.
+## 32. Experiencia 3: tipo de tarjeta por entregable (2026-11-10)
+
+- **Ficha.** Cada entregable tiene `tipo`, un id del tipo de tarjeta del tablero (reel, photo…). Si viene vacío, el nombre sugiere uno (`tipoSugerido`):
+  - reel / tiktok / story → reel;
+  - foto / sesión → photo;
+  - podcast → podcast;
+  - bts → bts;
+  - campaña / pauta / ads → campaign;
+  - video → corp;
+  - sin pista → vacío.
+
+  Un tipo con formato inválido se descarta. `calendario` lleva el tipo de cada entrega.
+- **Planificador.** La tarjeta usa el tipo del entregable si el tablero lo tiene; si no, «other» (o el primero del tablero).
+- **Pantalla.**
+  - En «Qué incluye», cada entregable tiene una fila «Tarjeta» con los tipos del tablero de Producción, leídos de `loopa_config/production` y `config/project_types`. Si no se pueden leer, usa los de FRAME por defecto.
+  - El sugerido se marca «· auto».
+  - Los colores son equivalentes fijos, porque los del tablero son variables que sólo existen dentro de Producción.
+  - Si un tipo no tiene nombre propio, se usa el conocido.
+- **Pruebas.** 282 sin red (1 nueva y 2 aserciones de servidor), 20 de Producción, 36 en el emulador y 11 de funciones.
+- **Verificado en el emulador.** Se vendió un producto con Reel ×2, Sesión de fotos y Post (tipo elegido: Campaign). Las 4 tarjetas salieron con tipo photo, reel, reel y campaign, cada una en su fecha.
+- **Hay que publicar `functions:loopa`.**

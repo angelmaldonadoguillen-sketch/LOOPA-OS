@@ -14,6 +14,16 @@ const PATRON_OPCIONES = [
   { id: 'dia', label: 'Día fijo', ayuda: 'El día N del rango' },
   { id: 'final', label: 'Al final', ayuda: 'El último día' },
 ];
+// Tipos de tarjeta de Producción por defecto (los mismos de FRAME); si el
+// tablero tiene los suyos, la pantalla usa esos.
+const TIPOS_TARJETA_BASE = [
+  { id: 'reel', label: 'Reel' }, { id: 'photo', label: 'Fotografía' }, { id: 'corp', label: 'Video corporativo' },
+  { id: 'campaign', label: 'Campaign' }, { id: 'bts', label: 'BTS' }, { id: 'podcast', label: 'Podcast' }, { id: 'other', label: 'Otro' },
+];
+// Los colores del tablero son variables de Producción (sólo existen dentro de
+// .estudio): acá se usan equivalentes fijos.
+const TONO_TIPO = { reel: '#C79BFF', photo: '#7CC4FF', corp: '#6BF0C0', campaign: '#FF9F6B', bts: '#F5D06B', podcast: '#FF7AA8' };
+const tonoTipo = (t) => TONO_TIPO[t.id] || (t.color && !/var\(/.test(t.color) ? t.color : null);
 const PASOS_SUGERIDOS = ['Brief', 'Producción', 'Edición', 'Revisión interna', 'Aprobación del cliente', 'Entregado'];
 const fmtCorta = (ymd) => { const [y, m, d] = ymd.split('-').map(Number); return `${d} ${['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'][m - 1]}`; };
 
@@ -38,8 +48,10 @@ function FichaDuracion({ duracion, onChange }) {
 }
 
 // ── Qué incluye ───────────────────────────────────────────────────
-function FichaEntregables({ ficha, onChange }) {
+function FichaEntregables({ ficha, onChange, tipos }) {
   const lista = ficha.entregables;
+  const opcionesTipo = (tipos && tipos.length ? tipos : TIPOS_TARJETA_BASE).map(t => (
+    t.label && t.label !== t.id ? t : { ...t, label: (TIPOS_TARJETA_BASE.find(b => b.id === t.id) || t).label || t.id }));
   const upd = (id, patch) => onChange(lista.map(e => (e.id === id ? { ...e, ...patch } : e)));
   const updPatron = (e, patch) => upd(e.id, { patron: { ...e.patron, ...patch } });
   const add = () => onChange([...lista, { id: fichaId('e'), nombre: '', detalle: '', cantidad: 1, costo: 0, patron: { tipo: 'repartido' } }]);
@@ -68,6 +80,19 @@ function FichaEntregables({ ficha, onChange }) {
             </div>
             <input className="input mini ficha-ent-detalle" placeholder="Detalle (opcional): 30 fotos editadas, 1080×1350, copy incluido…" value={e.detalle}
               onChange={ev => upd(e.id, { detalle: ev.target.value })} />
+            <div className="ficha-ent-tipo">
+              <span className="mini-lbl" style={{ margin: 0 }}>Tarjeta</span>
+              {opcionesTipo.map(t => {
+                const sugerido = !e.tipo && LoopaFicha.tipoSugerido(e.nombre) === t.id;
+                const on = e.tipo === t.id || sugerido;
+                return (
+                  <button key={t.id} className={`ficha-tipo ${on ? 'on' : ''}`} title={sugerido ? 'Sugerido por el nombre' : ''}
+                    onClick={() => upd(e.id, { tipo: e.tipo === t.id ? '' : t.id })}>
+                    <span className="ficha-tipo-dot" style={tonoTipo(t) ? { background: tonoTipo(t) } : undefined} />{t.label}{sugerido && <i> · auto</i>}
+                  </button>
+                );
+              })}
+            </div>
             <div className="ficha-ent-patron">
               <div className="ficha-patron-tipos">
                 {PATRON_OPCIONES.map(p => (

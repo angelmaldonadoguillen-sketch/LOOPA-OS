@@ -1430,7 +1430,7 @@ function VentaModal({ venta: v, config, onClose, onUpdate, onAbono, onDuplicate,
 }
 
 // ═══════════════════════ SERVICIOS (TIPOS) ═══════════════════════
-function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVender }) {
+function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVender, tiposTarjeta }) {
   const [q, setQ] = useState('');
   const [cat, setCat] = useState('all');
   const [modelo, setModelo] = useState('all');
@@ -1571,7 +1571,7 @@ function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVen
       </div>
 
       {editing && (
-        <ServicioForm servicio={editing} servicios={servicios} clientes={clientes} categorias={config.categorias} stats={stats}
+        <ServicioForm servicio={editing} servicios={servicios} clientes={clientes} categorias={config.categorias} stats={stats} tiposTarjeta={tiposTarjeta}
           onClose={() => setEditing(null)}
           onSave={(s) => { onSave(s); setEditing(null); }}
           onRemove={editing.id ? () => remove(editing) : null} />
@@ -1580,7 +1580,7 @@ function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVen
   );
 }
 
-function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClose, onSave, onRemove }) {
+function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClose, onSave, onRemove, tiposTarjeta }) {
   const isNew = !servicio.id;
   const [paso, setPaso] = useState(1);
   const [d, setD] = useState(() => ({
@@ -1713,7 +1713,7 @@ function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClos
       {paso === 2 && (
         <div className="service-form-stage">
           <div className="service-stage-head"><span>02</span><div><b>Qué incluye</b><small>Cada entregable, cuántas veces y cuándo cae dentro del paquete. Cada entrega será una tarjeta en Producción.</small></div></div>
-          <FichaEntregables ficha={d.ficha} onChange={entregables => setFicha({ entregables })} />
+          <FichaEntregables ficha={d.ficha} onChange={entregables => setFicha({ entregables })} tipos={tiposTarjeta} />
           <FichaLinea ficha={d.ficha} inicio={inicioEjemplo} />
         </div>
       )}
@@ -2818,6 +2818,22 @@ function App({ onLogout, usuarioFusion = null }) {
   const [servicios, setServicios] = useState([]);
   const [config, setConfig] = useState(CONFIG_DEFAULT);
   const [gastos, setGastos] = useState(GASTOS_DEFAULT);
+  // Tipos de tarjeta del tablero de Producción (para la ficha del producto).
+  // Si no se pueden leer, la ficha usa los de siempre.
+  const [tiposTarjeta, setTiposTarjeta] = useState(null);
+  useEffect(() => {
+    if (!DATOS_FUSION || !FUSION_FB || tiposTarjeta || route !== 'servicios') return;
+    (async () => {
+      try {
+        const cfg = await FUSION_FB.db.collection('loopa_config').doc('production').get();
+        const ws = cfg.exists && cfg.data().defaultWorkspaceId;
+        if (!ws) return;
+        const t = await FUSION_FB.db.collection('frame_workspaces').doc(ws).collection('config').doc('project_types').get();
+        const tipos = t.exists && Array.isArray(t.data().types) ? t.data().types.filter(x => x && x.id && x.label) : [];
+        if (tipos.length) setTiposTarjeta(tipos);
+      } catch (e) { /* sin acceso: se usan los tipos por defecto */ }
+    })();
+  }, [route]);
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState(null);
   const [saveError, setSaveError] = useState(false);
@@ -3480,7 +3496,7 @@ function App({ onLogout, usuarioFusion = null }) {
               onDuplicate={handleDuplicate} focusN={focusN} onFocusConsumed={() => setFocusN(null)} />
           )}
           {route === 'servicios' && (
-            <Servicios servicios={servicios} clientes={clientes} stats={stats} config={config} onSave={handleSaveServicio}
+            <Servicios servicios={servicios} clientes={clientes} stats={stats} config={config} onSave={handleSaveServicio} tiposTarjeta={tiposTarjeta}
               onDelete={(id) => {
                 if (!DATOS_FUSION) { setServicios(prev => prev.filter(s => s.id !== id)); return; }
                 // En el catálogo nada se borra (hay ventas que lo usan): se desactiva.

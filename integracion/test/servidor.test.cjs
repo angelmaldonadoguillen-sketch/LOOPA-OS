@@ -117,6 +117,9 @@ test('venta cerrada con ficha: precio de la ficha, rango desde el inicio y una t
   assert.ok(tasks.some(t => /Post 2\/4$/.test(t.title)), 'las repetidas llevan n/total');
   assert.equal(tasks.find(t => t.title.includes('Reporte')).sessionDate, '2026-12-16', 'al final del rango');
   assert.ok(tasks.find(t => /Post 1\/4$/.test(t.title)).description.some(b => b.text === 'Copy incluido'), 'el detalle llega a la tarjeta');
+  // Tipo de tarjeta: el sugerido por el nombre («Sesión de fotos» → photo); sin pista, «other».
+  assert.equal(sesion.type, 'photo');
+  assert.equal(tasks.find(t => t.title.includes('Reporte')).type, 'other');
   // Sin fecha de inicio no se vende; un producto incompleto tampoco.
   const d2 = draftOf('plan-mensual'); d2.lines = [{ lineId: 'l-2', serviceId: 'SRV-FICHA-1', quantity: 1 }];
   assert.equal(await kindOf(server.createSale(store, U, { draft: d2 }, { now })), 'invalid-argument:');

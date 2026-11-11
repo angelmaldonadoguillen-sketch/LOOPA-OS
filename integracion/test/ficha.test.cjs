@@ -84,6 +84,19 @@ test('ficha: sólo un producto completo está listo para vender', () => {
   assert.deepEqual(F.faltantes(lejos), ['un día dentro de la duración']);
 });
 
+test('ficha: tipo de tarjeta por entregable (elegido o sugerido por el nombre)', () => {
+  assert.equal(F.tipoSugerido('Reel semanal'), 'reel');
+  assert.equal(F.tipoSugerido('Sesión de fotos'), 'photo');
+  assert.equal(F.tipoSugerido('Video institucional'), 'corp');
+  assert.equal(F.tipoSugerido('Campaña de pauta'), 'campaign');
+  assert.equal(F.tipoSugerido('Post'), '');
+  const f = F.normalizarFicha({ entregables: [{ nombre: 'Reel', tipo: 'Mal Tipo!' }, { nombre: 'Post', tipo: 'photo' }, { nombre: 'Sesión de fotos' }], proceso: [{ texto: 'a' }] });
+  assert.deepEqual(f.entregables.map(e => e.tipo), ['', 'photo', ''], 'un tipo inválido se descarta');
+  const cal = F.calendario(f, '2026-11-10');
+  const tipoDe = (n) => cal.entregas.find(x => x.nombre === n).tipo;
+  assert.deepEqual([tipoDe('Reel'), tipoDe('Post'), tipoDe('Sesión de fotos')], ['reel', 'photo', 'photo']);
+});
+
 test('ficha: textos cortos para la pantalla', () => {
   const f = plan();
   assert.deepEqual(f.entregables.map(F.describirPatron), ['12 repartidas', 'día 3', 'L·V cada semana', 'al final']);

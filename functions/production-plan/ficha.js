@@ -81,6 +81,8 @@ var LoopaFicha = (function () {
         return {
           id: idOk(e.id) ? e.id : 'e' + (i + 1),
           nombre: txt(e.nombre),
+          // Tipo de tarjeta del tablero (reel, photo…); vacío = el que sugiera el nombre.
+          tipo: typeof e.tipo === 'string' && /^[a-z0-9][a-z0-9_-]{0,39}$/.test(e.tipo) ? e.tipo : '',
           detalle: txt(e.detalle, LIMITES.detalle),
           cantidad: tipo === 'semanal' ? 1 : ent(e.cantidad, 1, 200, 1),
           costo: monto(e.costo),
@@ -125,10 +127,27 @@ var LoopaFicha = (function () {
     var entregas = [];
     ficha.entregables.forEach(function (e) {
       var fechas = fechasEntregable(e, r);
-      fechas.forEach(function (f, i) { entregas.push({ entregableId: e.id, nombre: e.nombre, detalle: e.detalle, n: i + 1, total: fechas.length, fecha: f, costo: e.costo }); });
+      var tipo = e.tipo || tipoSugerido(e.nombre);
+      fechas.forEach(function (f, i) { entregas.push({ entregableId: e.id, nombre: e.nombre, detalle: e.detalle, tipo: tipo, n: i + 1, total: fechas.length, fecha: f, costo: e.costo }); });
     });
     entregas.sort(function (a, b) { return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0; });
     return { rango: r, entregas: entregas };
+  }
+
+  // Tipo de tarjeta que sugiere el nombre del entregable (tipos de FRAME por
+  // defecto). '' si no hay una pista clara: el servidor usa «other».
+  var PISTAS_TIPO = [
+    [/\b(reels?|tiktoks?|shorts?|stor(y|ies))\b/i, 'reel'],
+    [/\b(fotos?|fotograf|sesi[oó]n|photo)/i, 'photo'],
+    [/\b(podcasts?)\b/i, 'podcast'],
+    [/\b(bts|detr[aá]s de c[aá]mara)/i, 'bts'],
+    [/\b(campa[nñ]as?|pauta|ads?|anuncios?|campaign)/i, 'campaign'],
+    [/\b(videos?|corporativ)/i, 'corp'],
+  ];
+  function tipoSugerido(nombre) {
+    var n = String(nombre || '');
+    for (var i = 0; i < PISTAS_TIPO.length; i++) if (PISTAS_TIPO[i][0].test(n)) return PISTAS_TIPO[i][1];
+    return '';
   }
 
   // ── Costos y utilidad ─────────────────────────────────────────────
@@ -190,7 +209,7 @@ var LoopaFicha = (function () {
     UNIDADES: UNIDADES, PATRONES: PATRONES, DIAS_SEMANA: DIAS_SEMANA, LIMITES: LIMITES, MAX_DURACION: MAX_DURACION,
     normalizarFicha: normalizarFicha, rango: rango, fechasEntregable: fechasEntregable, calendario: calendario,
     costos: costos, utilidad: utilidad, faltantes: faltantes, lista: lista,
-    describirPatron: describirPatron, describirDuracion: describirDuracion,
+    describirPatron: describirPatron, describirDuracion: describirDuracion, tipoSugerido: tipoSugerido,
     sumarDias: sumarDias, sumarMeses: sumarMeses, diaSemana: diaSemana, esFecha: esFecha,
   };
 })();

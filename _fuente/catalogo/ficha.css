@@ -13,6 +13,12 @@
 .ficha-ent-dot { width: 10px; height: 10px; flex: 0 0 10px; border-radius: 50%; background: var(--tono); box-shadow: 0 0 0 4px color-mix(in srgb, var(--tono) 18%, transparent); }
 .ficha-ent-nombre { flex: 1; min-width: 0; font-weight: 500; }
 .ficha-ent-detalle { width: 100%; margin-top: 8px; }
+.ficha-ent-tipo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+.ficha-tipo { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--line); border-radius: var(--r-pill); background: transparent; color: var(--dim); font: inherit; font-size: 11px; cursor: pointer; }
+.ficha-tipo:hover { color: var(--text); }
+.ficha-tipo.on { color: var(--text); border-color: var(--line-2); background: var(--surface-2, #1c1c1b); }
+.ficha-tipo i { font-style: normal; color: var(--dim); }
+.ficha-tipo-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
 .ficha-ent-patron { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
 .ficha-patron-tipos { display: flex; flex-wrap: wrap; gap: 6px; }
 .ficha-patron { padding: 6px 12px; border: 1px solid var(--line); border-radius: var(--r-pill); background: transparent; color: var(--muted); font: inherit; font-size: var(--fs-s); cursor: pointer; }
