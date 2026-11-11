@@ -81,6 +81,14 @@ test('ficha de tarea: lo auditado sigue corregido', () => {
   assert.match(read('_fuente/estudio/app.jsx'), /workspaceKind=\{tableroDeLaTarea\?\.kind/, 'los campos dependen del tablero de la tarea');
 });
 
+test('la ficha ya no tiene Brief: lleva al muro de la tarea', () => {
+  const modal = read('_fuente/estudio/modal.jsx');
+  assert.doesNotMatch(modal, /DescriptionEditor|Brief \/ Descripción/);
+  assert.match(modal, /Ir al muro de esta tarea/);
+  assert.match(modal, /<MuroEspacio project=\{project\}/);
+  assert.match(modal, /if \(muroAbierto\) return;/, 'Esc en el muro no cierra la ficha');
+});
+
 test('el módulo no depende de globales de FRAME ni escribe datos', () => {
   // TODOS los archivos del módulo (y la navegación).
   const archivos = ['_fuente/produccion/calendario.jsx', '_fuente/produccion/nucleo.js', '_fuente/produccion/datos-reales.js', '_fuente/produccion/tablero.jsx', '_fuente/produccion/resumen.jsx', '_fuente/produccion/cliente.jsx', '_fuente/shell/navegacion.jsx'];

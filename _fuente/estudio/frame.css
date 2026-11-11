@@ -456,37 +456,6 @@
   /* UI chrome sin selección de texto (nav, sidebar, tarjetas) */
   .no-select { -webkit-user-select: none; user-select: none; }
 
-  /* ── Rich description editor ─────────────────────────────── */
-  .desc-editor:empty:before {
-    content: attr(data-placeholder);
-    color: var(--text-muted);
-    font-style: italic;
-    pointer-events: none;
-  }
-  .desc-editor:focus { outline: none; }
-  .desc-editor ul { list-style: disc; padding-left: 1.3em; margin: 4px 0; }
-  .desc-editor ol { list-style: decimal; padding-left: 1.3em; margin: 4px 0; }
-  .desc-editor li { margin: 2px 0; }
-  .desc-editor p  { margin: 0 0 4px 0; }
-  .desc-editor strong { font-weight: 700; color: var(--text); }
-  .desc-editor em { font-style: italic; }
-  .desc-editor img {
-    max-width: 100%; border-radius: 6px; margin: 6px 0;
-    cursor: pointer; display: block;
-    transition: outline-color .15s ease, box-shadow .15s ease;
-  }
-  .desc-editor img.frame-image-selected {
-    outline: 2px solid var(--accent);
-    outline-offset: 3px;
-    box-shadow: 0 0 0 5px var(--accent-soft);
-  }
-  .desc-editor img[data-frame-size="sm"] { width: min(33%, 240px); }
-  .desc-editor img[data-frame-size="md"] { width: min(66%, 560px); }
-  .desc-editor img[data-frame-size="lg"] { width: 100%; }
-  .desc-editor img[data-frame-align="left"] { margin-left: 0; margin-right: auto; }
-  .desc-editor img[data-frame-align="center"] { margin-left: auto; margin-right: auto; }
-  .desc-editor img[data-frame-align="right"] { margin-left: auto; margin-right: 0; }
-  .desc-editor a { color: var(--accent); text-decoration: underline; }
 /* Campos compartidos de tarjetas: la entrega encabeza las acciones rápidas. */
 .frame-quick-fields { margin: 10px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-muted); min-width: 0; }
 .frame-quick-fields label { display: flex; flex-direction: column; gap: 4px; min-width: 0; margin: 6px 0; }

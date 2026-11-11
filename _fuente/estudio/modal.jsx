@@ -634,6 +634,8 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
   const [editingDvId, setEditingDvId]     = useState(null);
   const [editingDvData, setEditingDvData] = useState({});
   const [confirmDvId, setConfirmDvId]     = useState(null); // recurso a punto de borrarse
+  const [muroAbierto, setMuroAbierto]     = useState(false);
+  const muro = useMuro(project?.id);
   const editDvNameRef = useRef(null);
   const [confirmDel, setConfirmDel]       = useState(false);
   const [visibilityOpen, setVisibilityOpen] = useState(false);
@@ -729,6 +731,7 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
   // ── Teclado: Esc cierra, ← → navega ──────────────────────────
   useEffect(() => {
     const handler = (e) => {
+      if (muroAbierto) return; // el muro maneja su propio teclado
       if (e.key === 'Escape') {
         // Escribiendo, Esc sólo sale del campo (y el brief se guarda al salir):
         // la ficha se cierra con el siguiente Esc. Se mira e.target porque
@@ -749,7 +752,7 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [onClose, onNavigate, prevId, nextId]);
+  }, [onClose, onNavigate, prevId, nextId, muroAbierto]);
 
   // El debounce y el guardado por campos viven en handleUpdateProject
   // (app.jsx): ahí se sabe cuál era el estado anterior para calcular qué
@@ -1300,12 +1303,17 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
 
             {tab === 'overview' && (
               <div className="p-6 space-y-8">
-                {/* Brief */}
-                <section>
-                  <SectionTitle icon="edit">Brief / Descripción</SectionTitle>
-                  <DescriptionEditor blocks={project.description} onChange={updField('description')} projectId={project.id} />
-                </section>
+                {/* El muro reemplaza al brief: ahí se piensa la tarea. */}
+                <button type="button" className="muro-cta" onClick={() => setMuroAbierto(true)}>
+                  <MuroMiniatura nodos={muro.nodos} conexiones={muro.conexiones} indice={muro.indice} />
+                  <span className="muro-cta-txt">
+                    <span className="muro-cta-t">Ir al muro de esta tarea</span>
+                    <span className="muro-cta-s">{window.MuroModelo.resumen(muro) || 'Conectá ideas, guiones, imágenes y enlaces'}</span>
+                  </span>
+                  <span className="muro-cta-ir"><Icon name="chevronRight" size={18} /></span>
+                </button>
 
+                <div className="ficha-grupo">
                 {/* Checklist */}
                 <section>
                   <SectionTitle icon="check" right={`${realizados}/${project.checklist.length}`}>
@@ -1488,6 +1496,9 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
                   </div>
                 </section>
 
+                </div>
+
+                <div className="ficha-grupo">
                 {/* Timeline */}
                 <section>
                   <SectionTitle icon="clock">Timeline interno</SectionTitle>
@@ -1527,7 +1538,7 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
                   </div>
                 </section>
 
-                <section className="border-t border-app pt-4">
+                <section>
                   <button type="button" onClick={() => setActivityOpen(open => !open)} className="w-full flex items-center justify-between rounded-md px-2 py-2 -mx-2 hover:bg-[var(--surface-2)] transition-colors" aria-expanded={activityOpen}>
                     <span className="ui-section-label flex items-center gap-2"><Icon name="clock" size={14} /> Actividad</span>
                     <span className="flex items-center gap-2 text-[11px] text-[var(--text-muted)] font-mono">
@@ -1554,6 +1565,7 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
                     </div>
                   ))}
                 </section>
+                </div>
               </div>
             )}
 
@@ -1576,6 +1588,7 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
             )}
           </div>
         </div>
+        {muroAbierto && <MuroEspacio project={project} muro={muro} onClose={() => setMuroAbierto(false)} />}
       </div>
     </div>
   );
@@ -1786,37 +1799,6 @@ const TimelineAdd = ({ onAdd }) => {
   );
 };
 
-const DescriptionBlock = ({ blocks, onChange }) => {
-  return (
-    <div className="prose prose-invert max-w-none text-[15px] leading-relaxed text-[var(--text-dim)] space-y-2 pretty">
-      {blocks.map((b, i) => {
-        if (b.type === 'p') return <p key={i}>{b.text}</p>;
-        if (b.type === 'b') return <p key={i} className="text-white font-semibold">{b.text}</p>;
-        if (b.type === 'ul') return (
-          <ul key={i} className="list-disc pl-5 space-y-1">
-            {b.items.map((it, j) => <li key={j}>{it}</li>)}
-          </ul>
-        );
-        return null;
-      })}
-    </div>
-  );
-};
-
-// ── Description editor (click-to-edit) ─────────────────────────
-// ── Convierte el formato de bloques antiguo → HTML ───────────────
-const blocksToHTML = (blocks) => {
-  if (!blocks || blocks.length === 0) return '';
-  if (blocks[0]?.type === 'html') return blocks[0].content || '';
-  return (blocks || []).map(b => {
-    if (b.type === 'p') return `<p>${b.text || ''}</p>`;
-    if (b.type === 'b') return `<p><strong>${b.text || ''}</strong></p>`;
-    if (b.type === 'ul') return `<ul>${(b.items||[]).map(i=>`<li>${i}</li>`).join('')}</ul>`;
-    if (b.type === 'ol') return `<ol>${(b.items||[]).map(i=>`<li>${i}</li>`).join('')}</ol>`;
-    return '';
-  }).join('');
-};
-
 // ── Comprime una imagen usando canvas → devuelve un Blob ─────────
 const compressImg = (file, maxW = 1200, quality = 0.80) => new Promise(res => {
   const img = new Image();
@@ -1833,403 +1815,6 @@ const compressImg = (file, maxW = 1200, quality = 0.80) => new Promise(res => {
   img.onerror = () => { URL.revokeObjectURL(url); res(null); };
   img.src = url;
 });
-
-const DescriptionEditor = ({ blocks, onChange, projectId }) => {
-  const editorRef   = useRef(null);
-  const fileRef     = useRef(null);
-  const imageMenuRef = useRef(null);
-  const descriptionSaveTimerRef = useRef(null);
-  const descriptionDirtyRef = useRef(false);
-  const lastDescriptionHtmlRef = useRef(null);
-  const uploadingRef = useRef(false); // evita guardar mientras sube imagen
-  const [focused,   setFocused]   = useState(false);
-  const [lightbox,  setLightbox]  = useState(null);
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [imageMenuPosition, setImageMenuPosition] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [progress,   setProgress]   = useState(0);
-
-  // El documento abierto tambiÃ©n recibe los cambios que lleguen desde otra
-  // sesiÃ³n. Si esta persona estÃ¡ escribiendo, no se pisa su borrador local.
-  useEffect(() => {
-    const editor = editorRef.current;
-    if (!editor || descriptionDirtyRef.current) return;
-    const incoming = sanitizeDescHTML(blocksToHTML(blocks));
-    if (editor.innerHTML !== incoming) editor.innerHTML = incoming;
-    lastDescriptionHtmlRef.current = incoming;
-  }, [blocks]);
-
-  useEffect(() => () => {
-    if (descriptionSaveTimerRef.current) clearTimeout(descriptionSaveTimerRef.current);
-  }, []);
-
-  // Guarda al perder foco (solo si no está subiendo imagen)
-  const save = () => {
-    if (uploadingRef.current) return;
-    // Se limpia también al guardar, no sólo al pintar: pegar desde otra web
-    // trae el HTML de origen entero, con scripts y manejadores incluidos.
-    const html = sanitizeDescHTML(editorRef.current?.innerHTML || '').trim();
-    const empty = html === '' || html === '<br>' || html === '<div><br></div>';
-    const next = empty ? '' : html;
-    if (next === lastDescriptionHtmlRef.current) {
-      descriptionDirtyRef.current = false;
-      return;
-    }
-    lastDescriptionHtmlRef.current = next;
-    descriptionDirtyRef.current = false;
-    onChange(empty ? [] : [{ type: 'html', content: html }]);
-  };
-
-  const scheduleSave = () => {
-    descriptionDirtyRef.current = true;
-    if (descriptionSaveTimerRef.current) clearTimeout(descriptionSaveTimerRef.current);
-    descriptionSaveTimerRef.current = setTimeout(save, 500);
-  };
-
-  // Botones de toolbar: preventDefault para no perder foco del editor
-  const exec = (cmd, val) => {
-    editorRef.current?.focus();
-    document.execCommand(cmd, false, val ?? null);
-  };
-
-  const captureEditorRange = () => {
-    const selection = window.getSelection();
-    if (!selection?.rangeCount) return null;
-    const range = selection.getRangeAt(0);
-    return editorRef.current?.contains(range.commonAncestorContainer) ? range.cloneRange() : null;
-  };
-
-  const restoreEditorRange = (range) => {
-    editorRef.current?.focus();
-    if (!range) return;
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-  };
-
-  const insertRemoteImages = (urls, savedRange) => {
-    const safeUrls = (urls || []).map(FrameAttachments.normalizeRemoteImageUrl).filter(Boolean);
-    if (safeUrls.length === 0) return;
-    restoreEditorRange(savedRange);
-    const selection = window.getSelection();
-    const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
-    if (!range || !editorRef.current?.contains(range.commonAncestorContainer)) return;
-
-    range.deleteContents();
-    const fragment = document.createDocumentFragment();
-    let lastNode = null;
-    safeUrls.forEach(src => {
-      const img = document.createElement('img');
-      img.src = src;
-      img.alt = 'Imagen de referencia';
-      img.referrerPolicy = 'no-referrer';
-      img.loading = 'lazy';
-      img.dataset.frameSize = 'lg';
-      img.dataset.frameAlign = 'left';
-      const br = document.createElement('br');
-      fragment.append(img, br);
-      lastNode = br;
-    });
-    range.insertNode(fragment);
-    if (lastNode) {
-      range.setStartAfter(lastNode);
-      range.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(range);
-    }
-    scheduleSave();
-  };
-
-  // Sube imagen a Firebase Storage (igual que cover) y la inserta en el cursor
-  const uploadAndInsert = async (blob, savedRange = null) => {
-    if (!blob) return;
-    if (!window.storage) {
-      window.frameToast?.('Las imágenes necesitan Storage habilitado en Firebase.');
-      return;
-    }
-    uploadingRef.current = true;
-    setUploading(true);
-    setProgress(0);
-    try {
-      const path  = `frame-descriptions/${projectId || 'general'}/${Date.now()}.jpg`;
-      const stRef = window.storage.ref(path);
-      const task  = stRef.put(blob, { contentType: 'image/jpeg' });
-
-      // Timeout obligatorio: si el bucket de Storage no está creado, la tarea
-      // no falla — se queda esperando. Sin esto el editor mostraba "subiendo…"
-      // para siempre y no había forma de saber que pasaba.
-      const snapshot = await FrameAttachments.waitForUpload(task, { onProgress: setProgress });
-      const src = await snapshot.ref.getDownloadURL();
-      insertRemoteImages([src], savedRange);
-    } catch (err) {
-      console.error('[FRAME] Subir imagen:', err);
-      window.frameToast?.(FrameAttachments.storageErrorMessage(err));
-    } finally {
-      uploadingRef.current = false;
-      setUploading(false);
-      setProgress(0);
-    }
-  };
-
-  // Intercepta imágenes pegadas desde el portapapeles
-  const handlePaste = async (e) => {
-    const items = [...(e.clipboardData?.items || [])];
-    const html = e.clipboardData?.getData('text/html') || '';
-    const text = e.clipboardData?.getData('text/plain') || '';
-    const source = FrameAttachments.classifyPasteSource({ items, html, text });
-    const savedRange = captureEditorRange();
-
-    if (source.kind === 'file') {
-      e.preventDefault();
-      const file = source.item.getAsFile();
-      const validation = FrameAttachments.validateImageFile(file);
-      if (!validation.ok) { window.frameToast?.(validation.message); return; }
-      const compressed = await compressImg(file);
-      if (!compressed) { window.frameToast?.('No se pudo procesar la imagen.'); return; }
-      await uploadAndInsert(compressed, savedRange);
-      return;
-    }
-
-    if (source.kind === 'html-images' || source.kind === 'text-image-url') {
-      e.preventDefault();
-      insertRemoteImages(source.urls, savedRange);
-      window.frameToast?.('Imagen externa insertada. Seguirá disponible mientras el sitio de origen la mantenga pública.');
-      return;
-    }
-
-    if (source.kind === 'html') {
-      // Nunca se deja que HTML externo entre directo al contentEditable.
-      e.preventDefault();
-      restoreEditorRange(savedRange);
-      document.execCommand('insertHTML', false, sanitizeDescHTML(source.html));
-      return;
-    }
-
-    // Un enlace pegado se convierte en enlace. Pegado como texto plano queda
-    // una URL larga cortando el párrafo al medio; así queda legible y se
-    // puede abrir.
-    const url = text.trim();
-    if (/^https?:\/\/\S+$/i.test(url) && !/\s/.test(url)) {
-      e.preventDefault();
-      restoreEditorRange(savedRange);
-      const safe = url.replace(/"/g, '&quot;');
-      // Si había texto seleccionado, ese texto pasa a ser el enlace. Pegar
-      // encima de una selección no debería borrar lo que se escribió.
-      const picked = (savedRange?.toString() || '').trim();
-      const label = escapeDescText(picked || shortenUrl(url));
-      document.execCommand('insertHTML', false,
-        `<a href="${safe}" target="_blank" rel="noopener noreferrer">${label}</a>&nbsp;`);
-      descriptionDirtyRef.current = true;
-      save();
-      return;
-    }
-    // Texto ordinario conserva el comportamiento nativo del navegador.
-  };
-
-  // Sube desde selector de archivo
-  const handleFile = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    e.target.value = '';
-    const validation = FrameAttachments.validateImageFile(file);
-    if (!validation.ok) { window.frameToast?.(validation.message); return; }
-    const compressed = await compressImg(file);
-    if (!compressed) { window.frameToast?.('No se pudo procesar la imagen.'); return; }
-    await uploadAndInsert(compressed);
-  };
-
-  // Click en imagen → lightbox
-  const clearImageSelection = () => {
-    editorRef.current?.querySelectorAll('img.frame-image-selected').forEach(img => img.classList.remove('frame-image-selected'));
-  };
-
-  const positionImageMenu = (img) => {
-    if (!img?.isConnected) return;
-    const rect = img.getBoundingClientRect();
-    const viewportPadding = 12;
-    const menuWidth = Math.min(240, window.innerWidth - viewportPadding * 2);
-    const menuHeight = imageMenuRef.current?.offsetHeight || 108;
-    const left = Math.max(viewportPadding, Math.min(rect.left, window.innerWidth - menuWidth - viewportPadding));
-    const belowTop = rect.bottom + 8;
-    const aboveTop = rect.top - menuHeight - 8;
-    const showBelow = belowTop + menuHeight <= window.innerHeight - viewportPadding;
-    setImageMenuPosition({
-      left,
-      top: Math.max(viewportPadding, Math.min(showBelow ? belowTop : aboveTop, window.innerHeight - menuHeight - viewportPadding)),
-      width: menuWidth,
-    });
-  };
-
-  useEffect(() => {
-    if (!selectedImage) return undefined;
-    const reposition = () => positionImageMenu(selectedImage);
-    reposition();
-    window.addEventListener('resize', reposition);
-    window.addEventListener('scroll', reposition, true);
-    return () => {
-      window.removeEventListener('resize', reposition);
-      window.removeEventListener('scroll', reposition, true);
-    };
-  }, [selectedImage]);
-
-  // La primera posiciÃ³n usa una estimaciÃ³n. Cuando la barra ya se renderizÃ³,
-  // se recoloca con su altura real para no salirse en pantallas pequeÃ±as.
-  useEffect(() => {
-    if (!selectedImage || !imageMenuPosition) return undefined;
-    const frame = window.requestAnimationFrame(() => positionImageMenu(selectedImage));
-    return () => window.cancelAnimationFrame(frame);
-  }, [selectedImage, imageMenuPosition?.width]);
-
-  const closeImageMenu = () => {
-    clearImageSelection();
-    setSelectedImage(null);
-    setImageMenuPosition(null);
-  };
-
-  // Cada acción cierra el menú. Antes quedaba abierto y tapaba justo la
-  // imagen que acababas de cambiar, así que no se veía el resultado de lo
-  // que elegiste. Para hacer otro ajuste, clic en la imagen de nuevo.
-  const updateSelectedImage = (attribute, value) => {
-    if (!selectedImage || !editorRef.current?.contains(selectedImage)) return;
-    selectedImage.setAttribute(attribute, value);
-    descriptionDirtyRef.current = true;
-    save();
-    closeImageMenu();
-  };
-
-  const handleClick = (e) => {
-    if (e.target.tagName === 'IMG') {
-      e.preventDefault();
-      clearImageSelection();
-      e.target.classList.add('frame-image-selected');
-      setSelectedImage(e.target);
-      positionImageMenu(e.target);
-      return;
-    }
-
-    // El navegador no abre enlaces dentro de un contentEditable: sin esto
-    // el vínculo se ve azul pero no lleva a ningún lado.
-    const link = e.target.closest?.('a[href]');
-    if (link && editorRef.current?.contains(link)) {
-      e.preventDefault();
-      window.open(link.href, '_blank', 'noopener,noreferrer');
-      return;
-    }
-
-    closeImageMenu();
-  };
-
-  // Botón de toolbar reutilizable
-  const TB = ({ onMouseDown, title, children, className = '' }) => (
-    <button
-      onMouseDown={(e) => { e.preventDefault(); onMouseDown(); }}
-      title={title}
-      className={`px-2 py-1 rounded text-[12px] font-medium select-none text-[var(--text-muted)] hover:text-white hover:bg-[var(--surface-3)] transition-colors ${className}`}
-    >
-      {children}
-    </button>
-  );
-
-  return (
-    <>
-      <div
-        className="rounded-lg border overflow-hidden transition"
-        style={{ borderColor: focused ? 'var(--accent-border)' : 'var(--border-2)' }}
-      >
-        {/* ── Toolbar ── */}
-        <div className="flex items-center gap-0.5 px-2 py-1 hair" style={{ background: 'var(--surface-3)' }}>
-          <TB onMouseDown={() => exec('bold')}   title="Negrita (Ctrl+B)"><strong>B</strong></TB>
-          <TB onMouseDown={() => exec('italic')} title="Cursiva (Ctrl+I)"><em style={{ fontStyle:'italic' }}>I</em></TB>
-          <div className="w-px h-3.5 mx-1 flex-shrink-0" style={{ background: 'var(--border-2)' }} />
-          <TB onMouseDown={() => exec('insertUnorderedList')} title="Lista de viñetas">
-            <Icon name="list" size={12} />
-          </TB>
-          <TB onMouseDown={() => exec('insertOrderedList')} title="Lista numerada">
-            <span className="font-mono text-[11px]">1.</span>
-          </TB>
-          <div className="w-px h-3.5 mx-1 flex-shrink-0" style={{ background: 'var(--border-2)' }} />
-          {/* Upload imagen */}
-          <label
-            title="Insertar imagen o pegar un archivo, imagen web o URL con Ctrl+V"
-            className={`px-2 py-1 rounded text-[12px] select-none cursor-pointer flex items-center gap-1 transition-colors ${uploading ? 'opacity-50 pointer-events-none' : 'text-[var(--text-muted)] hover:text-white hover:bg-[var(--surface-3)]'}`}
-          >
-            <Icon name="camera" size={12} />
-            {uploading && <span className="text-[10px] font-mono animate-pulse">{progress}%</span>}
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} disabled={uploading} />
-          </label>
-        </div>
-
-        {selectedImage && imageMenuPosition && ReactDOM.createPortal(
-          <div
-            ref={imageMenuRef}
-            className="fixed z-[10000] flex flex-col items-stretch gap-0.5 rounded-lg border p-1.5 shadow-xl anim-fade-in"
-            style={{
-              left: imageMenuPosition.left,
-              top: imageMenuPosition.top,
-              width: imageMenuPosition.width,
-              maxWidth: 'calc(100vw - 24px)',
-              boxSizing: 'border-box',
-              background: 'var(--surface-2)',
-              borderColor: 'var(--border-2)',
-              boxShadow: '0 12px 32px rgba(0,0,0,0.28)',
-            }}
-          >
-            <div className="flex flex-col items-stretch rounded-md border p-0.5" style={{ borderColor: 'var(--border-2)', background: 'var(--surface-3)' }}>
-              <TB className="w-full text-left" onMouseDown={() => updateSelectedImage('data-frame-size', 'sm')} title="Ancho pequeño">Pequeña</TB>
-              <TB className="w-full text-left" onMouseDown={() => updateSelectedImage('data-frame-size', 'md')} title="Ancho mediano">Mediana</TB>
-              <TB className="w-full text-left" onMouseDown={() => updateSelectedImage('data-frame-size', 'lg')} title="Ancho completo">Completa</TB>
-            </div>
-            <div className="h-px my-1" style={{ background: 'var(--border-2)' }} />
-            <TB className="w-full text-left" onMouseDown={() => updateSelectedImage('data-frame-align', 'left')} title="Alinear a la izquierda">Alinear a la izquierda</TB>
-            <TB className="w-full text-left" onMouseDown={() => updateSelectedImage('data-frame-align', 'center')} title="Centrar">Centrar</TB>
-            <TB className="w-full text-left" onMouseDown={() => updateSelectedImage('data-frame-align', 'right')} title="Alinear a la derecha">Alinear a la derecha</TB>
-            <div className="h-px my-1" style={{ background: 'var(--border-2)' }} />
-            <TB className="w-full text-left" onMouseDown={() => { const src = selectedImage.src; closeImageMenu(); setLightbox(src); }} title="Abrir imagen a tamaño completo">Abrir imagen</TB>
-            <TB className="w-full text-left" onMouseDown={closeImageMenu} title="Cerrar opciones">Cerrar</TB>
-          </div>,
-          capaEstudio()
-        )}
-
-        {/* ── Área editable ── */}
-        <div
-          ref={editorRef}
-          contentEditable
-          suppressContentEditableWarning
-          onFocus={() => setFocused(true)}
-          onBlur={() => { setFocused(false); save(); }}
-          onInput={scheduleSave}
-          onPaste={handlePaste}
-          onClick={handleClick}
-          data-placeholder="Escribí el brief…"
-          className="desc-editor p-3 text-[15px] leading-relaxed"
-          style={{ minHeight: 100, background: 'var(--surface-2)', color: 'var(--text)' }}
-        />
-      </div>
-
-      {/* ── Lightbox ── */}
-      {lightbox && (
-        <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center anim-fade-in"
-          style={{ background: 'rgba(0,0,0,0.92)' }}
-          onClick={() => setLightbox(null)}
-        >
-          <img
-            src={lightbox}
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 10, boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }}
-          />
-          <button
-            onClick={() => setLightbox(null)}
-            className="absolute top-5 right-5 p-2 rounded-full"
-            style={{ background: 'rgba(255,255,255,0.12)', color: 'white' }}
-          >
-            <Icon name="x" size={18} />
-          </button>
-        </div>
-      )}
-    </>
-  );
-};
 
 const CHAT_EMOJI_GROUPS = [
   { id: 'recent', label: 'Frecuentes', glyph: '✨', emojis: ['👍','❤️','✨','🔥','👏','✅','👀','🙏','😊','🎉','💡','🚀','💯','🙌'] },

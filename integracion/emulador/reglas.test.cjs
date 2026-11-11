@@ -198,6 +198,22 @@ test('tarjeta de venta día por día: trabajo y entrega se mueven sólo juntas',
   await no(fsMod.updateDoc(t, { sessionDate: '2026-11-22', deadline: '2026-11-25' }), 'a días distintos no');
 });
 
+test('muro de la tarea: lo trabaja quien tiene acceso; nadie más', { skip }, async () => {
+  const nodo = { id: 'n1', clase: 'nodo', tipo: 'nota', titulo: 'Idea', x: 0, y: 0, w: 280, datos: { texto: 'hola', color: '' } };
+  const d = (u, tarea, id = 'n1') => fsMod.doc(as(u), 'frame_projects', tarea, 'muro', id);
+  await ok(fsMod.setDoc(d('u2', 'tSale'), nodo), 'el equipo escribe, también en tarjetas de venta');
+  await ok(fsMod.getDoc(d('u1', 'tSale')), 'el equipo lee');
+  await ok(fsMod.setDoc(d('u2', 'tSale'), { ...nodo, x: 40 }), 'y actualiza');
+  await no(fsMod.getDoc(d('u3', 'tSale')), 'otro tablero no lee');
+  await no(fsMod.setDoc(d('u3', 'tSale', 'n9'), { ...nodo, id: 'n9' }), 'otro tablero no escribe');
+  await no(fsMod.deleteDoc(d('u3', 'tSale')), 'otro tablero no borra');
+  await no(fsMod.setDoc(d('u2', 'tSale', 'n2'), nodo), 'el id tiene que coincidir');
+  await no(fsMod.setDoc(d('u2', 'tSale', 'n3'), { ...nodo, id: 'n3', clase: 'otra' }), 'clase conocida');
+  await no(fsMod.setDoc(d('u2', 'tSale', 'n4'), { ...nodo, id: 'n4', viewerIds: ['x'] }), 'sin campos extraños');
+  await ok(fsMod.setDoc(d('u2', 'tSale', 'c_a__b'), { id: 'c_a__b', clase: 'conexion', a: 'a', b: 'b' }), 'conexiones');
+  await ok(fsMod.deleteDoc(d('u2', 'tSale')), 'el equipo borra');
+});
+
 // Punto A0: las reglas activas traían un cambio de FRAME (2026-10-15) que no
 // estaba en el repo: edita la membresía de HOY, no la foto de viewerIds. u5
 // entró a ws1 pero no figura en viewerIds de las tareas.

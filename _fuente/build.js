@@ -39,7 +39,7 @@ const modulesSrc = MODULES.map(f => `// ── módulo: ${f} ──\n${fs.readFi
 // (LoopaEstudio): sus nombres no chocan con los de LOOPA. Lo que antes se
 // exportaba a window entre archivos ya no hace falta (comparten ámbito); los
 // ganchos de React se declaran una vez al principio.
-const ESTUDIO = ['capa.js', 'attachment-utils.js', 'loopa-fusion.js', 'icons.jsx', 'brand.jsx', 'data.jsx', 'modal.jsx', 'views.jsx', 'ventas-linea.jsx', 'clients.jsx', 'team.jsx', 'analytics.jsx', 'routine.jsx', 'auth.jsx', 'portal.jsx', 'mobile.jsx', 'app.jsx'];
+const ESTUDIO = ['capa.js', 'attachment-utils.js', 'loopa-fusion.js', 'muro-modelo.js', 'icons.jsx', 'brand.jsx', 'data.jsx', 'modal.jsx', 'muro.jsx', 'views.jsx', 'ventas-linea.jsx', 'clients.jsx', 'team.jsx', 'analytics.jsx', 'routine.jsx', 'auth.jsx', 'portal.jsx', 'mobile.jsx', 'app.jsx'];
 const estudioSrc = ESTUDIO.map(f => `// ── estudio: ${f} ──\n${fs.readFileSync(path.join(here, 'estudio', f), 'utf8')
   .replace(/^\s*const \{[^}]*\} = React;\s*$/gm, '// (ganchos de React: al principio del ámbito)')
   .replace(/Object\.assign\(window, \{/g, 'Object.assign({}, {')
@@ -99,7 +99,7 @@ const ESTUDIO_TOKENS = `.estudio {
 }
 .estudio button, .estudio input, .estudio select, .estudio textarea { font-family: inherit; }
 `;
-const estudioCss = scopeCss(['frame.css', 'ventas-linea.css'].map(f => fs.readFileSync(path.join(here, 'estudio', f), 'utf8')).join('\n'), '.estudio') + ESTUDIO_TOKENS;
+const estudioCss = scopeCss(['frame.css', 'ventas-linea.css', 'muro.css'].map(f => fs.readFileSync(path.join(here, 'estudio', f), 'utf8')).join('\n'), '.estudio') + ESTUDIO_TOKENS;
 
 let extraCss = tint([fs.readFileSync(path.join(here, 'extra.css'), 'utf8'), ...MODULE_CSS.map(f => fs.readFileSync(path.join(here, f), 'utf8')), estudioCss].join('\n'));
 const app = tint(`${modulesSrc}\n${estudio}\n// ── app.jsx ──\n${fs.readFileSync(path.join(here, 'app.jsx'), 'utf8')}`);

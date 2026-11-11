@@ -1127,3 +1127,16 @@ Se corrigieron los fallos encontrados al usar la ficha elemento por elemento.
 - **Coherencia.** Urgente usa `isUrgent` en todos lados. Responsables, Presupuesto y Comentarios dependen del tablero de la tarea, no del abierto. Un cambio de estado rechazado no avisa a nadie. Las tareas nuevas nacen como Otro y en lempiras.
 
 **Hay que publicar las reglas** antes de subir la pantalla: sin ellas, mover una tarjeta de venta día por día se rechaza.
+
+
+## 40. Muro de la tarea, en lugar del Brief (2026-11-11)
+
+La ficha ya no tiene Brief. Un botón lleva al **Muro**, un lienzo por tarea para conectar notas, guiones, imágenes, enlaces, listas y paletas. No genera nada: ordena las ideas.
+
+- **Datos.** `frame_projects/{id}/muro/{item}`: un documento por nodo o conexión, para que dos personas trabajen a la vez sin pisarse. Las reglas dan acceso a quien lo tiene sobre la tarea, exigen que `id` coincida y limitan los campos.
+- **Brief anterior.** No se borra `description`. La primera vez que se abre el muro, `briefANodos` crea una nota y las imágenes conectadas, con ids fijos y una marca `meta`, así no se duplica.
+- **Imágenes.** Van a `frame-deliverables/{tarea}/muro_*`, ruta que Storage ya permite: no hubo que cambiar sus reglas. Borrar la tarjeta no borra el archivo, para que Deshacer siga funcionando.
+- **Código.** `muro-modelo.js` es puro y se prueba con Node. `muro.jsx` y `muro.css` son la pantalla; no se agregó ninguna librería.
+- **Auditoría usándolo.** Se corrigió: tarjetas nuevas encimadas o tapadas por la barra, líneas que cruzaban tarjetas, menú cortado en el borde, avisos que quedaban debajo del muro, clases de tipo que rompían el ancho de algunas tarjetas, y arrastrar desde el texto.
+
+**Hay que publicar las reglas** antes de subir la pantalla: sin ellas el muro no abre.

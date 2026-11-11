@@ -1389,7 +1389,7 @@ const NewProjectModal = ({ onCreate, onClose, clients = [], onCreateClient, cust
       currency: 'HNL',
       tags: [],
       cover: { type: 'color', value: '#1a1a1f' },
-      description: [{ type: 'p', text: 'Briefing inicial — añadí el contexto de la tarea acá.' }],
+      description: [],
       checklist: [],
       deliverables: [],
       timeline: [],
@@ -2862,7 +2862,6 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null, comercial = n
     if (JSON.stringify(before.assignees) !== JSON.stringify(after.assignees)) return 'actualizó los responsables';
     if (JSON.stringify(before.checklist) !== JSON.stringify(after.checklist)) return 'actualizó el checklist';
     if (JSON.stringify(before.deliverables) !== JSON.stringify(after.deliverables)) return 'actualizó los recursos';
-    if (JSON.stringify(before.description) !== JSON.stringify(after.description)) return 'actualizó el brief';
     if (JSON.stringify(before.tags) !== JSON.stringify(after.tags)) return 'actualizó los tags';
     if (JSON.stringify(before.timeline) !== JSON.stringify(after.timeline)) return 'actualizó el timeline';
     if (before.cover?.value !== after.cover?.value) return 'actualizó la portada';
@@ -2952,7 +2951,7 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null, comercial = n
       currency:   'HNL',
       tags:       [],
       cover:      { type: 'color', value: '#1a1a1f' },
-      description: [{ type: 'p', text: '' }],
+      description: [],
       checklist:   [],
       deliverables: [],
       timeline:    [],

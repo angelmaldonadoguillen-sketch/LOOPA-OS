@@ -452,6 +452,23 @@ service cloud.firestore {
                       && resource.data.userId == myUid();
       }
 
+      // El muro de la tarea: cada nodo o conexión es un documento. Lo trabaja
+      // quien tenga acceso a la tarea; nadie más lo ve.
+      match /muro/{itemId} {
+        function parentProject() {
+          return get(/databases/$(database)/documents/frame_projects/$(doc)).data;
+        }
+        function muroValido() {
+          return request.resource.data.id == itemId
+                 && request.resource.data.clase in ['nodo', 'conexion', 'meta']
+                 && request.resource.data.keys().hasOnly(['id', 'clase', 'tipo', 'titulo', 'x', 'y', 'w', 'datos', 'a', 'b', 'brief']);
+        }
+
+        allow read: if hasProjectAccess(parentProject());
+        allow create, update: if hasProjectAccess(parentProject()) && muroValido();
+        allow delete: if hasProjectAccess(parentProject());
+      }
+
       match /activity/{activityId} {
         function parentProject() {
           return get(/databases/$(database)/documents/frame_projects/$(doc)).data;
