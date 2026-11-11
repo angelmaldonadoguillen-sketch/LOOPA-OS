@@ -20,6 +20,7 @@ const { addDays, addMonths, compareYmd, isValidYmd } = require('./dates');
 const { ids, fingerprint, isStableId } = require('./ids');
 const { issue, hasErrors } = require('./errors');
 const { validateSale, validateGeneratedTask, LIMITS, SCHEMA_VERSION } = require('./contracts');
+const Ficha = require('./ficha');
 
 const own = (obj, key) => (obj && Object.hasOwn(obj, key) ? obj[key] : undefined);
 
@@ -97,8 +98,70 @@ function resolveWorkspace(plan, context, path, out) {
   return { id: workspaceId, ...ws };
 }
 
+// ── Producto con ficha: una tarjeta por entrega, con su fecha ─────
+// Las fechas salen del patrón de cada entregable dentro del rango congelado
+// en la línea (Ficha.calendario: la misma cuenta que mostró la venta). Cada
+// entrega es una unidad de trabajo propia (estrategia «separate»), con el
+// proceso del producto como checklist. Va a la primera columna del tablero.
+function expandFichaLine(sale, line, lineIndex, context, out, resolved) {
+  const path = `sale.lines[${lineIndex}]`;
+  const ficha = Ficha.normalizarFicha(line.ficha);
+  const workspace = resolveWorkspace({ workspaceId: null }, context, path, out);
+  if (!workspace) return [];
+  if (!resolved.has(workspace.id)) resolved.set(workspace.id, resolveClient(sale, workspace.id, context, 'sale', out));
+  const client = resolved.get(workspace.id);
+  if (!client) return [];
+  if (!ficha.proceso.length) {
+    out.push(issue('line.ficha.no_process', `${path}.ficha.proceso`, `«${line.snapshot.nombre}» no tiene proceso: no se puede armar el checklist`));
+    return [];
+  }
+  const cal = Ficha.calendario(ficha, line.inicio);
+  if (!cal.rango) { out.push(issue('line.ficha.inicio', `${path}.inicio`, 'La línea no tiene una fecha de inicio válida')); return []; }
+  const status = (workspace.statusIds && workspace.statusIds[0]) || 'briefing';
+  const type = workspace.typeIds ? (workspace.typeIds.includes('other') ? 'other' : workspace.typeIds[0] || 'other') : 'other';
+  const porEntregable = new Map(ficha.entregables.map((e, i) => [e.id, i]));
+  return cal.entregas.map((x) => {
+    const workItemKey = ids.workItemKey(sale.id, line.lineId, `f-${x.entregableId}`, x.n);
+    if (context.today && compareYmd(x.fecha, context.today) < 0) {
+      out.push(issue('work_item.session_in_past', path, `«${x.nombre}» ${x.n}/${x.total}: la fecha ${x.fecha} ya pasó`, 'warning'));
+    }
+    const titulo = x.total > 1 ? `${x.nombre} ${x.n}/${x.total}` : x.nombre;
+    return {
+      workItemKey,
+      lineIndex,
+      templateIndex: porEntregable.get(x.entregableId),
+      occurrence: x.n,
+      occurrences: x.total,
+      lineId: line.lineId,
+      serviceId: line.serviceId,
+      serviceName: line.snapshot.nombre,
+      quantity: 1,
+      templateId: `f-${x.entregableId}`,
+      templateVersion: ficha.version,
+      label: x.nombre,
+      title: clip(`${client.name} · ${titulo}`),
+      type,
+      initialStatus: status,
+      priority: 'medium',
+      tags: [clip(line.snapshot.nombre, 40)],
+      workspaceId: workspace.id,
+      memberIds: uniqSorted(workspace.memberIds),
+      clientId: client.id,
+      clientName: client.name,
+      startDate: line.inicio,
+      sessionDate: x.fecha,
+      deadline: x.fecha,
+      detalle: x.detalle || '',
+      strategy: 'separate',
+      groupKey: 'ficha',
+      checklist: ficha.proceso.map(p => ({ id: ids.checklistItemId(workItemKey, p.id, 0), text: clip(p.texto) })),
+    };
+  });
+}
+
 function expandLine(sale, line, lineIndex, context, out, resolved) {
   const path = `sale.lines[${lineIndex}]`;
+  if (line.ficha) return expandFichaLine(sale, line, lineIndex, context, out, resolved);
   const plan = line.executionPlan;
   if (!plan) {
     out.push(issue('line.no_plan', path, `«${line.snapshot.nombre}» se vendió sin plantilla operativa: no genera trabajo`, 'warning'));
@@ -252,7 +315,8 @@ function buildPackage(sale, key, items, eventId) {
     status: first.initialStatus,
     priority: items.reduce((best, i) => (PRIORITY_RANK[i.priority] > PRIORITY_RANK[best] ? i.priority : best), first.priority),
     assignees: [],
-    startDate: sale.fecha,
+    // Con ficha: el inicio del paquete que eligió la venta.
+    startDate: first.startDate || sale.fecha,
     sessionDate: first.sessionDate,
     // El compromiso de la tarjeta es el más temprano de sus entregables. Cada
     // unidad conserva el suyo en sourceWorkItems.
@@ -263,6 +327,7 @@ function buildPackage(sale, key, items, eventId) {
       { type: 'p', text: `Generado desde la venta #${sale.n} de LOOPA.` },
       { type: 'b', text: 'Servicios vendidos' },
       { type: 'ul', items: lineSummary },
+      ...(first.detalle && !multi ? [{ type: 'b', text: 'Detalle' }, { type: 'p', text: first.detalle }] : []),
     ],
     checklist,
     deliverables: [],
@@ -306,6 +371,13 @@ function estimateWork(sale) {
   let workItems = 0;
   let checklistItems = 0;
   sale.lines.forEach(line => {
+    if (line.ficha) {
+      const f = Ficha.normalizarFicha(line.ficha);
+      const n = Ficha.calendario(f, line.inicio).entregas.length;
+      workItems += n;
+      checklistItems += n * f.proceso.length;
+      return;
+    }
     const plan = line.executionPlan;
     if (!plan || !plan.enabled) return;
     const qty = Number.isInteger(line.quantity) ? line.quantity : 1;

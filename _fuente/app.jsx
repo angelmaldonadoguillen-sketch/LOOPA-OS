@@ -50,7 +50,11 @@ const snapshotServicio = (s) => ({
   tipoId: s.id, nombre: s.nombre, categoria: s.categoria, unidad: s.unidad,
   descripcion: s.descripcion || '', modelo: modeloServicio(s), recomendado: s.recomendado === true,
   clienteIdEspecial: s.clienteIdEspecial || '', precio: String(num(s.precio)), costo: String(num(s.costo)), q: 1,
+  // Producto con ficha: se vende cerrado y con fecha de inicio (la elige la venta).
+  ...(s.ficha ? { ficha: s.ficha, inicio: '' } : {}),
 });
+// Costo real de una línea con ficha: cuenta las entregas de SU rango.
+const costoLinea = (i) => (i.ficha && i.inicio ? LoopaFicha.costos(LoopaFicha.normalizarFicha(i.ficha), i.inicio).total : num(i.costo));
 const CATEGORIAS_DEFAULT = ['Redes sociales', 'Diseño gráfico', 'Video / Reels', 'Pauta digital', 'Branding', 'Web', 'Fotografía', 'Otro'];
 const CANALES_DEFAULT = ['WhatsApp', 'Instagram', 'Facebook', 'TikTok', 'Referido', 'Web', 'Otro'];
 const PAY_CONFIG_DEFAULT = [
@@ -493,11 +497,14 @@ function Empty({ icon, title, children }) {
 }
 
 // ═══════════════════════ NUEVA VENTA ═══════════════════════
-function NuevaVenta({ nextN, clientes, servicios, ventas, stats, config, onCreate, onCreateServicio, onUpdateServicio, prefill, onPrefillConsumed, onReset, onOpenVenta }) {
+function NuevaVenta({ nextN, clientes, servicios, ventas, stats, config, onCreate, onCreateServicio, onUpdateServicio, prefill, onPrefillConsumed, onReset, onOpenVenta, onIrProductos }) {
   const { payConfig, canales, categorias } = config;
   const [step, setStep] = useState(prefill?.items?.length ? 2 : 1);
   const [cliente, setCliente] = useState(() => prefill?.cliente || { id: null, nombre: '', empresa: '', telefono: '', email: '', canal: canales[0] || '' });
-  const [items, setItems] = useState(() => (prefill?.items || []).map(i => ({ ...i, key: uid('LN') })));
+  const [items, setItems] = useState(() => (prefill?.items || []).map(i => {
+    const it = { ...i, key: uid('LN'), ...(i.ficha && !i.inicio ? { inicio: today() } : {}) };
+    return it.ficha ? { ...it, costo: String(costoLinea(it)) } : it;
+  }));
   const [pay, setPay] = useState(() => prefill?.pay && payConfig.some(p => p.id === prefill.pay) ? prefill.pay : (payConfig[0]?.id || ''));
   const [cobro, setCobro] = useState('pagado');
   const [anticipo, setAnticipo] = useState('');
@@ -510,11 +517,29 @@ function NuevaVenta({ nextN, clientes, servicios, ventas, stats, config, onCreat
 
   useEffect(() => { if (prefill && onPrefillConsumed) onPrefillConsumed(); }, []);
 
-  // Tocar un tipo que ya está en la venta suma 1 a la cantidad en vez de duplicar la línea
-  const addItem = (s) => setItems(prev => prev.some(i => i.tipoId === s.id)
-    ? prev.map(i => i.tipoId === s.id ? { ...i, q: num(i.q) + 1 } : i)
-    : [...prev, { key: uid('LN'), ...snapshotServicio(s) }]);
-  const updItem = (key, patch) => setItems(prev => prev.map(i => i.key === key ? { ...i, ...patch } : i));
+  // Un producto con ficha se agrega como línea propia: si ya estaba, la nueva
+  // empieza cuando termina la anterior (dos meses seguidos de un plan). Sin
+  // ficha (ventas viejas), tocar de nuevo suma 1 a la cantidad.
+  const addItem = (s) => setItems(prev => {
+    if (s.ficha) {
+      const previas = prev.filter(i => i.tipoId === s.id && i.inicio);
+      const f = LoopaFicha.normalizarFicha(s.ficha);
+      const inicio = previas.length ? LoopaFicha.rango(previas[previas.length - 1].inicio, f.duracion).fin : fecha;
+      const it = { key: uid('LN'), ...snapshotServicio(s), inicio };
+      return [...prev, { ...it, costo: String(costoLinea(it)) }];
+    }
+    return prev.some(i => i.tipoId === s.id)
+      ? prev.map(i => i.tipoId === s.id ? { ...i, q: num(i.q) + 1 } : i)
+      : [...prev, { key: uid('LN'), ...snapshotServicio(s) }];
+  });
+  const updItem = (key, patch) => setItems(prev => prev.map(i => {
+    if (i.key !== key) return i;
+    const it = { ...i, ...patch };
+    return it.ficha ? { ...it, costo: String(costoLinea(it)) } : it;
+  }));
+  // La entrega de la venta es el fin del último producto (sale de las fichas).
+  const finFichas = items.filter(i => i.ficha && i.inicio).map(i => LoopaFicha.rango(i.inicio, LoopaFicha.normalizarFicha(i.ficha).duracion).fin).sort().pop() || '';
+  useEffect(() => { if (finFichas) setEntrega(finFichas); }, [finFichas]);
   const delItem = (key) => setItems(prev => prev.filter(i => i.key !== key));
 
   const totals = useMemo(() => {
@@ -532,7 +557,7 @@ function NuevaVenta({ nextN, clientes, servicios, ventas, stats, config, onCreat
 
   const canProceed = {
     1: cliente.nombre.trim().length > 0,
-    2: items.length > 0 && items.every(i => num(i.q) > 0),
+    2: items.length > 0 && items.every(i => num(i.q) > 0 && (!i.ficha || LoopaFicha.esFecha(i.inicio))),
     3: !!pay && (cobro !== 'anticipo' || totals.cobrado > 0),
   };
 
@@ -567,7 +592,7 @@ function NuevaVenta({ nextN, clientes, servicios, ventas, stats, config, onCreat
         <div>
           <div className="page-kicker">Registro</div>
           <div className="page-title">Nueva venta</div>
-          <div className="page-desc">Elegí el cliente, sumá servicios desde tus tipos guardados (o creá uno nuevo al vuelo) y registrá el cobro.</div>
+          <div className="page-desc">Elegí el cliente, sumá productos listos y cuándo empieza cada uno, y registrá el cobro. Cada entrega pasa sola a Producción y al calendario.</div>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <span className="chip">CORRELATIVO <span className="v mono">{numProx(nextN)}</span></span>
@@ -589,8 +614,7 @@ function NuevaVenta({ nextN, clientes, servicios, ventas, stats, config, onCreat
       {step === 1 && <PasoCliente cliente={cliente} setCliente={setCliente} clientes={clientes} ventas={ventas} canales={canales} nota={nota} setNota={setNota} />}
       {step === 2 && (
         <PasoServicios cliente={cliente} servicios={servicios} stats={stats} categorias={categorias} items={items}
-          addItem={addItem} updItem={updItem} delItem={delItem} totals={totals}
-          onCreateServicio={onCreateServicio} onUpdateServicio={onUpdateServicio} />
+          addItem={addItem} updItem={updItem} delItem={delItem} totals={totals} onIrProductos={onIrProductos} />
       )}
       {step === 3 && (
         <PasoCobro payConfig={payConfig} pay={pay} setPay={setPay} cobro={cobro} setCobro={setCobro}
@@ -712,52 +736,36 @@ function PasoCliente({ cliente, setCliente, clientes, ventas, canales, nota, set
   );
 }
 
-function PasoServicios({ cliente, servicios, stats, categorias, items, addItem, updItem, delItem, totals, onCreateServicio, onUpdateServicio }) {
+function PasoServicios({ cliente, servicios, stats, categorias, items, addItem, updItem, delItem, totals, onIrProductos }) {
   const [q, setQ] = useState('');
   const [cat, setCat] = useState('all');
-  const [draft, setDraft] = useState(null);
   const searchRef = useRef(null);
 
-  const activos = servicios.filter(s => s.activo !== false && servicioDisponiblePara(s, cliente));
+  // Venta cerrada: sólo productos con la ficha completa (qué incluye,
+  // proceso, precio). Lo demás se completa en Productos, no acá.
+  const disponibles = servicios.filter(s => s.activo !== false && servicioDisponiblePara(s, cliente));
+  const activos = disponibles.filter(s => LoopaFicha.lista(s));
+  const incompletos = disponibles.length - activos.length;
   const nq = norm(q);
   const list = activos
     .filter(s => (cat === 'all' || s.categoria === cat) && (!nq || norm(`${s.nombre} ${s.categoria} ${s.descripcion}`).includes(nq)))
     .sort((a, b) => (stats[b.id]?.q || 0) - (stats[a.id]?.q || 0) || a.nombre.localeCompare(b.nombre));
-  const exact = nq ? servicios.find(s => norm(s.nombre) === nq && servicioDisponiblePara(s, cliente)) : null;
   const catsConServicios = categorias.filter(c => activos.some(s => s.categoria === c));
-  const enCarrito = (id) => items.filter(i => i.tipoId === id).reduce((a, i) => a + num(i.q), 0);
-
-  const startCreate = () => setDraft({
-    nombre: q.trim(), categoria: cat !== 'all' ? cat : (categorias[0] || 'Otro'),
-    unidad: 'proyecto', precio: '', costo: '', descripcion: '', modelo: 'proyecto', recomendado: false, clienteIdEspecial: '',
-  });
-  const saveDraft = () => {
-    if (!draft.nombre.trim()) return;
-    const s = onCreateServicio(draft);
-    if (!s) return; // no se pudo guardar (el aviso ya salió)
-    addItem(s); setDraft(null); setQ('');
-    setTimeout(() => searchRef.current?.focus({ preventScroll: true }), 50);
-  };
-  const onKey = (e) => {
-    if (e.key !== 'Enter' || !nq) return;
-    if (exact && exact.activo !== false) { addItem(exact); setQ(''); }
-    else if (list.length === 1) { addItem(list[0]); setQ(''); }
-    else if (!exact) startCreate();
-  };
+  const enCarrito = (id) => items.filter(i => i.tipoId === id).length;
+  const onKey = (e) => { if (e.key === 'Enter' && list.length === 1) { addItem(list[0]); setQ(''); } };
 
   return (
     <div className="nv-grid">
-      {/* Catálogo de tipos */}
+      {/* Catálogo: sólo lo que está listo para vender */}
       <div className="panel crop">
         <div className="panel-head">
-          <div className="panel-title">PASO 02 · <span className="dim">TIPOS DE SERVICIO</span></div>
-          <span className="mono dim" style={{ marginLeft: 'auto', fontSize: 'var(--fs-s)', letterSpacing: '0.1em' }}>{activos.length} GUARDADOS</span>
+          <div className="panel-title">PASO 02 · <span className="dim">PRODUCTOS</span></div>
+          <span className="mono dim" style={{ marginLeft: 'auto', fontSize: 'var(--fs-s)', letterSpacing: '0.1em' }}>{activos.length} LISTOS</span>
         </div>
         <div className="panel-body">
           <div className="search-big" style={{ marginBottom: 12 }}>
             <Icon name="search" size={15} />
-            <input ref={searchRef} autoFocus placeholder="Buscar un tipo… o escribir uno nuevo y Enter" value={q}
-              onChange={e => { setQ(e.target.value); setDraft(null); }} onKeyDown={onKey} />
+            <input ref={searchRef} autoFocus placeholder="Buscar un producto…" value={q} onChange={e => setQ(e.target.value)} onKeyDown={onKey} />
             {q && <button className="btn sm ghost" onClick={() => setQ('')}><Icon name="x" size={11} /></button>}
           </div>
           {catsConServicios.length > 1 && (
@@ -766,95 +774,75 @@ function PasoServicios({ cliente, servicios, stats, categorias, items, addItem, 
               {catsConServicios.map(c => <button key={c} className={`chipbtn ${cat === c ? 'on' : ''}`} onClick={() => setCat(c)}>{c}</button>)}
             </div>
           )}
-
-          {draft ? (
-            <NuevoTipoInline draft={draft} setDraft={setDraft} categorias={categorias} onSave={saveDraft} onCancel={() => setDraft(null)} />
-          ) : (
-            <div className="srv-grid">
-              {nq && !exact && (
-                <button className="srv-card new" onClick={startCreate}>
-                  <div className="srv-cat">Nuevo tipo</div>
-                  <div className="srv-name">+ Crear «{q.trim()}»</div>
-                  <div className="srv-meta"><span className="dim">Queda guardado para la próxima</span></div>
+          <div className="srv-grid">
+            {list.map(s => {
+              const n = enCarrito(s.id);
+              const f = LoopaFicha.normalizarFicha(s.ficha);
+              return (
+                <button key={s.id} className={`srv-card ${n ? 'on' : ''}`} onClick={() => addItem(s)} title={s.descripcion || s.nombre}>
+                  {n > 0 && <span className="srv-in">{n}</span>}
+                  <div className="service-badges">
+                    <span className={`service-model ${modeloServicio(s)}`}>{modeloLabel(s)}</span>
+                    {s.recomendado === true && <span className="service-recommended">Recomendado</span>}
+                  </div>
+                  <div className="srv-cat">{s.categoria} · {LoopaFicha.describirDuracion(f.duracion)}</div>
+                  <div className="srv-name">{s.nombre}</div>
+                  <div className="srv-incluye">{f.entregables.map(e => `${e.nombre} · ${LoopaFicha.describirPatron(e)}`).join('  ·  ')}</div>
+                  <div className="srv-meta"><span>{L(s.precio)}</span></div>
                 </button>
-              )}
-              {exact && exact.activo === false && (
-                <button className="srv-card new" onClick={() => { onUpdateServicio(exact.id, { activo: true }); addItem(exact); setQ(''); }}>
-                  <div className="srv-cat">Archivado</div>
-                  <div className="srv-name">Reactivar «{exact.nombre}» y agregar</div>
-                  <div className="srv-meta"><span>{L(exact.precio)}</span></div>
-                </button>
-              )}
-              {list.map(s => {
-                const st = stats[s.id]; const n = enCarrito(s.id);
-                return (
-                  <button key={s.id} className={`srv-card ${n ? 'on' : ''}`} onClick={() => addItem(s)} title={s.descripcion || s.nombre}>
-                    {n > 0 && <span className="srv-in">{n}</span>}
-                    <div className="service-badges">
-                      <span className={`service-model ${modeloServicio(s)}`}>{modeloLabel(s)}</span>
-                      {s.recomendado === true && <span className="service-recommended">Recomendado</span>}
-                    </div>
-                    {/* Con la fusión: un servicio sin plantilla no genera trabajo en Producción. */}
-                    <div className="srv-cat">{s.categoria}{DATOS_FUSION && s.generaProduccion === false && <span className="dim"> · sin producción</span>}</div>
-                    <div className="srv-name">{s.nombre}</div>
-                    <div className="srv-meta">
-                      <span>{L(s.precio)}<span className="dim"> / {s.unidad}</span></span>
-                      {st?.q > 0 && <span className="dim">×{st.q}</span>}
-                    </div>
-                  </button>
-                );
-              })}
-              {!nq && activos.length === 0 && (
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <Empty icon="tag" title="Todavía no hay tipos de servicio">
-                    Escribí arriba el nombre del primero —por ejemplo <b>Manejo de redes · plan mensual</b>— y presioná Enter.
-                    Queda guardado y la próxima vez que lo vendas solo lo tocás.
-                  </Empty>
-                </div>
-              )}
-              {nq && list.length === 0 && exact && exact.activo !== false && null}
-            </div>
+              );
+            })}
+            {list.length === 0 && (
+              <div style={{ gridColumn: '1 / -1' }}>
+                <Empty icon="tag" title={activos.length ? 'Ningún producto coincide' : 'Todavía no hay productos listos para vender'}>
+                  {activos.length ? 'Probá con otro nombre o categoría.' : <>Un producto se vende cuando su ficha está completa: qué incluye, cuándo cae cada entrega y su proceso.</>}
+                  {!activos.length && onIrProductos && <div style={{ marginTop: 14 }}><button className="btn primary" onClick={onIrProductos}><Icon name="tag" size={12} /> Ir a Productos</button></div>}
+                </Empty>
+              </div>
+            )}
+          </div>
+          {incompletos > 0 && activos.length > 0 && (
+            <div className="nv-incompletos">{incompletos} {incompletos === 1 ? 'producto incompleto no aparece' : 'productos incompletos no aparecen'} acá. {onIrProductos && <button className="linkbtn" onClick={onIrProductos}>Completalos en Productos</button>}</div>
           )}
         </div>
       </div>
 
-      {/* Líneas de la venta */}
+      {/* Líneas de la venta: producto cerrado + fecha de inicio */}
       <div className="panel crop sticky-panel">
         <div className="panel-head">
-          <div className="panel-title">EN ESTA VENTA · <span className="dim">{items.length} LÍNEA{items.length === 1 ? '' : 'S'}</span></div>
+          <div className="panel-title">EN ESTA VENTA · <span className="dim">{items.length} {items.length === 1 ? 'PRODUCTO' : 'PRODUCTOS'}</span></div>
         </div>
         <div className="panel-body">
           {items.length === 0 ? (
             <div className="mono dim" style={{ fontSize: 'var(--fs-s)', textAlign: 'center', padding: '28px 8px', lineHeight: 1.8 }}>
-              Tocá un tipo de servicio para agregarlo.<br />Precio, cantidad y detalle se ajustan acá.
+              Tocá un producto para agregarlo.<br />Elegí cuándo empieza y LOOPA arma el calendario.
             </div>
           ) : items.map((i, idx) => {
-            const base = servicios.find(s => s.id === i.tipoId);
-            const precioCambio = base && num(i.precio) !== num(base.precio);
+            const f = i.ficha ? LoopaFicha.normalizarFicha(i.ficha) : null;
+            const r = f && i.inicio ? LoopaFicha.rango(i.inicio, f.duracion) : null;
+            const cal = f && i.inicio ? LoopaFicha.calendario(f, i.inicio) : null;
             return (
               <div className="ln" key={i.key}>
                 <div className="ln-top">
                   <span className="mono dim" style={{ fontSize: 'var(--fs-s)', paddingTop: 2 }}>{pad2(idx + 1)}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="srv-name">{i.nombre}</div>
-                    <div className="mono dim" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 2 }}>{i.categoria} · {modeloLabel(i)} · por {i.unidad}</div>
+                    <div className="mono dim" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 2 }}>{i.categoria} · {f ? LoopaFicha.describirDuracion(f.duracion) : modeloLabel(i)}</div>
                   </div>
                   <button className="icon-btn danger" onClick={() => delItem(i.key)} title="Quitar"><Icon name="x" size={12} /></button>
                 </div>
-                <textarea className="input mini" rows="1" style={{ marginTop: 10, resize: 'vertical' }}
-                  placeholder="Detalle de esta venta (ej. 12 posts + 4 reels · octubre)"
-                  value={i.descripcion} onChange={e => updItem(i.key, { descripcion: e.target.value })} />
-                <div className="ln-grid">
-                  <label><span className="mini-lbl">Precio</span><input className="input mini mono" inputMode="decimal" value={i.precio} onChange={e => updItem(i.key, { precio: e.target.value })} /></label>
-                  <label><span className="mini-lbl">Cant.</span><Qty value={i.q} onChange={q => updItem(i.key, { q })} /></label>
-                  <label><span className="mini-lbl">Costo</span><input className="input mini mono" inputMode="decimal" value={i.costo} onChange={e => updItem(i.key, { costo: e.target.value })} title="Lo que te cuesta a vos: freelancer, pauta, licencias…" /></label>
-                </div>
+                {f && (
+                  <div className="nv-rango">
+                    <label><span className="mini-lbl">Empieza</span>
+                      <input className="input mini mono" type="date" value={i.inicio} onChange={e => updItem(i.key, { inicio: e.target.value })} style={{ colorScheme: 'dark' }} /></label>
+                    <span className="nv-rango-flecha">→</span>
+                    <div><span className="mini-lbl">Termina</span><div className="mono nv-rango-fin">{r ? fmtFechaLarga(r.fin) : '—'}</div></div>
+                    <div className="nv-rango-n mono">{cal ? `${cal.entregas.length} ${cal.entregas.length === 1 ? 'tarjeta' : 'tarjetas'}` : ''}</div>
+                  </div>
+                )}
+                {f && i.inicio && <FichaLinea ficha={f} inicio={i.inicio} />}
                 <div className="ln-foot">
-                  {precioCambio && (
-                    <button className="linkbtn" onClick={() => onUpdateServicio(base.id, { precio: num(i.precio) })}>
-                      Guardar {L(i.precio)} como precio base
-                    </button>
-                  )}
+                  <span className="dim" style={{ fontSize: 'var(--fs-s)' }}>Costo {L(i.costo)}</span>
                   <span className="mono" style={{ marginLeft: 'auto', fontWeight: 500 }}>{L(num(i.precio) * num(i.q))}</span>
                 </div>
               </div>
@@ -866,50 +854,6 @@ function PasoServicios({ cliente, servicios, stats, categorias, items, addItem, 
             </div>
           )}
         </div>
-      </div>
-    </div>
-  );
-}
-
-function NuevoTipoInline({ draft, setDraft, categorias, onSave, onCancel }) {
-  const set = (k) => (e) => setDraft(d => ({ ...d, [k]: e.target.value }));
-  return (
-    <div className="create-box">
-      <div className="mono" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.14em', color: 'var(--accent)', marginBottom: 14 }}>
-        ▸ NUEVO TIPO DE SERVICIO · SE GUARDA PARA LAS PRÓXIMAS VENTAS
-      </div>
-      <div className="grid-2">
-        <div className="field" style={{ gridColumn: '1 / -1' }}>
-          <label>Nombre <span className="req">*</span></label>
-          <input className="input" autoFocus value={draft.nombre} onChange={set('nombre')} placeholder="Ej. Manejo de redes · plan mensual" onKeyDown={e => { if (e.key === 'Enter') onSave(); }} />
-        </div>
-        <div className="field">
-          <label>Categoría</label>
-          <input className="input" list="loopa-cats" value={draft.categoria} onChange={set('categoria')} placeholder="Elegí o escribí una nueva" />
-          <datalist id="loopa-cats">{categorias.map(c => <option key={c} value={c} />)}</datalist>
-        </div>
-        <div className="field">
-          <label>Se cobra por</label>
-          <select className="select" value={draft.unidad} onChange={set('unidad')}>
-            {UNIDADES.map(u => <option key={u} value={u}>{u}</option>)}
-          </select>
-        </div>
-        <div className="field">
-          <label>Precio base</label>
-          <input className="input mono" inputMode="decimal" value={draft.precio} onChange={set('precio')} placeholder="0" />
-        </div>
-        <div className="field">
-          <label>Costo base <span className="dim">(freelance, pauta…)</span></label>
-          <input className="input mono" inputMode="decimal" value={draft.costo} onChange={set('costo')} placeholder="0" />
-        </div>
-        <div className="field" style={{ gridColumn: '1 / -1' }}>
-          <label>Qué incluye <span className="dim">(se copia como detalle en cada venta)</span></label>
-          <textarea className="textarea" rows="2" value={draft.descripcion} onChange={set('descripcion')} placeholder="Ej. 12 posts, 4 reels, calendario y reporte mensual" />
-        </div>
-      </div>
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
-        <button className="btn ghost" onClick={onCancel}>Cancelar</button>
-        <button className="btn primary" disabled={!draft.nombre.trim()} onClick={onSave}><Icon name="plus" size={12} /> Crear y agregar</button>
       </div>
     </div>
   );
@@ -971,9 +915,11 @@ function PasoCobro({ payConfig, pay, setPay, cobro, setCobro, anticipo, setAntic
                 <input className="input mono" type="date" value={fecha} onChange={e => setFecha(e.target.value || today())} style={{ colorScheme: 'dark' }} />
               </div>
               <div className="field">
-                <label>Fecha de entrega <span className="dim">(opcional)</span></label>
-                <input className="input mono" type="date" value={entrega} min={fecha} onChange={e => setEntrega(e.target.value)} style={{ colorScheme: 'dark' }} />
-                {DATOS_FUSION && !entrega && <div className="dim" style={{ fontSize: 'var(--fs-s)', marginTop: 6 }}>Sin fecha de entrega, el trabajo que se programa desde esa fecha queda esperando en Producción.</div>}
+                <label>Fecha de entrega</label>
+                {items.some(i => i.ficha)
+                  ? <><div className="input mono" style={{ opacity: 0.8 }}>{fmtFechaLarga(entrega)}</div>
+                      <div className="dim" style={{ fontSize: 'var(--fs-s)', marginTop: 6 }}>Se calcula con la duración de cada producto: es cuando termina el último.</div></>
+                  : <input className="input mono" type="date" value={entrega} min={fecha} onChange={e => setEntrega(e.target.value)} style={{ colorScheme: 'dark' }} />}
               </div>
               <div className="field" style={{ gridColumn: '1 / -1' }}>
                 <label>Estado del trabajo</label>
@@ -1397,12 +1343,23 @@ function VentaModal({ venta: v, config, onClose, onUpdate, onAbono, onDuplicate,
                 <div style={{ flex: 1 }} className="srv-name">{i.nombre}</div>
                 {draft.items.length > 1 && <button className="icon-btn danger" onClick={() => setDraft(d => ({ ...d, items: d.items.filter(x => x.key !== i.key) }))}><Icon name="x" size={12} /></button>}
               </div>
-              <textarea className="input mini" rows="1" style={{ marginTop: 8 }} value={i.descripcion} placeholder="Detalle" onChange={e => updD(i.key, { descripcion: e.target.value })} />
-              <div className="ln-grid">
-                <label><span className="mini-lbl">Precio</span><input className="input mini mono" value={i.precio} onChange={e => updD(i.key, { precio: e.target.value })} /></label>
-                <label><span className="mini-lbl">Cant.</span><Qty value={i.q} onChange={q => updD(i.key, { q })} /></label>
-                <label><span className="mini-lbl">Costo</span><input className="input mini mono" value={i.costo} onChange={e => updD(i.key, { costo: e.target.value })} /></label>
-              </div>
+              {i.ficha ? (
+                // Producto con ficha: precio y entregas fijos; sólo se puede mover el inicio.
+                <div className="nv-rango">
+                  <label><span className="mini-lbl">Empieza</span>
+                    <input className="input mini mono" type="date" value={i.inicio} onChange={e => e.target.value && updD(i.key, { inicio: e.target.value, costo: String(costoLinea({ ...i, inicio: e.target.value })) })} style={{ colorScheme: 'dark' }} /></label>
+                  <span className="nv-rango-flecha">→</span>
+                  <div><span className="mini-lbl">Termina</span><div className="mono nv-rango-fin">{fmtFechaLarga(LoopaFicha.rango(i.inicio, LoopaFicha.normalizarFicha(i.ficha).duracion)?.fin)}</div></div>
+                  <div className="nv-rango-n mono">{L(i.precio)}</div>
+                </div>
+              ) : (<>
+                <textarea className="input mini" rows="1" style={{ marginTop: 8 }} value={i.descripcion} placeholder="Detalle" onChange={e => updD(i.key, { descripcion: e.target.value })} />
+                <div className="ln-grid">
+                  <label><span className="mini-lbl">Precio</span><input className="input mini mono" value={i.precio} onChange={e => updD(i.key, { precio: e.target.value })} /></label>
+                  <label><span className="mini-lbl">Cant.</span><Qty value={i.q} onChange={q => updD(i.key, { q })} /></label>
+                  <label><span className="mini-lbl">Costo</span><input className="input mini mono" value={i.costo} onChange={e => updD(i.key, { costo: e.target.value })} /></label>
+                </div>
+              </>)}
             </div>
           ))}
           <label style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'flex-end' }}>
@@ -3515,7 +3472,8 @@ function App({ onLogout, usuarioFusion = null }) {
           {route === 'nueva' && (
             <NuevaVenta key={ventaKey} nextN={nextN} clientes={clientes} servicios={servicios} ventas={ventas} stats={stats} config={config}
               onCreate={handleCreate} onCreateServicio={handleCreateServicio} onUpdateServicio={handleUpdateServicio}
-              prefill={prefill} onPrefillConsumed={() => setPrefill(null)} onReset={() => goNueva(null)} onOpenVenta={openVenta} />
+              prefill={prefill} onPrefillConsumed={() => setPrefill(null)} onReset={() => goNueva(null)} onOpenVenta={openVenta}
+              onIrProductos={() => setRoute('servicios')} />
           )}
           {route === 'ventas' && (
             <Ventas ventas={ventas} config={config} onUpdate={handleUpdate} onDelete={handleDelete} onAbono={handleAbono}

@@ -75,7 +75,19 @@ async function assertSellableClient(store, clientId) {
 // futuras; de la línea cambian sólo cantidad, precio y costo.
 // descripcion: el alcance acordado con el cliente para esa línea (LOOPA lo
 // deja editar). Producción lo ve como alcance; la plantilla no cambia.
-const LINE_INPUT = new Set(['lineId', 'serviceId', 'quantity', 'precio', 'costo', 'descripcion']);
+const LINE_INPUT = new Set(['lineId', 'serviceId', 'quantity', 'precio', 'costo', 'descripcion', 'inicio']);
+// Etapa «experiencia»: un producto con ficha se vende cerrado. La línea
+// congela la ficha y su rango (inicio elegido, fin calculado); precio y costo
+// salen de la ficha (el navegador no los decide) y cada entrega pasa a ser una
+// tarjeta con su fecha (planner.js). La cantidad es siempre 1.
+const conFicha = (line, ficha, inicio) => {
+  const r = Ficha.rango(inicio, ficha.duracion);
+  return { ...line, quantity: 1, ficha, inicio: r.inicio, fin: r.fin, snapshot: { ...line.snapshot, costo: Ficha.costos(ficha, inicio).total } };
+};
+const inicioValido = (v) => {
+  if (!Ficha.esFecha(v)) throw new ServerError('invalid-argument', 'Cada producto necesita su fecha de inicio (YYYY-MM-DD)');
+  return v;
+};
 const UNCATALOGUED = 'SRV-SIN-CATALOGO';
 const finiteOr = (v, fallback) => (v === undefined ? fallback : (typeof v === 'number' && Number.isFinite(v) ? v : NaN));
 // clientId: el cliente de la venta. Un servicio de acuerdo especial sólo se
@@ -93,12 +105,23 @@ async function linesFromCatalog(store, input, currentLines = [], clientId = null
     const alcance = l.descripcion === undefined ? undefined : l.descripcion.trim().slice(0, 2000);
     const prev = current.get(l.lineId);
     if (prev && prev.serviceId === l.serviceId) {
+      // Una línea con ficha conserva su precio y su ficha congelada; sólo puede
+      // moverse de fecha (el fin y el costo se recalculan).
+      if (prev.ficha) { out.push(conFicha(prev, prev.ficha, l.inicio === undefined ? prev.inicio : inicioValido(l.inicio))); continue; }
       out.push({ ...prev, quantity: l.quantity, snapshot: { ...prev.snapshot, precio: finiteOr(l.precio, prev.snapshot.precio), costo: finiteOr(l.costo, prev.snapshot.costo), ...(alcance !== undefined ? { alcance } : {}) } });
       continue;
     }
     const svc = await store.get('loopa_services', l.serviceId);
     if (!svc || svc.activo === false || l.serviceId === UNCATALOGUED) throw Object.assign(new Error('El servicio no existe o está archivado'), { code: 'service_unknown' });
     if (svc.modelo === 'especial' && svc.specialClientId !== clientId) throw Object.assign(new Error('Ese acuerdo especial es de otro cliente'), { code: 'service_not_for_client' });
+    if (svc.ficha) {
+      const falta = Ficha.faltantes(svc);
+      if (falta.length) throw Object.assign(new Error(`«${svc.nombre}» no está listo para vender (falta: ${falta.join(', ')})`), { code: 'service_not_ready' });
+      const ficha = Ficha.normalizarFicha(svc.ficha);
+      const line = core.buildSaleLine(svc, { lineId: l.lineId, quantity: 1, precio: Number(svc.precio) || 0 });
+      out.push(conFicha(line, ficha, inicioValido(l.inicio)));
+      continue;
+    }
     const line = core.buildSaleLine(svc, { lineId: l.lineId, quantity: l.quantity, precio: finiteOr(l.precio, undefined), costo: finiteOr(l.costo, undefined) });
     out.push(alcance !== undefined ? { ...line, snapshot: { ...line.snapshot, alcance } } : line);
   }
@@ -117,7 +140,7 @@ const KIND = {
   config_missing: 'failed-precondition',
   invalid_transition: 'failed-precondition', sale_cancelled: 'failed-precondition',
   payment_conflict: 'failed-precondition', payment_exceeds_total: 'failed-precondition',
-  service_unknown: 'failed-precondition', service_not_for_client: 'failed-precondition',
+  service_unknown: 'failed-precondition', service_not_for_client: 'failed-precondition', service_not_ready: 'failed-precondition',
   // Transitorios: la app puede reintentar (crear es idempotente por UUID).
   unavailable: 'unavailable', 'deadline-exceeded': 'unavailable', 'resource-exhausted': 'unavailable',
 };

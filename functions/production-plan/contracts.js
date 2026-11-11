@@ -182,6 +182,13 @@ function validateSaleLine(line, path, seenLineIds) {
       if (snap[k] !== undefined && (typeof snap[k] !== 'number' || !Number.isFinite(snap[k]) || snap[k] < 0)) out.push(issue(`line.snapshot.${k}`, `${path}.snapshot.${k}`, `${k} debe ser un número ≥ 0`));
     });
   }
+  // Producto con ficha (etapa «experiencia»): rango congelado y cantidad 1.
+  if (line.ficha !== undefined && line.ficha !== null) {
+    if (!isPlainObject(line.ficha) || !Array.isArray(line.ficha.entregables)) out.push(issue('line.ficha.invalid', `${path}.ficha`, 'La ficha congelada de la línea es inválida'));
+    if (!isValidYmd(line.inicio)) out.push(issue('line.ficha.inicio', `${path}.inicio`, 'Una línea con ficha necesita la fecha de inicio'));
+    if (!isValidYmd(line.fin) || (isValidYmd(line.inicio) && compareYmd(line.fin, line.inicio) < 0)) out.push(issue('line.ficha.fin', `${path}.fin`, 'El fin del rango debe ser una fecha posterior al inicio'));
+    if (line.quantity !== 1) out.push(issue('line.ficha.quantity', `${path}.quantity`, 'Una línea con ficha se vende de a 1'));
+  }
   if (line.executionPlan === null || line.executionPlan === undefined) {
     if (line.executionTemplateVersion !== null && line.executionTemplateVersion !== undefined) {
       out.push(issue('line.template_version.orphan', `${path}.executionTemplateVersion`, 'Hay versión de plantilla pero no plantilla congelada'));

@@ -86,6 +86,21 @@ test('lectura: misma forma que el lector de la migración (paridad con compat.js
   });
 });
 
+test('venta cerrada: la línea con ficha viaja con su inicio (sin detalle libre) y vuelve con su rango', async () => {
+  const store = seeded();
+  const ficha = { duracion: { cantidad: 2, unidad: 'semanas' }, entregables: [{ id: 'p', nombre: 'Post', cantidad: 2, costo: 10, patron: { tipo: 'repartido' } }], proceso: [{ id: 'a', texto: 'Hacer' }], costosExtra: [] };
+  await server.saveService(store, U, { service: { id: 'SRV-CERRADO', nombre: 'Cerrado', modelo: 'proyecto', precio: 500, ficha } }, { now });
+  const v = { ...ventaPantalla(), items: [{ tipoId: 'SRV-CERRADO', nombre: 'Cerrado', precio: 1, costo: 0, q: 1, descripcion: 'libre', ficha, inicio: '2026-11-20' }], subtotal: 500, total: 500, abonos: [] };
+  const { ventaId, ops } = F.operacionesNuevaVenta(v, cliPantalla, null, nuevoId);
+  const linea = ops.find(o => o.fn === 'loopaCreateSale').data.draft.lines[0];
+  assert.equal(linea.inicio, '2026-11-20');
+  assert.equal(linea.descripcion, undefined, 'una línea con ficha no lleva detalle libre');
+  await ejecutar(store, ops);
+  const item = F.ventaDesdeDoc(await store.get(COLLECTIONS.sales, ventaId)).items[0];
+  assert.deepEqual([item.inicio, item.fin, item.precio, item.q], ['2026-11-20', '2026-12-04', 500, 1]);
+  assert.ok(item.ficha && item.ficha.entregables.length === 1);
+});
+
 test('nueva venta desde la pantalla: cliente nuevo + venta, número del servidor y vuelve igual', async () => {
   const store = seeded();
   const v = ventaPantalla();

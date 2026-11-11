@@ -933,3 +933,43 @@ El detalle y el orden del corte están en `integracion/puesta-en-marcha/PUNTO-B-
 El servidor la guardó normalizada, con costo 9.500. El catálogo la muestra «Lista para vender» con 21 % de margen. En el teléfono no hay desborde.
 
 **Sigue:** la venta cerrada (sólo productos listos, fecha de inicio, vista previa del calendario y precio fijo con descuento) y después el servidor que genera una tarjeta por entrega.
+## 31. Experiencia 2: venta cerrada → una tarjeta por entrega en el calendario (2026-11-10)
+
+**Servidor (`loopa-server.js`).** `linesFromCatalog` trata distinto un producto con ficha:
+- Exige que esté listo (`service_not_ready`, `failed-precondition`) y que la línea traiga `inicio` (YYYY-MM-DD).
+- La línea congela `ficha`, `inicio` y `fin`, con la cantidad siempre en 1.
+- El precio sale del catálogo y el costo de la ficha con las fechas reales: lo que mande el navegador no cuenta.
+- Al editar, la línea conserva precio y ficha; sólo se puede mover el `inicio`, y entonces se recalculan el fin y el costo.
+- Los servicios sin ficha (ventas viejas) siguen como antes.
+
+**Contrato.** Una línea con ficha necesita `inicio`, un `fin` posterior y cantidad 1.
+
+**Planificador.** `expandFichaLine`:
+- Cada entrega de `Ficha.calendario(ficha, inicio)` es una unidad propia (estrategia `separate`). Va al primer tablero habilitado, en su primera columna.
+- La fecha de sesión y la fecha límite son las de la entrega, y la de inicio es la del paquete.
+- El título es «Cliente · Post 3/8». El checklist es el proceso. El detalle va en la descripción.
+- `estimateWork` cuenta estas entregas.
+- Las protecciones de siempre no cambian: no duplicar, no tocar tarjetas ya trabajadas y procedencia sólo del servidor.
+
+**Pantalla (Nueva venta).**
+- Sólo muestra productos listos, cada uno con su duración y un resumen de lo que incluye. Ya no se crea un producto «al vuelo» (se quitó `NuevoTipoInline`) y se avisa cuántos están incompletos, con un enlace a Productos.
+- Cada línea muestra Empieza → Termina, cuántas tarjetas genera y la línea de tiempo.
+- No se puede editar precio, cantidad, costo ni detalle de la línea.
+- Si el mismo producto se agrega dos veces, la segunda línea empieza cuando termina la primera.
+- La entrega de la venta se calcula: es el fin del último producto.
+- En Ventas, al editar una línea con ficha sólo se puede mover el inicio.
+
+**Datos (`fusion.js`).** La línea viaja con `inicio` y sin detalle libre; al leer, el ítem vuelve con `ficha`, `inicio` y `fin`.
+
+**Pruebas.**
+- Sin red: 281. Las nuevas son una de punta a punta en `servidor.test.cjs` y una de traducción en `fusion-datos.test.cjs`.
+- Además: 20 de Producción, 36 en el emulador y 11 de funciones.
+
+**Verificado en el emulador.** Vendí «Plan Impulso redes» (8 posts repartidos, reels los jueves, sesión el día 3 y reporte al final) a Café Aurora, con inicio el 16 de noviembre:
+- la venta #1006 quedó con entrega el 16 de diciembre, precio 12.000 y costo 5.300;
+- generó 14 tarjetas, cada una en su día del calendario.
+
+**Pendiente (Experiencia 3).**
+- Elegir el tipo de tarjeta de cada entregable; hoy todas salen «other».
+- Que el calendario se vea por producto o venta.
+- Que mover el inicio de una venta ya confirmada reacomode las tarjetas; hoy el diff lo marca para decidir a mano.

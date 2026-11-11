@@ -53,6 +53,8 @@ const LoopaFusion = (function () {
         recomendado: line.snapshot.recomendado === true,
         clienteIdEspecial: line.snapshot.specialClientId || '',
         q: line.quantity,
+        // Producto con ficha (venta cerrada): su rango y su ficha congelada.
+        ...(line.ficha ? { ficha: line.ficha, inicio: line.inicio || '', fin: line.fin || '' } : {}),
       })),
       subtotal: c.subtotal || 0,
       descuento: c.descuento || 0,
@@ -122,7 +124,9 @@ const LoopaFusion = (function () {
     quantity: num(i.q),
     precio: num(i.precio),
     costo: num(i.costo),
-    ...(typeof i.descripcion === 'string' ? { descripcion: i.descripcion } : {}),
+    ...(typeof i.descripcion === 'string' && !i.ficha ? { descripcion: i.descripcion } : {}),
+    // Producto con ficha: el servidor fija precio y costo; la venta elige el inicio.
+    ...(i.inicio ? { inicio: i.inicio } : {}),
   });
 
   const clienteParaServidor = (cli, id) => ({

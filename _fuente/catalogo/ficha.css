@@ -74,6 +74,18 @@
 .ficha-estado.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
 .ficha-estado.falta { color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); }
 
+/* Nueva venta: producto cerrado con su rango */
+.srv-incluye { margin-top: 6px; color: var(--muted); font-size: var(--fs-s); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-align: left; }
+.nv-incompletos { margin-top: 14px; color: var(--dim); font-size: var(--fs-s); }
+.nv-rango { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.nv-rango .input { width: 150px; }
+.nv-rango-flecha { color: var(--dim); padding-bottom: 9px; }
+.nv-rango-fin { padding: 8px 0; font-size: var(--fs-s); }
+.nv-rango-n { margin-left: auto; padding-bottom: 9px; color: var(--accent); font-size: var(--fs-s); letter-spacing: .06em; }
+.ln .ficha-linea { margin-top: 12px; padding: 12px; }
+.ln .ficha-linea-fila { grid-template-columns: 90px 1fr; }
+.ln .ficha-linea-eje { grid-template-columns: 90px 1fr auto 1fr auto; }
+
 @media (max-width: 640px) {
   /* Cuatro pasos no entran: se ve el número de todos y el nombre del activo. */
   .service-form-stepper .step:not(.active) .t { display: none; }

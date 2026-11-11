@@ -83,6 +83,53 @@ test('de punta a punta: vender → evento → tarjetas, igual que el planificado
   assert.equal(store.list(COLLECTIONS.tasks).filter(t => t.sourceSaleId === draft.id).length, tasks.length);
 });
 
+test('venta cerrada con ficha: precio de la ficha, rango desde el inicio y una tarjeta por entrega', async () => {
+  const store = seeded();
+  const ficha = {
+    duracion: { cantidad: 1, unidad: 'meses' },
+    entregables: [
+      { id: 'posts', nombre: 'Post', detalle: 'Copy incluido', cantidad: 4, costo: 100, patron: { tipo: 'repartido' } },
+      { id: 'sesion', nombre: 'Sesión de fotos', cantidad: 1, costo: 1500, patron: { tipo: 'dia', dia: 3 } },
+      { id: 'rep', nombre: 'Reporte', cantidad: 1, costo: 0, patron: { tipo: 'final' } },
+    ],
+    proceso: [{ id: 'p1', texto: 'Brief' }, { id: 'p2', texto: 'Producción' }, { id: 'p3', texto: 'Aprobación' }],
+    costosExtra: [],
+  };
+  await server.saveService(store, U, { service: { id: 'SRV-FICHA-1', nombre: 'Plan con ficha', modelo: 'plan', precio: 8000, ficha } }, { now });
+  const draft = draftOf('plan-mensual');
+  // El navegador manda un precio y un costo inventados: no cuentan.
+  draft.lines = [{ lineId: 'l-ficha-1', serviceId: 'SRV-FICHA-1', quantity: 3, precio: 1, costo: 0, inicio: '2026-11-16' }];
+  draft.commercial = { ...draft.commercial, subtotal: 8000, total: 8000 };
+  const r = await server.createSale(store, U, { draft }, { now });
+  const sale = await store.get(COLLECTIONS.sales, draft.id);
+  const line = sale.lines[0];
+  assert.deepEqual([line.quantity, line.snapshot.precio, line.snapshot.costo, line.inicio, line.fin], [1, 8000, 4 * 100 + 1500, '2026-11-16', '2026-12-16']);
+  assert.equal(line.executionPlan, null);
+  await server.onEventCreated(store, r.eventId, { now });
+  const tasks = store.list(COLLECTIONS.tasks).filter(t => t.sourceSaleId === draft.id).sort((a, b) => (a.sessionDate < b.sessionDate ? -1 : 1));
+  assert.equal(tasks.length, 4 + 1 + 1, 'una tarjeta por entrega');
+  assert.deepEqual(tasks.map(t => t.sessionDate), ['2026-11-18', '2026-11-19', '2026-11-27', '2026-12-04', '2026-12-12', '2026-12-16'], 'posts en los días 3, 11, 18 y 26 del rango; sesión el 3.º; reporte al final');
+  const sesion = tasks.find(t => t.title.includes('Sesión de fotos'));
+  assert.equal(sesion.sessionDate, '2026-11-18', 'el día 3 del rango');
+  assert.equal(sesion.deadline, '2026-11-18');
+  assert.equal(sesion.startDate, '2026-11-16');
+  assert.deepEqual(sesion.checklist.map(c => [c.text, c.done]), [['Brief', false], ['Producción', false], ['Aprobación', false]]);
+  assert.ok(tasks.some(t => /Post 2\/4$/.test(t.title)), 'las repetidas llevan n/total');
+  assert.equal(tasks.find(t => t.title.includes('Reporte')).sessionDate, '2026-12-16', 'al final del rango');
+  assert.ok(tasks.find(t => /Post 1\/4$/.test(t.title)).description.some(b => b.text === 'Copy incluido'), 'el detalle llega a la tarjeta');
+  // Sin fecha de inicio no se vende; un producto incompleto tampoco.
+  const d2 = draftOf('plan-mensual'); d2.lines = [{ lineId: 'l-2', serviceId: 'SRV-FICHA-1', quantity: 1 }];
+  assert.equal(await kindOf(server.createSale(store, U, { draft: d2 }, { now })), 'invalid-argument:');
+  await server.saveService(store, U, { service: { id: 'SRV-FICHA-2', nombre: 'Sin proceso', modelo: 'plan', precio: 1, ficha: { ...ficha, proceso: [] } } }, { now });
+  const d3 = draftOf('plan-mensual'); d3.lines = [{ lineId: 'l-3', serviceId: 'SRV-FICHA-2', quantity: 1, inicio: '2026-11-16' }];
+  assert.equal(await kindOf(server.createSale(store, U, { draft: d3 }, { now })), 'failed-precondition:service_not_ready');
+  // Mover el inicio de una línea ya vendida recalcula el fin; el precio queda.
+  const moved = await server.updateSale(store, U, { saleId: draft.id, patch: { lines: [{ lineId: 'l-ficha-1', serviceId: 'SRV-FICHA-1', quantity: 1, precio: 5, inicio: '2026-12-01' }] }, expectedVersion: sale.version }, { now });
+  assert.equal(moved.status, 'updated');
+  const l2 = (await store.get(COLLECTIONS.sales, draft.id)).lines[0];
+  assert.deepEqual([l2.inicio, l2.fin, l2.snapshot.precio], ['2026-12-01', '2027-01-01', 8000]);
+});
+
 test('el contexto usa la fecha local de Tegucigalpa, no la UTC', async () => {
   const store = seeded();
   // 03:00 UTC del 10 = 21:00 del 9 en Tegucigalpa.
