@@ -19,6 +19,8 @@
 .ficha-tipo.on { color: var(--text); border-color: var(--line-2); background: var(--surface-2, #1c1c1b); }
 .ficha-tipo i { font-style: normal; color: var(--dim); }
 .ficha-tipo-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.ficha-item-info { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; color: var(--muted); font-size: var(--fs-s); }
+.ficha-item-info span:first-child { color: var(--text); }
 .ficha-ent-patron { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
 .ficha-patron-tipos { display: flex; flex-wrap: wrap; gap: 6px; }
 .ficha-patron { padding: 6px 12px; border: 1px solid var(--line); border-radius: var(--r-pill); background: transparent; color: var(--muted); font: inherit; font-size: var(--fs-s); cursor: pointer; }

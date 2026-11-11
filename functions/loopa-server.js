@@ -293,7 +293,19 @@ const saveService = asCall(async (store, auth, data, { now = () => new Date().to
   const precio = Number(s.precio);
   // Ficha del producto (etapa «experiencia»): qué incluye, patrón de fechas,
   // proceso y costos. Si viene, el costo sale de ella (no se escribe a mano).
-  const ficha = isPlain(s.ficha) ? Ficha.normalizarFicha(s.ficha) : undefined;
+  // Ítems y paquetes: un ítem (la pieza) arma su propia ficha de una entrega;
+  // un paquete toma de cada ítem del catálogo su nombre, tipo, costo y proceso.
+  const clase = s.clase === 'item' || s.clase === 'paquete' ? s.clase : undefined;
+  let item, ficha;
+  if (clase === 'item') {
+    item = Ficha.normalizarItem(s.item);
+    ficha = Ficha.fichaDeItem(s.id, texto(s.nombre), item);
+  } else if (isPlain(s.ficha)) {
+    ficha = Ficha.normalizarFicha(s.ficha);
+    const r = Ficha.resolverPaquete(ficha, await itemsDe(store, ficha));
+    if (r.faltan.length) throw new ServerError('invalid-argument', `El paquete usa ítems que no existen: ${r.faltan.join(', ')}`);
+    ficha = r.ficha;
+  }
   const costo = ficha ? Ficha.costos(ficha).total : Number(s.costo);
   if (!Number.isFinite(precio) || precio < 0 || !Number.isFinite(costo) || costo < 0) throw new ServerError('invalid-argument', 'Precio y costo deben ser números ≥ 0');
   let specialClientId = null;
@@ -308,15 +320,44 @@ const saveService = asCall(async (store, auth, data, { now = () => new Date().to
       descripcion: texto(s.descripcion, 2000), precio, costo, activo: s.activo !== false,
       recomendado: s.modelo === 'plan' && s.recomendado === true, specialClientId,
       ...(ficha ? { ficha } : {}),
+      ...(clase ? { clase } : {}),
+      ...(item ? { item } : {}),
     };
     if (existing) {
+      if (existing.clase && clase && existing.clase !== clase) throw new ServerError('invalid-argument', 'Un ítem no puede pasar a ser paquete (ni al revés)');
       tx.update('loopa_services', s.id, { ...commercial, updatedBy: uid });
       return { status: 'updated', serviceId: s.id };
     }
     tx.create('loopa_services', s.id, { schemaVersion: core.SCHEMA_VERSION || 1, id: s.id, ...commercial, executionPlan: null, createdAt: now(), createdBy: uid });
     return { status: 'created', serviceId: s.id };
+  }).then(async r => {
+    // Cambió un ítem: los paquetes que lo usan se actualizan (copia del ítem y
+    // costo). Las ventas ya hechas no cambian: congelaron su ficha al venderse.
+    if (clase === 'item') r.paquetesActualizados = await refrescarPaquetes(store, s.id, uid);
+    return r;
   });
 });
+
+// Los ítems del catálogo que usa una ficha, por id.
+async function itemsDe(store, ficha) {
+  const ids = [...new Set(ficha.entregables.map(e => e.itemId).filter(Boolean))];
+  const items = {};
+  for (const id of ids) items[id] = await store.get('loopa_services', id);
+  return items;
+}
+
+async function refrescarPaquetes(store, itemId, uid) {
+  const paquetes = (await store.queryEquals('loopa_services', 'clase', 'paquete'))
+    .filter(p => p.ficha && Array.isArray(p.ficha.entregables) && p.ficha.entregables.some(e => e.itemId === itemId));
+  for (const p of paquetes) {
+    const r = Ficha.resolverPaquete(p.ficha, await itemsDe(store, Ficha.normalizarFicha(p.ficha)));
+    await store.transaction(async tx => {
+      if (!(await tx.get('loopa_services', p.id))) return;
+      tx.update('loopa_services', p.id, { ficha: r.ficha, costo: Ficha.costos(r.ficha).total, updatedBy: uid });
+    });
+  }
+  return paquetes.length;
+}
 
 // ── Contexto del planificador ────────────────────────────────────
 // Lo que una venta necesita para generar trabajo, leído del proyecto: los

@@ -108,6 +108,9 @@ const LoopaFusion = (function () {
       clienteIdEspecial: doc.specialClientId || '',
       // Ficha del producto (qué incluye, patrón, proceso, costos): null en los viejos.
       ficha: doc.ficha || null,
+      // Ítems y paquetes: qué es (ítem = la pieza) y los datos del ítem.
+      ...(doc.clase ? { clase: doc.clase } : {}),
+      ...(doc.item ? { item: doc.item } : {}),
       // ¿Genera producción al venderse? (tiene plantilla activa)
       generaProduccion: !!(doc.executionPlan && doc.executionPlan.enabled),
     };
@@ -218,7 +221,7 @@ const LoopaFusion = (function () {
 
   const operacionServicio = (s) => ({
     fn: 'loopaSaveService',
-    data: { service: { id: s.id, nombre: s.nombre, categoria: s.categoria, unidad: s.unidad, modelo: s.modelo, descripcion: s.descripcion || '', precio: num(s.precio), costo: num(s.costo), activo: s.activo !== false, recomendado: s.recomendado === true, ...(s.modelo === 'especial' ? { specialClientId: s.clienteIdEspecial || '' } : {}), ...(s.ficha ? { ficha: s.ficha } : {}) } },
+    data: { service: { id: s.id, nombre: s.nombre, categoria: s.categoria, unidad: s.unidad, modelo: s.modelo, descripcion: s.descripcion || '', precio: num(s.precio), costo: num(s.costo), activo: s.activo !== false, recomendado: s.recomendado === true, ...(s.modelo === 'especial' ? { specialClientId: s.clienteIdEspecial || '' } : {}), ...(s.ficha ? { ficha: s.ficha } : {}), ...(s.clase ? { clase: s.clase } : {}), ...(s.item ? { item: s.item } : {}) } },
   });
 
   const operacionCliente = (c) => ({ fn: 'loopaSaveClient', data: { client: clienteParaServidor(c, c.id) } });

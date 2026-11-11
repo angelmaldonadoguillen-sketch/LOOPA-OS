@@ -1028,3 +1028,34 @@ El servidor la guardó normalizada, con costo 9.500. El catálogo la muestra «L
 - **Teléfono.** El tablero usa la app móvil, que no tiene esta vista. Queda para después.
 - **Pruebas.** 283 sin red (1 nueva) y 20 de Producción.
 - **Verificado en el emulador.** 3 productos vendidos (un plan mensual y dos sesiones) dan 3 filas con 17 entregas en su día, una hecha y colores por tipo. Tocar un punto abre la tarjeta.
+## 35. Experiencia 6: ítems y paquetes (2026-11-10)
+
+**Pedido.** «Primero miremos los ítems unitarios y luego formamos los paquetes». Decisiones del usuario: los ítems también se venden sueltos, con su precio, y él me pasa la lista para que la cargue. Antes borró (archivó) los 10 servicios viejos; a su pedido los borré del todo, con respaldo en `respaldo/servicios-2026-11-10-193047`.
+
+**Modelo (`ficha.js`).**
+- **Ítem** (`clase: 'item'`): la pieza. Guarda `item` = { tipo, detalle, dias de producción, costo, proceso }.
+  - `fichaDeItem` arma su ficha: duración = días; una entrega «al final» con su proceso.
+  - Vendido suelto, empieza el día elegido y se entrega al terminar.
+- **Paquete** (`clase: 'paquete'`): cada entregable lleva `itemId`, cantidad y patrón.
+  - `resolverPaquete` copia de cada ítem su nombre, tipo, detalle, costo y proceso, que quedan congelados en el paquete. Rechaza ids que no son ítems.
+- Cada entregable puede traer su propio `proceso`; el calendario y el planificador lo usan antes que el del producto. `faltantes` acepta un paquete sin proceso general si cada entregable trae el suyo.
+
+**Servidor.**
+- `saveService` guarda `clase` e `item`. Para un ítem, arma la ficha; para un paquete, la resuelve contra el catálogo (un ítem inexistente → `invalid-argument`).
+- No deja cambiar la clase de un servicio.
+- Al guardar un ítem, actualiza los paquetes que lo usan (`refrescarPaquetes`: copia del ítem y costo). Las ventas ya hechas conservan lo que congelaron.
+
+**Pantalla.**
+- Productos tiene las pestañas **Ítems · N** y **Paquetes · N**.
+- **Formulario de ítem** (una sola pantalla): nombre, tipo de tarjeta (sugerido), precio suelto, costo, días de producción, categoría, detalle, proceso y margen.
+- **Formulario de paquete** (3 pasos: Paquete, Qué incluye, Utilidad): en «Qué incluye» se elige el ítem en una lista, que muestra su tipo, su costo y sus pasos; se ajustan la cantidad y el patrón. No tiene paso «Proceso» porque lo trae cada ítem.
+
+**Pruebas.**
+- Sin red: 285, con 1 de modelo y 1 de servidor nuevas. Esta última cubre ítems y paquete, venta del paquete y de un ítem suelto (checklist del ítem), un ítem que actualiza su paquete sin tocar la venta y la clase que no puede cambiar.
+- Además: 20 de Producción, 36 en el emulador y 11 de funciones.
+
+**Verificado en el emulador, desde la pantalla.**
+- Ítem «Reel» (900 / 400, 3 pasos, tipo Reel automático): «Lista para vender», 56 %.
+- Paquete «Pack Reels»: 4 reels repartidos, costo 1.600 tomado del ítem, utilidad 54 %.
+
+**Hay que publicar `functions:loopa`.**

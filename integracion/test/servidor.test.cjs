@@ -148,6 +148,46 @@ test('venta cerrada con ficha: precio de la ficha, rango desde el inicio y una t
   assert.equal((await server.onEventCreated(store, moved.eventId, { now })).status, 'already_done');
 });
 
+test('ítems y paquetes: se guardan, se venden (sueltos o en paquete) y un ítem nuevo actualiza sus paquetes', async () => {
+  const store = seeded();
+  const item = (id, nombre, it) => server.saveService(store, U, { service: { id, clase: 'item', nombre, modelo: 'unitario', precio: 900, item: it } }, { now });
+  await item('SRV-I-REEL', 'Reel', { tipo: 'reel', dias: 3, costo: 400, proceso: [{ id: 'g', texto: 'Guion' }, { id: 'e', texto: 'Edición' }] });
+  await item('SRV-I-LOGO', 'Logo', { tipo: 'other', dias: 7, costo: 1000, proceso: [{ id: 'b', texto: 'Bocetos' }, { id: 'a', texto: 'Arte final' }] });
+  const reel = await store.get('loopa_services', 'SRV-I-REEL');
+  assert.deepEqual([reel.clase, reel.costo, reel.item.dias, reel.ficha.entregables[0].patron.tipo], ['item', 400, 3, 'final']);
+  // Paquete con los dos ítems.
+  const ficha = { duracion: { cantidad: 1, unidad: 'meses' }, entregables: [
+    { itemId: 'SRV-I-REEL', cantidad: 2, patron: { tipo: 'repartido' } },
+    { itemId: 'SRV-I-LOGO', cantidad: 1, patron: { tipo: 'dia', dia: 10 } },
+  ], proceso: [], costosExtra: [{ concepto: 'Pauta', monto: 500 }] };
+  await server.saveService(store, U, { service: { id: 'SRV-P-1', clase: 'paquete', nombre: 'Marca y redes', modelo: 'plan', precio: 6000, ficha } }, { now });
+  const paq = await store.get('loopa_services', 'SRV-P-1');
+  assert.deepEqual([paq.costo, paq.ficha.entregables.map(e => e.nombre).join('+')], [2 * 400 + 1000 + 500, 'Reel+Logo']);
+  // Un paquete con un ítem que no existe no se guarda; un ítem no pasa a paquete.
+  assert.equal(await kindOf(server.saveService(store, U, { service: { id: 'SRV-P-2', clase: 'paquete', nombre: 'X', modelo: 'plan', precio: 1, ficha: { ...ficha, entregables: [{ itemId: 'SRV-NO', cantidad: 1 }] } } }, { now })), 'invalid-argument:');
+  assert.equal(await kindOf(server.saveService(store, U, { service: { id: 'SRV-I-REEL', clase: 'paquete', nombre: 'Reel', modelo: 'plan', precio: 1, ficha } }, { now })), 'invalid-argument:');
+  // Vender el paquete: cada entrega con el proceso de SU ítem.
+  const d = draftOf('plan-mensual');
+  d.lines = [{ lineId: 'l-p', serviceId: 'SRV-P-1', quantity: 1, inicio: '2026-11-16' }, { lineId: 'l-i', serviceId: 'SRV-I-LOGO', quantity: 1, inicio: '2026-11-20' }];
+  d.commercial = { ...d.commercial, subtotal: 6900, total: 6900 };
+  const r = await server.createSale(store, U, { draft: d }, { now });
+  await server.onEventCreated(store, r.eventId, { now });
+  const tareas = store.list(COLLECTIONS.tasks).filter(t => t.sourceSaleId === d.id);
+  assert.equal(tareas.length, 2 + 1 + 1);
+  const reels = tareas.filter(t => /Reel/.test(t.title));
+  assert.ok(reels.every(t => t.type === 'reel' && t.checklist.map(c => c.text).join('>') === 'Guion>Edición'));
+  const logos = tareas.filter(t => /Logo/.test(t.title)).sort((a, b) => (a.sessionDate < b.sessionDate ? -1 : 1));
+  assert.deepEqual(logos.map(t => t.sessionDate), ['2026-11-25', '2026-11-27'], 'logo del paquete el día 10; logo suelto a los 7 días');
+  assert.ok(logos.every(t => t.checklist.map(c => c.text).join('>') === 'Bocetos>Arte final'));
+  // Cambiar el ítem actualiza el paquete (no las ventas hechas).
+  const res = await item('SRV-I-REEL', 'Reel vertical', { tipo: 'reel', dias: 3, costo: 450, proceso: [{ id: 'g', texto: 'Guion' }] });
+  assert.equal(res.paquetesActualizados, 1);
+  const paq2 = await store.get('loopa_services', 'SRV-P-1');
+  assert.deepEqual([paq2.costo, paq2.ficha.entregables[0].nombre, paq2.ficha.entregables[0].proceso.length], [2 * 450 + 1000 + 500, 'Reel vertical', 1]);
+  const venta = await store.get(COLLECTIONS.sales, d.id);
+  assert.equal(venta.lines[0].ficha.entregables[0].nombre, 'Reel', 'la venta conserva lo que se vendió');
+});
+
 test('el contexto usa la fecha local de Tegucigalpa, no la UTC', async () => {
   const store = seeded();
   // 03:00 UTC del 10 = 21:00 del 9 en Tegucigalpa.

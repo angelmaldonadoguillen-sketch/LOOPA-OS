@@ -132,6 +132,90 @@ function FichaEntregables({ ficha, onChange, tipos }) {
   );
 }
 
+// ── Qué incluye un PAQUETE: ítems del catálogo ────────────────────
+// Cada fila elige un ítem (su nombre, tipo, costo y proceso vienen de él) y
+// dice cuántas veces y con qué patrón cae dentro del paquete.
+function FichaItemsPaquete({ ficha, onChange, items }) {
+  const lista = ficha.entregables;
+  const porId = Object.fromEntries(items.map(s => [s.id, s]));
+  const upd = (id, patch) => onChange(lista.map(e => (e.id === id ? { ...e, ...patch } : e)));
+  const add = () => onChange([...lista, { id: fichaId('e'), itemId: '', cantidad: 1, patron: { tipo: 'repartido' } }]);
+  const del = (id) => onChange(lista.filter(e => e.id !== id));
+  const cambiarTipo = (e, tipo) => upd(e.id, { patron: tipo === 'dia' ? { tipo, dia: 1 } : tipo === 'semanal' ? { tipo, dias: [1, 3, 5] } : { tipo } });
+  const r = LoopaFicha.rango('2026-01-05', ficha.duracion);
+  if (!items.length) {
+    return (
+      <div className="ficha-vacio">
+        <b>Primero creá los ítems</b>
+        <span>Un paquete se arma con ítems del catálogo (Post, Reel, Logo…). Creálos en la pestaña <i>Ítems</i> y volvé.</span>
+      </div>
+    );
+  }
+  return (
+    <div className="ficha-entregables">
+      {lista.length === 0 && (
+        <div className="ficha-vacio">
+          <b>¿Qué ítems trae este paquete?</b>
+          <span>Elegí cada ítem y cuántas veces cae en el rango. Su tipo de tarjeta, su costo y su proceso vienen del ítem.</span>
+        </div>
+      )}
+      {lista.map((e, i) => {
+        const s = porId[e.itemId];
+        const it = s ? LoopaFicha.normalizarItem(s.item) : null;
+        const n = e.itemId ? LoopaFicha.fechasEntregable(LoopaFicha.normalizarFicha({ entregables: [e] }).entregables[0], r).length : 0;
+        return (
+          <div className="ficha-ent" key={e.id} style={{ '--tono': fichaTono(i) }}>
+            <div className="ficha-ent-top">
+              <span className="ficha-ent-dot" />
+              <select className="select ficha-ent-nombre" value={e.itemId || ''} onChange={ev => upd(e.id, { itemId: ev.target.value })}>
+                <option value="">Elegí un ítem…</option>
+                {items.map(x => <option key={x.id} value={x.id}>{x.nombre}</option>)}
+              </select>
+              <button className="icon-btn danger" onClick={() => del(e.id)} title="Quitar"><Icon name="x" size={12} /></button>
+            </div>
+            {it && (
+              <div className="ficha-item-info">
+                <span>{(TIPOS_TARJETA_BASE.find(t => t.id === it.tipo) || {}).label || 'Otro'}</span>
+                <span>Costo {L(it.costo)}</span>
+                <span>{it.proceso.length} {it.proceso.length === 1 ? 'paso' : 'pasos'}: {it.proceso.map(p => p.texto).join(' › ')}</span>
+              </div>
+            )}
+            <div className="ficha-ent-patron">
+              <div className="ficha-patron-tipos">
+                {PATRON_OPCIONES.map(p => (
+                  <button key={p.id} className={`ficha-patron ${e.patron.tipo === p.id ? 'on' : ''}`} onClick={() => cambiarTipo(e, p.id)} title={p.ayuda}>{p.label}</button>
+                ))}
+              </div>
+              <div className="ficha-patron-params">
+                {e.patron.tipo !== 'semanal' && (
+                  <label><span className="mini-lbl">{e.patron.tipo === 'repartido' ? 'Cuántas' : 'Entregas'}</span>
+                    <Qty value={e.cantidad} onChange={q => upd(e.id, { cantidad: Math.max(1, Math.min(200, q)) })} /></label>
+                )}
+                {e.patron.tipo === 'dia' && (
+                  <label><span className="mini-lbl">Día del rango</span>
+                    <Qty value={e.patron.dia} onChange={q => upd(e.id, { patron: { ...e.patron, dia: Math.max(1, Math.min(r.dias + 1, q)) } })} /></label>
+                )}
+                {e.patron.tipo === 'semanal' && (
+                  <div><span className="mini-lbl">Días</span>
+                    <div className="ficha-dias">
+                      {LoopaFicha.DIAS_SEMANA.map((d, k) => {
+                        const on = (e.patron.dias || []).includes(k + 1);
+                        return <button key={d} className={on ? 'on' : ''} onClick={() => upd(e.id, { patron: { ...e.patron, dias: on ? e.patron.dias.filter(x => x !== k + 1) : [...(e.patron.dias || []), k + 1].sort() } })}>{d}</button>;
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+              {e.itemId && <div className="ficha-ent-resumen mono">{n} {n === 1 ? 'entrega' : 'entregas'} · {LoopaFicha.describirPatron(LoopaFicha.normalizarFicha({ entregables: [e] }).entregables[0])}{it ? ` · ${L(it.costo * n)}` : ''}</div>}
+            </div>
+          </div>
+        );
+      })}
+      <button className="ficha-add" onClick={add}><Icon name="plus" size={12} /> Agregar ítem</button>
+    </div>
+  );
+}
+
 // ── Línea de tiempo: cómo cae el paquete en el calendario ──────────
 function FichaLinea({ ficha, inicio }) {
   const f = LoopaFicha.normalizarFicha(ficha);
@@ -235,6 +319,102 @@ function FichaUtilidad({ ficha, precio }) {
       <div className="ficha-util-barra"><span className={tono} style={{ width: `${Math.max(0, Math.min(100, m || 0))}%` }} /></div>
       {f.entregables.some(e => e.patron.tipo === 'semanal') && <div className="field-help">Las entregas semanales se cuentan para un paquete típico; en cada venta se usan las fechas reales.</div>}
     </div>
+  );
+}
+
+// ── Formulario de un ÍTEM (la pieza) ──────────────────────────────
+function ItemForm({ servicio, servicios, categorias, tiposTarjeta, onClose, onSave, onRemove }) {
+  const isNew = !servicio.id;
+  const it0 = LoopaFicha.normalizarItem(servicio.item);
+  const [d, setD] = useState(() => ({
+    nombre: servicio.nombre || '', categoria: servicio.categoria || categorias[0] || 'Otro',
+    precio: servicio.precio != null ? String(servicio.precio) : '', costo: it0.costo ? String(it0.costo) : '',
+    dias: it0.dias, tipo: it0.tipo, detalle: it0.detalle, proceso: it0.proceso, activo: servicio.activo !== false,
+  }));
+  const set = (k) => (e) => setD(x => ({ ...x, [k]: e.target.value }));
+  const dup = servicios.find(s => s.id !== servicio.id && norm(s.nombre) === norm(d.nombre));
+  const valido = !!d.nombre.trim() && !dup;
+  const tipos = (tiposTarjeta && tiposTarjeta.length ? tiposTarjeta : TIPOS_TARJETA_BASE).map(t => (
+    t.label && t.label !== t.id ? t : { ...t, label: (TIPOS_TARJETA_BASE.find(b => b.id === t.id) || t).label || t.id }));
+  const sugerido = !d.tipo ? LoopaFicha.tipoSugerido(d.nombre) : '';
+  const item = { tipo: d.tipo || sugerido, detalle: d.detalle, dias: d.dias, costo: num(d.costo), proceso: d.proceso };
+  const ficha = LoopaFicha.fichaDeItem(servicio.id || 'nuevo', d.nombre, item);
+  const borrador = { nombre: d.nombre, precio: num(d.precio), ficha };
+  const u = LoopaFicha.utilidad(ficha, num(d.precio));
+  const save = () => {
+    if (!valido) return;
+    onSave({
+      ...servicio, clase: 'item', nombre: d.nombre.trim(), categoria: d.categoria.trim() || 'Otro', precio: num(d.precio), costo: num(d.costo),
+      descripcion: d.detalle.trim(), modelo: 'unitario', unidad: 'pieza', recomendado: false, clienteIdEspecial: '', activo: d.activo,
+      item: LoopaFicha.normalizarItem(item), ficha,
+    });
+  };
+  return (
+    <Modal kicker={isNew ? 'Catálogo · nuevo ítem' : `Catálogo · ítem ${servicio.id}`} title={isNew ? 'Nuevo ítem' : servicio.nombre} onClose={onClose} width={760}
+      footer={<>
+        {onRemove && <button className="btn sm ghost" style={{ color: 'var(--danger)', marginRight: 'auto' }} onClick={onRemove}><Icon name="archive" size={12} /> Archivar</button>}
+        <button className="btn sm ghost" onClick={onClose}>Cancelar</button>
+        <button className="btn sm primary" onClick={save} disabled={!valido}>{isNew ? 'Crear ítem' : 'Guardar cambios'}</button>
+      </>}>
+      <div className="service-form-lead">
+        <div>
+          <div className="service-badges"><span className="service-model unitario">Ítem</span><FichaEstado servicio={borrador} /></div>
+          <div className="service-form-copy">La pieza con la que se arman los paquetes. También se vende suelta: empieza el día que elijas y se entrega cuando terminan sus días de producción.</div>
+        </div>
+      </div>
+      <div className="service-form-stage">
+        <div className="grid-2">
+          <div className="field" style={{ gridColumn: '1 / -1' }}>
+            <label>Nombre <span className="req">*</span> {dup && <span style={{ color: 'var(--danger)' }}>· ya existe con ese nombre</span>}</label>
+            <input className="input" autoFocus value={d.nombre} onChange={set('nombre')} placeholder="Ej. Reel, Post, Logotipo, Sesión de fotos" />
+          </div>
+          <div className="field" style={{ gridColumn: '1 / -1' }}>
+            <label>Tipo de tarjeta</label>
+            <div className="ficha-ent-tipo" style={{ marginTop: 0 }}>
+              {tipos.map(t => {
+                const on = (d.tipo || sugerido) === t.id;
+                return (
+                  <button key={t.id} className={`ficha-tipo ${on ? 'on' : ''}`} onClick={() => setD(x => ({ ...x, tipo: x.tipo === t.id ? '' : t.id }))}>
+                    <span className="ficha-tipo-dot" style={tonoTipo(t) ? { background: tonoTipo(t) } : undefined} />{t.label}{on && !d.tipo && <i> · auto</i>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="field">
+            <label>Precio si se vende suelto</label>
+            <input className="input mono" inputMode="decimal" value={d.precio} onChange={set('precio')} placeholder="0" />
+          </div>
+          <div className="field">
+            <label>Costo <span className="dim">(lo que te cuesta producirlo)</span></label>
+            <input className="input mono" inputMode="decimal" value={d.costo} onChange={set('costo')} placeholder="0" />
+          </div>
+          <div className="field">
+            <label>Días de producción</label>
+            <Qty value={d.dias} onChange={q => setD(x => ({ ...x, dias: Math.max(1, Math.min(365, num(q) || 1)) }))} />
+            <div className="field-help">Vendido suelto, se entrega {d.dias} {d.dias === 1 ? 'día' : 'días'} después del inicio.</div>
+          </div>
+          <div className="field">
+            <label>Categoría</label>
+            <input className="input" list="loopa-cats-item" value={d.categoria} onChange={set('categoria')} />
+            <datalist id="loopa-cats-item">{categorias.map(c => <option key={c} value={c} />)}</datalist>
+          </div>
+          <div className="field" style={{ gridColumn: '1 / -1' }}>
+            <label>Detalle <span className="dim">(opcional)</span></label>
+            <input className="input" value={d.detalle} onChange={set('detalle')} placeholder="Ej. 30 segundos, vertical 9:16, con música y subtítulos" />
+          </div>
+        </div>
+      </div>
+      <div className="service-form-stage" style={{ marginTop: 14 }}>
+        <div className="service-stage-head"><span>✓</span><div><b>Proceso</b><small>Los pasos que sigue cada vez que se produce. Llegan como checklist a su tarjeta, sola o dentro de un paquete.</small></div></div>
+        <FichaProceso proceso={d.proceso} onChange={proceso => setD(x => ({ ...x, proceso }))} />
+      </div>
+      <div className="service-finance-preview">
+        <div><span>Precio suelto</span><b>{L(num(d.precio))}</b></div>
+        <div><span>Costo</span><b>{L(u.costo)}</b></div>
+        <div><span>Margen</span><b className={u.margen != null && u.margen < 25 ? 'low' : ''}>{u.margen == null ? '—' : `${u.margen.toFixed(0)}%`}</b></div>
+      </div>
+    </Modal>
   );
 }
 

@@ -1439,8 +1439,12 @@ function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVen
   const [verArchivados, setVerArchivados] = useState(false);
   const [editing, setEditing] = useState(null); // servicio o {} nuevo
   const [sort, setSort] = useState({ col: 'q', dir: 'desc' });
+  // Ítems (las piezas) y paquetes (armados con ítems).
+  const [vista, setVista] = useState(() => (servicios.some(s => s.clase === 'item') || !servicios.length ? 'items' : 'paquetes'));
+  const esDeVista = (s) => (vista === 'items' ? s.clase === 'item' : s.clase !== 'item');
 
   const list = servicios.filter(s =>
+    esDeVista(s) &&
     (verArchivados || s.activo !== false) &&
     (cat === 'all' || s.categoria === cat) &&
     (modelo === 'all' || modeloServicio(s) === modelo) &&
@@ -1480,9 +1484,17 @@ function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVen
         <div>
           <div className="page-kicker">Catálogo</div>
           <div className="page-title">Productos</div>
-          <div className="page-desc">Lo que vende LOOPA. Cada producto trae qué incluye, cuándo cae cada entrega, su proceso y su utilidad; sólo los completos se pueden vender. {activos} activos{archivados > 0 ? ` · ${archivados} archivados` : ''}.</div>
+          <div className="page-desc">{vista === 'items'
+            ? 'Las piezas: Post, Reel, Logo, Sesión de fotos… Cada ítem trae su tipo de tarjeta, su proceso, su costo y su precio si se vende suelto.'
+            : 'Los paquetes se arman con ítems: cuántos trae, cuándo cae cada uno y en cuánto tiempo. La utilidad sale sola.'} {activos} activos{archivados > 0 ? ` · ${archivados} archivados` : ''}.</div>
         </div>
-        <button className="btn primary" onClick={() => setEditing({})}><Icon name="plus" size={12} /> Nuevo producto</button>
+        <button className="btn primary" onClick={() => setEditing({ clase: vista === 'items' ? 'item' : 'paquete' })}><Icon name="plus" size={12} /> {vista === 'items' ? 'Nuevo ítem' : 'Nuevo paquete'}</button>
+      </div>
+
+      <div className="pestanas" role="tablist" style={{ marginBottom: 16 }}>
+        {[['items', 'Ítems', servicios.filter(s => s.clase === 'item' && s.activo !== false).length], ['paquetes', 'Paquetes', servicios.filter(s => s.clase !== 'item' && s.activo !== false).length]].map(([id, l, n]) => (
+          <button key={id} role="tab" aria-selected={vista === id} className={`pestana ${vista === id ? 'on' : ''}`} onClick={() => setVista(id)}>{l} · {n}</button>
+        ))}
       </div>
 
       <div className="filterbar">
@@ -1512,10 +1524,12 @@ function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVen
       </div>
 
       <div className="panel crop">
-        {servicios.length === 0 ? (
-          <Empty icon="tag" title="Tu catálogo está vacío">
-            Creá tus tipos de servicio acá o directamente en <b>Nueva venta</b> escribiendo el nombre.
-            <div style={{ marginTop: 14 }}><button className="btn primary" onClick={() => setEditing({})}><Icon name="plus" size={12} /> Crear el primero</button></div>
+        {!servicios.some(esDeVista) ? (
+          <Empty icon="tag" title={vista === 'items' ? 'Todavía no hay ítems' : 'Todavía no hay paquetes'}>
+            {vista === 'items'
+              ? <>Empezá por las piezas: <b>Post</b>, <b>Reel</b>, <b>Logo</b>, <b>Sesión de fotos</b>… Cada una con su proceso y su costo.</>
+              : <>Un paquete junta ítems: por ejemplo, <b>8 posts repartidos + 4 reels los jueves</b> en un mes.</>}
+            <div style={{ marginTop: 14 }}><button className="btn primary" onClick={() => setEditing({ clase: vista === 'items' ? 'item' : 'paquete' })}><Icon name="plus" size={12} /> {vista === 'items' ? 'Crear el primer ítem' : 'Crear el primer paquete'}</button></div>
           </Empty>
         ) : (
           <div className="tbl-wrap" style={{ overflowX: 'auto' }}>
@@ -1551,7 +1565,7 @@ function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVen
                         </div>
                       </td>
                       <td><span className="srv-chip">{s.categoria}</span></td>
-                      <td className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>{s.ficha ? LoopaFicha.describirDuracion(LoopaFicha.normalizarFicha(s.ficha).duracion) : '—'}</td>
+                      <td className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>{s.clase === 'item' ? `${LoopaFicha.normalizarItem(s.item).dias} d de producción` : s.ficha ? LoopaFicha.describirDuracion(LoopaFicha.normalizarFicha(s.ficha).duracion) : '—'}</td>
                       <td><FichaEstado servicio={s} compacto /></td>
                       <td className="num">{L(s.precio)}</td>
                       <td className="num dim">{num(s.costo) > 0 ? L(s.costo) : '—'}</td>
@@ -1572,7 +1586,13 @@ function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVen
         )}
       </div>
 
-      {editing && (
+      {editing && editing.clase === 'item' && (
+        <ItemForm servicio={editing} servicios={servicios} categorias={config.categorias} tiposTarjeta={tiposTarjeta}
+          onClose={() => setEditing(null)}
+          onSave={(s) => { onSave(s); setEditing(null); }}
+          onRemove={editing.id ? () => remove(editing) : null} />
+      )}
+      {editing && editing.clase !== 'item' && (
         <ServicioForm servicio={editing} servicios={servicios} clientes={clientes} categorias={config.categorias} stats={stats} tiposTarjeta={tiposTarjeta}
           onClose={() => setEditing(null)}
           onSave={(s) => { onSave(s); setEditing(null); }}
@@ -1584,6 +1604,10 @@ function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVen
 
 function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClose, onSave, onRemove, tiposTarjeta }) {
   const isNew = !servicio.id;
+  // Paquete: se arma con ítems del catálogo (su proceso viene de cada ítem).
+  const esPaquete = servicio.clase === 'paquete';
+  const items = servicios.filter(s => s.clase === 'item' && s.activo !== false);
+  const itemsPorId = Object.fromEntries(servicios.filter(s => s.clase === 'item').map(s => [s.id, s]));
   const [paso, setPaso] = useState(1);
   const [d, setD] = useState(() => ({
     nombre: servicio.nombre || '', categoria: servicio.categoria || categorias[0] || 'Otro', unidad: servicio.unidad || 'proyecto',
@@ -1598,9 +1622,14 @@ function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClos
   const st = stats[servicio.id] || {};
   const ofertaValida = !!d.nombre.trim() && !dup;
   const alcanceValido = d.modelo !== 'especial' || !!d.clienteIdEspecial;
-  const fichaLimpia = LoopaFicha.normalizarFicha(d.ficha);
-  const borrador = { nombre: d.nombre, precio: num(d.precio), ficha: fichaLimpia };
-  const steps = [{ n: '01', t: 'Producto' }, { n: '02', t: 'Qué incluye' }, { n: '03', t: 'Proceso' }, { n: '04', t: 'Utilidad' }];
+  const fichaLimpia = esPaquete ? LoopaFicha.resolverPaquete(d.ficha, itemsPorId).ficha : LoopaFicha.normalizarFicha(d.ficha);
+  const borrador = { nombre: d.nombre, precio: num(d.precio), ficha: { ...fichaLimpia, entregables: fichaLimpia.entregables.filter(e => !esPaquete || e.itemId) } };
+  // El paquete no tiene paso «Proceso»: cada ítem trae el suyo.
+  const steps = (esPaquete
+    ? [{ n: '01', t: 'Paquete', p: 1 }, { n: '02', t: 'Qué incluye', p: 2 }, { n: '03', t: 'Utilidad', p: 4 }]
+    : [{ n: '01', t: 'Producto', p: 1 }, { n: '02', t: 'Qué incluye', p: 2 }, { n: '03', t: 'Proceso', p: 3 }, { n: '04', t: 'Utilidad', p: 4 }]);
+  const iPaso = steps.findIndex(s => s.p === paso);
+  const irA = (delta) => setPaso(steps[Math.max(0, Math.min(steps.length - 1, iPaso + delta))].p);
   const puedeAbrir = (n) => n <= paso || (ofertaValida && alcanceValido);
   const save = () => {
     if (!ofertaValida || !alcanceValido) return;
@@ -1612,21 +1641,22 @@ function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClos
       unidad: fichaLimpia.duracion.unidad === 'meses' ? 'mes' : d.unidad,
       recomendado: d.modelo === 'plan' && d.recomendado === true,
       clienteIdEspecial: d.modelo === 'especial' ? d.clienteIdEspecial : '',
-      ficha: fichaLimpia,
+      ficha: esPaquete ? { ...fichaLimpia, entregables: fichaLimpia.entregables.filter(e => e.itemId) } : fichaLimpia,
+      ...(esPaquete ? { clase: 'paquete' } : {}),
     });
   };
   // Un ejemplo de inicio para la vista previa: el próximo lunes.
   const inicioEjemplo = (() => { const t = today(); const w = LoopaFicha.diaSemana(t); return LoopaFicha.sumarDias(t, w === 1 ? 0 : 8 - w); })();
   return (
-    <Modal kicker={isNew ? 'Catálogo · nuevo producto' : `Catálogo · ${servicio.id}`} title={isNew ? 'Nuevo producto' : servicio.nombre} onClose={onClose} width={860}
+    <Modal kicker={isNew ? (esPaquete ? 'Catálogo · nuevo paquete' : 'Catálogo · nuevo producto') : `Catálogo · ${servicio.id}`} title={isNew ? (esPaquete ? 'Nuevo paquete' : 'Nuevo producto') : servicio.nombre} onClose={onClose} width={860}
       footer={<>
         {onRemove && <button className="btn sm ghost" style={{ color: 'var(--danger)', marginRight: 'auto' }} onClick={onRemove}>
           <Icon name={st.ventas ? 'archive' : 'trash'} size={12} /> {st.ventas ? 'Archivar' : 'Eliminar'}
         </button>}
         <button className="btn sm ghost" onClick={onClose}>Cancelar</button>
-        {paso > 1 && <button className="btn sm ghost" onClick={() => setPaso(p => p - 1)}><Icon name="arrow-l" size={12} /> Volver</button>}
-        {paso < 4 && <button className="btn sm ghost" disabled={!ofertaValida || !alcanceValido} onClick={() => setPaso(p => p + 1)}>Continuar <Icon name="arrow-r" size={12} /></button>}
-        <button className="btn sm primary" onClick={save} disabled={!ofertaValida || !alcanceValido}>{isNew ? 'Crear producto' : 'Guardar cambios'}</button>
+        {iPaso > 0 && <button className="btn sm ghost" onClick={() => irA(-1)}><Icon name="arrow-l" size={12} /> Volver</button>}
+        {iPaso < steps.length - 1 && <button className="btn sm ghost" disabled={!ofertaValida || !alcanceValido} onClick={() => irA(1)}>Continuar <Icon name="arrow-r" size={12} /></button>}
+        <button className="btn sm primary" onClick={save} disabled={!ofertaValida || !alcanceValido}>{isNew ? (esPaquete ? 'Crear paquete' : 'Crear producto') : 'Guardar cambios'}</button>
       </>}>
       <div className="service-form-lead">
         <div>
@@ -1650,15 +1680,15 @@ function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClos
       )}
       <div className="stepper service-form-stepper">
         {steps.map((s, idx) => (
-          <button key={s.n} className={`step ${paso === idx + 1 ? 'active' : paso > idx + 1 ? 'done' : ''}`} disabled={!puedeAbrir(idx + 1)} onClick={() => setPaso(idx + 1)}>
-            <div className="n mono">{paso > idx + 1 ? '✓' : s.n}</div>
+          <button key={s.n} className={`step ${paso === s.p ? 'active' : paso > s.p ? 'done' : ''}`} disabled={!puedeAbrir(s.p)} onClick={() => setPaso(s.p)}>
+            <div className="n mono">{paso > s.p ? '✓' : s.n}</div>
             <div className="t">{s.t}</div>
           </button>
         ))}
       </div>
       {paso === 1 && (
         <div className="service-form-stage">
-          <div className="service-stage-head"><span>01</span><div><b>El producto</b><small>Cómo se llama, cuánto cuesta y cuánto dura el paquete.</small></div></div>
+          <div className="service-stage-head"><span>01</span><div><b>{esPaquete ? 'El paquete' : 'El producto'}</b><small>Cómo se llama, cuánto cuesta y cuánto dura el paquete.</small></div></div>
           <div className="grid-2">
             <div className="field" style={{ gridColumn: '1 / -1' }}>
               <label>Nombre <span className="req">*</span> {dup && <span style={{ color: 'var(--danger)' }}>· ya existe un producto con ese nombre</span>}</label>
@@ -1715,8 +1745,10 @@ function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClos
       {paso === 2 && (
         <div className="service-form-stage">
           <div className="service-stage-head"><span>02</span><div><b>Qué incluye</b><small>Cada entregable, cuántas veces y cuándo cae dentro del paquete. Cada entrega será una tarjeta en Producción.</small></div></div>
-          <FichaEntregables ficha={d.ficha} onChange={entregables => setFicha({ entregables })} tipos={tiposTarjeta} />
-          <FichaLinea ficha={d.ficha} inicio={inicioEjemplo} />
+          {esPaquete
+            ? <FichaItemsPaquete ficha={d.ficha} onChange={entregables => setFicha({ entregables })} items={items} />
+            : <FichaEntregables ficha={d.ficha} onChange={entregables => setFicha({ entregables })} tipos={tiposTarjeta} />}
+          <FichaLinea ficha={esPaquete ? borrador.ficha : d.ficha} inicio={inicioEjemplo} />
         </div>
       )}
       {paso === 3 && (
@@ -1727,9 +1759,9 @@ function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClos
       )}
       {paso === 4 && (
         <div className="service-form-stage">
-          <div className="service-stage-head"><span>04</span><div><b>Utilidad</b><small>Lo que te cuesta cada entrega ya está en «Qué incluye». Sumá acá lo que es del paquete completo.</small></div></div>
+          <div className="service-stage-head"><span>{esPaquete ? '03' : '04'}</span><div><b>Utilidad</b><small>Lo que te cuesta cada entrega ya está en «Qué incluye». Sumá acá lo que es del paquete completo.</small></div></div>
           <FichaCostosExtra costosExtra={d.ficha.costosExtra} onChange={costosExtra => setFicha({ costosExtra })} />
-          <FichaUtilidad ficha={d.ficha} precio={num(d.precio)} />
+          <FichaUtilidad ficha={esPaquete ? borrador.ficha : d.ficha} precio={num(d.precio)} />
           {!isNew && (
             <div className="field" style={{ marginTop: 18 }}>
               <label>Disponibilidad en Nueva venta</label>
@@ -3213,6 +3245,8 @@ function App({ onLogout, usuarioFusion = null }) {
       recomendado: d.modelo === 'plan' && d.recomendado === true,
       clienteIdEspecial: d.modelo === 'especial' ? (d.clienteIdEspecial || '') : '',
       ...(d.ficha ? { ficha: d.ficha } : {}),
+      ...(d.clase ? { clase: d.clase } : {}),
+      ...(d.item ? { item: d.item } : {}),
     };
     // Con la fusión se guarda en el catálogo ANTES que la venta que lo usa (la cola va en orden).
     if (DATOS_FUSION && !encolar(`Servicio «${s.nombre}»`, [LoopaFusion.operacionServicio(s)])) return null;

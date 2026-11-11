@@ -97,6 +97,27 @@ test('ficha: tipo de tarjeta por entregable (elegido o sugerido por el nombre)',
   assert.deepEqual([tipoDe('Reel'), tipoDe('Post'), tipoDe('Sesión de fotos')], ['reel', 'photo', 'photo']);
 });
 
+test('ítems y paquetes: el ítem arma su ficha; el paquete copia de cada ítem', () => {
+  const reel = { clase: 'item', nombre: 'Reel', item: { tipo: 'reel', detalle: '30 s', dias: 3, costo: 400, proceso: [{ texto: 'Guion' }, { texto: 'Edición' }] } };
+  // Vendido suelto: una entrega al terminar (inicio + días), con su proceso.
+  const suelto = F.fichaDeItem('SRV-REEL', 'Reel', reel.item);
+  assert.deepEqual(F.rango('2026-11-10', suelto.duracion).fin, '2026-11-13');
+  const cal = F.calendario(suelto, '2026-11-10');
+  assert.deepEqual(cal.entregas.map(x => [x.nombre, x.fecha, x.tipo, x.proceso.map(p => p.texto).join('>')]), [['Reel', '2026-11-13', 'reel', 'Guion>Edición']]);
+  assert.deepEqual(F.faltantes({ nombre: 'Reel', precio: 900, ficha: suelto }), [], 'un ítem con proceso está listo');
+  assert.deepEqual(F.faltantes({ nombre: 'Reel', precio: 900, ficha: F.fichaDeItem('x', 'Reel', { dias: 1 }) }), ['proceso']);
+  // Paquete: elige el ítem; nombre, tipo, costo y proceso salen del ítem.
+  const paq = { duracion: { cantidad: 1, unidad: 'meses' }, entregables: [{ itemId: 'SRV-REEL', nombre: 'otro', costo: 1, cantidad: 4, patron: { tipo: 'repartido' } }], proceso: [], costosExtra: [] };
+  const r = F.resolverPaquete(paq, { 'SRV-REEL': reel });
+  assert.deepEqual(r.faltan, []);
+  assert.deepEqual([r.ficha.entregables[0].nombre, r.ficha.entregables[0].costo, r.ficha.entregables[0].tipo, r.ficha.entregables[0].cantidad], ['Reel', 400, 'reel', 4]);
+  assert.deepEqual(F.faltantes({ nombre: 'Paquete', precio: 5000, ficha: r.ficha }), [], 'el proceso viene de cada ítem');
+  assert.equal(F.costos(r.ficha).total, 1600);
+  assert.ok(F.calendario(r.ficha, '2026-11-10').entregas.every(x => x.proceso.length === 2));
+  assert.deepEqual(F.resolverPaquete(paq, {}).faltan, ['SRV-REEL']);
+  assert.deepEqual(F.resolverPaquete(paq, { 'SRV-REEL': { clase: 'paquete' } }).faltan, ['SRV-REEL'], 'sólo ítems, no paquetes');
+});
+
 test('ficha: textos cortos para la pantalla', () => {
   const f = plan();
   assert.deepEqual(f.entregables.map(F.describirPatron), ['12 repartidas', 'día 3', 'L·V cada semana', 'al final']);

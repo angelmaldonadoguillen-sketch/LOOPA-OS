@@ -64,6 +64,12 @@ var LoopaFicha = (function () {
   var monto = function (v) { var n = Number(v); return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : 0; };
   var idOk = function (v) { return typeof v === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(v); };
 
+  function normalizarProceso(lista) {
+    return (Array.isArray(lista) ? lista : []).slice(0, LIMITES.proceso).filter(esObj).map(function (p, i) {
+      return { id: idOk(p.id) ? p.id : 'p' + (i + 1), texto: txt(p.texto) };
+    }).filter(function (p) { return p.texto; });
+  }
+
   function normalizarFicha(f) {
     f = esObj(f) ? f : {};
     var dur = esObj(f.duracion) ? f.duracion : {};
@@ -87,11 +93,13 @@ var LoopaFicha = (function () {
           cantidad: tipo === 'semanal' ? 1 : ent(e.cantidad, 1, 200, 1),
           costo: monto(e.costo),
           patron: patron,
+          // Ítems y paquetes: de qué ítem del catálogo sale este entregable y
+          // su proceso propio (si no tiene, usa el del producto).
+          itemId: idOk(e.itemId) ? e.itemId : '',
+          proceso: normalizarProceso(e.proceso),
         };
       }),
-      proceso: (Array.isArray(f.proceso) ? f.proceso : []).slice(0, LIMITES.proceso).filter(esObj).map(function (p, i) {
-        return { id: idOk(p.id) ? p.id : 'p' + (i + 1), texto: txt(p.texto) };
-      }).filter(function (p) { return p.texto; }),
+      proceso: normalizarProceso(f.proceso),
       costosExtra: (Array.isArray(f.costosExtra) ? f.costosExtra : []).slice(0, LIMITES.costosExtra).filter(esObj).map(function (c, i) {
         return { id: idOk(c.id) ? c.id : 'c' + (i + 1), concepto: txt(c.concepto), monto: monto(c.monto) };
       }).filter(function (c) { return c.concepto || c.monto; }),
@@ -128,7 +136,8 @@ var LoopaFicha = (function () {
     ficha.entregables.forEach(function (e) {
       var fechas = fechasEntregable(e, r);
       var tipo = e.tipo || tipoSugerido(e.nombre);
-      fechas.forEach(function (f, i) { entregas.push({ entregableId: e.id, nombre: e.nombre, detalle: e.detalle, tipo: tipo, n: i + 1, total: fechas.length, fecha: f, costo: e.costo }); });
+      var proceso = e.proceso && e.proceso.length ? e.proceso : ficha.proceso;
+      fechas.forEach(function (f, i) { entregas.push({ entregableId: e.id, nombre: e.nombre, detalle: e.detalle, tipo: tipo, proceso: proceso, n: i + 1, total: fechas.length, fecha: f, costo: e.costo }); });
     });
     entregas.sort(function (a, b) { return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0; });
     return { rango: r, entregas: entregas };
@@ -187,8 +196,46 @@ var LoopaFicha = (function () {
       if (f.entregables.some(function (e) { return e.patron.tipo === 'dia' && e.patron.dia - 1 > r.dias; })) out.push('un día dentro de la duración');
       if (calendario(f, '2026-01-01').entregas.length > LIMITES.entregasPorVenta) out.push('menos de ' + LIMITES.entregasPorVenta + ' entregas');
     }
-    if (!f || !f.proceso.length) out.push('proceso');
+    // Proceso: el del producto, o cada entregable con el suyo (paquete de ítems).
+    if (!f || (!f.proceso.length && (!f.entregables.length || f.entregables.some(function (e) { return !e.proceso.length; })))) out.push('proceso');
     return out;
+  }
+
+  // ── Ítems y paquetes ──────────────────────────────────────────────
+  // Un ÍTEM es la pieza (Post, Reel, Logo…): su tipo de tarjeta, su proceso,
+  // su costo y cuántos días lleva producirlo. Vendido suelto es un producto
+  // de una sola entrega: empieza el día elegido y se entrega al terminar.
+  function normalizarItem(it) {
+    it = esObj(it) ? it : {};
+    return {
+      tipo: typeof it.tipo === 'string' && /^[a-z0-9][a-z0-9_-]{0,39}$/.test(it.tipo) ? it.tipo : '',
+      detalle: txt(it.detalle, LIMITES.detalle),
+      dias: ent(it.dias, 1, 365, 1),
+      costo: monto(it.costo),
+      proceso: normalizarProceso(it.proceso),
+    };
+  }
+  function fichaDeItem(id, nombre, item) {
+    var it = normalizarItem(item);
+    return normalizarFicha({
+      duracion: { cantidad: it.dias, unidad: 'dias' },
+      entregables: [{ id: 'item', itemId: idOk(id) ? id : '', nombre: nombre, tipo: it.tipo, detalle: it.detalle, cantidad: 1, costo: it.costo, patron: { tipo: 'final' }, proceso: it.proceso }],
+      proceso: [], costosExtra: [],
+    });
+  }
+  // Un PAQUETE elige ítems del catálogo: de cada uno copia nombre, tipo,
+  // detalle, costo y proceso (congelados en el paquete). `items` es un mapa
+  // id → servicio-ítem. Devuelve la ficha resuelta y los ids que faltan.
+  function resolverPaquete(ficha, items) {
+    var f = normalizarFicha(ficha), faltan = [];
+    f.entregables = f.entregables.map(function (e) {
+      if (!e.itemId) return e;
+      var s = items && items[e.itemId];
+      if (!s || s.clase !== 'item') { faltan.push(e.itemId); return e; }
+      var it = normalizarItem(s.item);
+      return Object.assign({}, e, { nombre: txt(s.nombre), tipo: it.tipo, detalle: it.detalle, costo: it.costo, proceso: it.proceso });
+    });
+    return { ficha: f, faltan: faltan };
   }
   function lista(servicio) { return faltantes(servicio).length === 0; }
 
@@ -207,7 +254,7 @@ var LoopaFicha = (function () {
 
   return {
     UNIDADES: UNIDADES, PATRONES: PATRONES, DIAS_SEMANA: DIAS_SEMANA, LIMITES: LIMITES, MAX_DURACION: MAX_DURACION,
-    normalizarFicha: normalizarFicha, rango: rango, fechasEntregable: fechasEntregable, calendario: calendario,
+    normalizarFicha: normalizarFicha, normalizarItem: normalizarItem, fichaDeItem: fichaDeItem, resolverPaquete: resolverPaquete, rango: rango, fechasEntregable: fechasEntregable, calendario: calendario,
     costos: costos, utilidad: utilidad, faltantes: faltantes, lista: lista,
     describirPatron: describirPatron, describirDuracion: describirDuracion, tipoSugerido: tipoSugerido,
     sumarDias: sumarDias, sumarMeses: sumarMeses, diaSemana: diaSemana, esFecha: esFecha,

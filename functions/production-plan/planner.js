@@ -114,12 +114,13 @@ function expandFichaLine(sale, line, lineIndex, context, out, resolved) {
   if (!resolved.has(workspace.id)) resolved.set(workspace.id, resolveClient(sale, workspace.id, context, 'sale', out));
   const client = resolved.get(workspace.id);
   if (!client) return [];
-  if (!ficha.proceso.length) {
+  const cal = Ficha.calendario(ficha, line.inicio);
+  if (!cal.rango) { out.push(issue('line.ficha.inicio', `${path}.inicio`, 'La línea no tiene una fecha de inicio válida')); return []; }
+  // El proceso de cada entrega: el de su ítem o, si no tiene, el del producto.
+  if (cal.entregas.some(x => !x.proceso || !x.proceso.length)) {
     out.push(issue('line.ficha.no_process', `${path}.ficha.proceso`, `«${line.snapshot.nombre}» no tiene proceso: no se puede armar el checklist`));
     return [];
   }
-  const cal = Ficha.calendario(ficha, line.inicio);
-  if (!cal.rango) { out.push(issue('line.ficha.inicio', `${path}.inicio`, 'La línea no tiene una fecha de inicio válida')); return []; }
   const status = (workspace.statusIds && workspace.statusIds[0]) || 'briefing';
   // El tipo de tarjeta del entregable, si el tablero lo tiene; si no, «other».
   const otro = workspace.typeIds ? (workspace.typeIds.includes('other') ? 'other' : workspace.typeIds[0] || 'other') : 'other';
@@ -159,7 +160,7 @@ function expandFichaLine(sale, line, lineIndex, context, out, resolved) {
       detalle: x.detalle || '',
       strategy: 'separate',
       groupKey: 'ficha',
-      checklist: ficha.proceso.map(p => ({ id: ids.checklistItemId(workItemKey, p.id, 0), text: clip(p.texto) })),
+      checklist: x.proceso.map(p => ({ id: ids.checklistItemId(workItemKey, p.id, 0), text: clip(p.texto) })),
     };
   });
 }
@@ -377,10 +378,9 @@ function estimateWork(sale) {
   let checklistItems = 0;
   sale.lines.forEach(line => {
     if (line.ficha) {
-      const f = Ficha.normalizarFicha(line.ficha);
-      const n = Ficha.calendario(f, line.inicio).entregas.length;
-      workItems += n;
-      checklistItems += n * f.proceso.length;
+      const entregas = Ficha.calendario(Ficha.normalizarFicha(line.ficha), line.inicio).entregas;
+      workItems += entregas.length;
+      checklistItems += entregas.reduce((n, x) => n + (x.proceso ? x.proceso.length : 0), 0);
       return;
     }
     const plan = line.executionPlan;
