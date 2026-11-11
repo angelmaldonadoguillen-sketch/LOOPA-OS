@@ -1059,3 +1059,11 @@ El servidor la guardó normalizada, con costo 9.500. El catálogo la muestra «L
 - Paquete «Pack Reels»: 4 reels repartidos, costo 1.600 tomado del ítem, utilidad 54 %.
 
 **Hay que publicar `functions:loopa`.**
+## 36. Botón «fijar vista» del tablero, más visible (2026-11-10)
+
+- **Antes.** El botón para fijar la vista era una burbuja de 18 px, con un ícono de 9 px, que flotaba sobre el nombre de cada vista y sólo aparecía al pasar el mouse. El usuario reportó que era minúsculo.
+- **Ahora.**
+  - Junto a la vista activa hay un botón propio de 28 px con el ícono a 14 px. Si la vista ya está fijada, se ve relleno (acento).
+  - La vista fijada muestra un pin chico al lado de su nombre cuando no es la activa.
+  - El botón tiene `aria-pressed` y su `title` explica qué hace: «se abre siempre en esta».
+- **Sólo pantalla.** Pruebas: 285 sin red y 20 de Producción.

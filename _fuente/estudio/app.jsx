@@ -1052,7 +1052,7 @@ const Header = ({ columns = [], state, dispatch, filteredCount, notifications, o
           ].map(v => {
             const isPinned = state.pinnedView === v.id;
             return (
-              <div key={v.id} className="relative group">
+              <div key={v.id} className={`flex items-center ${state.view === v.id ? 'estudio-vista-activa' : ''}`}>
                 {/* Botón de vista */}
                 <button
                   onClick={() => dispatch({ type: 'set_view', view: v.id })}
@@ -1060,26 +1060,28 @@ const Header = ({ columns = [], state, dispatch, filteredCount, notifications, o
                 >
                   <Icon name={v.icon} size={13} />
                   <span>{v.label}</span>
-                  {/* Dot indicador cuando está fijada */}
-                  {isPinned && (
-                    <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: 'var(--accent)' }} />
-                  )}
+                  {/* Indicador de vista fija (la que se abre por defecto) */}
+                  {isPinned && state.view !== v.id && <Icon name="pin" size={11} />}
                 </button>
-                {/* Pin button — aparece al hover, siempre visible si está fijada */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); onPinView && onPinView(v.id); }}
-                  className={`absolute -top-1.5 -right-1 w-[18px] h-[18px] rounded-full flex items-center justify-center transition ${isPinned ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-                  style={{
-                    background: isPinned ? 'var(--accent)' : 'var(--surface-3)',
-                    color:      isPinned ? 'var(--accent-on)' : 'var(--text-muted)',
-                    border:     `1px solid ${isPinned ? 'transparent' : 'var(--border)'}`,
-                    boxShadow:  '0 1px 6px rgba(0,0,0,0.4)',
-                    zIndex: 10,
-                  }}
-                  title={isPinned ? 'Quitar vista fija' : 'Fijar como vista principal'}
-                >
-                  <Icon name="pin" size={9} />
-                </button>
+                {/* Fijar: un botón propio junto a la vista activa (antes era una
+                    burbuja de 18 px encima del nombre, casi invisible). */}
+                {state.view === v.id && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onPinView && onPinView(v.id); }}
+                    className="estudio-fijar ml-0.5 w-[28px] h-[28px] flex items-center justify-center transition"
+                    style={{
+                      background: isPinned ? 'var(--accent)' : 'transparent',
+                      color:      isPinned ? 'var(--accent-on)' : 'var(--text-dim)',
+                      border:     `1px solid ${isPinned ? 'transparent' : 'var(--border-2, var(--border))'}`,
+                      padding: 0,
+                    }}
+                    title={isPinned ? 'Quitar como vista principal' : 'Fijar como vista principal (se abre siempre en esta)'}
+                    aria-label={isPinned ? 'Quitar como vista principal' : 'Fijar como vista principal'}
+                    aria-pressed={isPinned}
+                  >
+                    <Icon name="pin" size={14} />
+                  </button>
+                )}
               </div>
             );
           })}
