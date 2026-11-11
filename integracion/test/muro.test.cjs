@@ -78,10 +78,13 @@ test('una tarjeta nueva no cae exacta sobre otra', () => {
   const pisa = p.x < a.x + a.w && p.x + 280 > a.x && p.y < a.y + a.h && p.y + 180 > a.y;
   assert.equal(pisa, false);
   assert.ok(Math.hypot(p.x - 150, p.y - 120) < 700, 'queda cerca');
+  const b = M.lugarLibre([{ x: 400, y: 0, w: 300, h: 200 }], 400, 0, 280, 180, null, true);
+  assert.ok(b.y >= 0 && b.x >= 400, 'junto a otra, busca hacia abajo o a la derecha, no arriba');
   const zona = { x0: 0, y0: 0, x1: 900, y1: 700 };
   const q = M.lugarLibre([a], 150, 120, 280, 180, zona);
   assert.ok(q.x >= 0 && q.y >= 0 && q.x + 280 <= 900 && q.y + 180 <= 700, 'dentro de lo que se ve');
-  assert.deepEqual(M.lugarLibre([{ x: 0, y: 0, w: 900, h: 700 }], 50, 50, 280, 180, zona).x % 10, 0, 'si no hay lugar visible, busca fuera');
+  const fuera = M.lugarLibre([{ x: 0, y: 0, w: 900, h: 700 }], 50, 50, 280, 180, zona);
+  assert.ok(fuera.x >= 948 || fuera.y >= 748 || fuera.x + 280 <= -48 || fuera.y + 180 <= -48, 'si no hay lugar visible, busca fuera sin tapar');
 });
 
 test('deshacer: el inverso devuelve exactamente lo que había', () => {
@@ -147,4 +150,26 @@ test('formatos viejos del brief; vacío o de relleno no crea nada', () => {
   assert.deepEqual(M.briefANodos(undefined), []);
   assert.deepEqual(M.briefANodos([{ type: 'p', text: '' }]), []);
   assert.deepEqual(M.briefANodos([{ type: 'p', text: 'Briefing inicial — añadí el contexto de la tarea acá.' }]), []);
+});
+
+test('ordenar: lo conectado en columnas de izquierda a derecha; lo suelto, al final', () => {
+  const n = (id, x, y) => M.crearNodo('nota', x, y, {}, id);
+  const nodos = [n('a', 500, 0), n('b', 0, 300), n('c', 900, 900), n('s1', 50, 50), n('s2', 2000, 10)];
+  const con = [{ a: 'b', b: 'a' }, { a: 'a', b: 'c' }];
+  const p = M.ordenar(nodos, con, () => 100);
+  const pos = (id) => p[id] || nodos.find(x => x.id === id);
+  assert.ok(pos('b').x < pos('a').x && pos('a').x < pos('c').x, 'el grupo queda en columnas desde la primera tarjeta');
+  assert.equal(pos('b').y, pos('a').y);
+  assert.ok(pos('s1').y > pos('b').y + 100, 'las sueltas van debajo del grupo');
+  assert.equal(pos('s1').y, pos('s2').y, 'en una misma fila');
+  assert.deepEqual(M.ordenar([], []), {});
+  const ya = M.ordenar(nodos.map(x => ({ ...x, ...pos(x.id) })), con, () => 100);
+  assert.deepEqual(ya, {}, 'ordenar dos veces no mueve nada');
+});
+
+test('colores escritos a mano', () => {
+  assert.equal(M.hexDe('C8F04A'), '#c8f04a');
+  assert.equal(M.hexDe(' #cf4 '), '#ccff44');
+  assert.equal(M.hexDe('rojo'), '');
+  assert.equal(M.hexDe('#12345'), '');
 });

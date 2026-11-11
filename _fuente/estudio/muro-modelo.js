@@ -156,23 +156,21 @@
 
   // El lugar libre más cercano al pedido, dejando aire para la etiqueta.
   // `zona` ({x0,y0,x1,y1}) es lo que se ve: se prefiere un lugar dentro de ella.
-  function lugarLibre(cajas, x, y, w = 280, h = 180, zona = null) {
+  function lugarLibre(cajas, x, y, w = 280, h = 180, zona = null, abajo = false) {
     const aire = 48; const paso = 60;
     const pisa = (px, py) => (cajas || []).some(c => px < c.x + c.w + aire && px + w + aire > c.x && py < c.y + (c.h || 160) + aire && py + h + aire > c.y);
     const fuera = (px, py) => !!zona && (px < zona.x0 || py < zona.y0 || px + w > zona.x1 || py + h > zona.y1);
     const choca = (px, py) => pisa(px, py) || fuera(px, py);
     if (!choca(x, y)) return { x: Math.round(x), y: Math.round(y) };
-    for (let r = 1; r <= 30; r += 1) {
-      const anillo = [];
-      for (let i = -r; i <= r; i += 1) {
-        anillo.push([i, -r], [i, r]);
-        if (Math.abs(i) !== r) anillo.push([-r, i], [r, i]);
-      }
-      anillo.sort((a, b) => Math.hypot(a[0], a[1] * 1.4) - Math.hypot(b[0], b[1] * 1.4));
-      const libre = anillo.find(([i, j]) => !choca(x + i * paso, y + j * paso));
-      if (libre) return { x: Math.round(x + libre[0] * paso), y: Math.round(y + libre[1] * paso) };
-    }
-    return zona ? lugarLibre(cajas, x, y, w, h, null) : { x: Math.round(x), y: Math.round(y) };
+    // Todos los lugares candidatos, del más conveniente al menos. Con «abajo»
+    // (junto a otra tarjeta) la siguiente baja o va a la derecha antes que subir.
+    const costo = ([i, j]) => Math.hypot(i, j * 1.4) + (abajo && j < 0 ? 4 : 0) + (abajo && i < 0 ? 4 : 0);
+    const candidatos = [];
+    for (let i = -30; i <= 30; i += 1) for (let j = -30; j <= 30; j += 1) if (i || j) candidatos.push([i, j]);
+    candidatos.sort((a, b) => costo(a) - costo(b));
+    const libre = candidatos.find(([i, j]) => !choca(x + i * paso, y + j * paso));
+    if (libre) return { x: Math.round(x + libre[0] * paso), y: Math.round(y + libre[1] * paso) };
+    return zona ? lugarLibre(cajas, x, y, w, h, null, abajo) : { x: Math.round(x), y: Math.round(y) };
   }
 
   // ── Cambios: { id: documento | null } ────────────────────────
@@ -212,6 +210,63 @@
       c[id] = { id, clase: 'conexion', a: mapa[k.a], b: mapa[k.b] };
     });
     return { cambios: c, nuevos: Object.values(mapa) };
+  }
+
+  // ── Ordenar ──────────────────────────────────────────────────
+  // Cada grupo conectado va en columnas de izquierda a derecha, según la
+  // distancia desde su primera tarjeta; dentro de una columna se respeta el
+  // orden vertical que tenían. Las sueltas van al final, de a cuatro por fila.
+  // Devuelve { id: {x, y} } sólo con posiciones nuevas; arranca donde empieza
+  // lo que ya hay. `alto(id)` es la altura real de cada tarjeta.
+  function ordenar(nodos, conexiones, alto = () => 160) {
+    const out = {};
+    if (!nodos || !nodos.length) return out;
+    const GX = 120; const GY = 70;
+    const porId = {}; const vecinos = {};
+    nodos.forEach(n => { porId[n.id] = n; vecinos[n.id] = []; });
+    (conexiones || []).forEach(c => { if (vecinos[c.a] && vecinos[c.b]) { vecinos[c.a].push(c.b); vecinos[c.b].push(c.a); } });
+    const visto = new Set(); const grupos = [];
+    [...nodos].sort((a, b) => a.x - b.x || a.y - b.y).forEach(n => {
+      if (visto.has(n.id)) return;
+      const capa = { [n.id]: 0 }; const cola = [n.id]; const ids = [n.id];
+      visto.add(n.id);
+      while (cola.length) {
+        const id = cola.shift();
+        vecinos[id].forEach(v => { if (!visto.has(v)) { visto.add(v); capa[v] = capa[id] + 1; cola.push(v); ids.push(v); } });
+      }
+      grupos.push({ ids, capa });
+    });
+    const x0 = Math.min(...nodos.map(n => n.x)); let y = Math.min(...nodos.map(n => n.y));
+    grupos.filter(g => g.ids.length > 1).forEach(g => {
+      const columnas = [];
+      g.ids.forEach(id => { const k = g.capa[id]; (columnas[k] = columnas[k] || []).push(id); });
+      let x = x0; let altoGrupo = 0;
+      columnas.forEach(ids => {
+        ids.sort((a, b) => porId[a].y - porId[b].y || porId[a].x - porId[b].x);
+        let yy = y;
+        ids.forEach(id => { out[id] = { x, y: yy }; yy += alto(id) + GY; });
+        altoGrupo = Math.max(altoGrupo, yy - y);
+        x += Math.max(...ids.map(id => porId[id].w)) + GX;
+      });
+      y += altoGrupo + GY;
+    });
+    const sueltas = grupos.filter(g => g.ids.length === 1).map(g => porId[g.ids[0]]).sort((a, b) => a.y - b.y || a.x - b.x);
+    let x = x0; let altoFila = 0;
+    sueltas.forEach((n, i) => {
+      if (i && i % 4 === 0) { y += altoFila + GY; x = x0; altoFila = 0; }
+      out[n.id] = { x, y };
+      x += n.w + GX;
+      altoFila = Math.max(altoFila, alto(n.id));
+    });
+    Object.keys(out).forEach(id => { out[id] = { x: Math.round(out[id].x), y: Math.round(out[id].y) }; if (out[id].x === porId[id].x && out[id].y === porId[id].y) delete out[id]; });
+    return out;
+  }
+
+  // «c8f04a», «#C8F04A» o «#cf4» → «#c8f04a»; vacío si no es un color.
+  function hexDe(valor) {
+    let h = String(valor || '').trim().replace(/^#/, '').toLowerCase();
+    if (/^[0-9a-f]{3}$/.test(h)) h = h.split('').map(c => c + c).join('');
+    return /^[0-9a-f]{6}$/.test(h) ? `#${h}` : '';
   }
 
   // ── Texto pegado sobre el lienzo ─────────────────────────────
@@ -292,6 +347,6 @@
     TIPOS, TITULOS, ANCHOS, COLORES_NOTA, LIM, PUERTO_Y, ZOOM_MIN, ZOOM_MAX,
     nuevoId, urlSegura, colorValido, normalizarNodo, crearNodo, idConexion, leer, conectar, puntos, curva, ruta,
     aMundo, zoomEn, encuadre, lugarLibre, inverso, aplicarCambios, cambiosDeBorrar, cambiosDeDuplicar,
-    dePegado, infoEnlace, resumen, briefANodos,
+    dePegado, infoEnlace, resumen, briefANodos, ordenar, hexDe,
   };
 });

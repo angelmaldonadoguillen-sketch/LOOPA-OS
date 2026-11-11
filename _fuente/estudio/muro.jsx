@@ -101,20 +101,32 @@ const MuroNota = ({ nodo, api }) => (
 
 const MuroGuion = ({ nodo, api }) => {
   const LIM = window.MuroModelo.LIM;
+  const ref = useRef(null);
+  const enfocar = useRef(null);
+  useEffect(() => {
+    if (!enfocar.current || !ref.current) return;
+    const el = ref.current.querySelector(`[data-escena="${enfocar.current}"] textarea`);
+    if (el) { el.focus(); enfocar.current = null; }
+  }, [nodo.datos.escenas.length]);
+  const agregarEscena = () => {
+    const id = window.MuroModelo.nuevoId('e');
+    enfocar.current = id;
+    api.datos(nodo.id, d => (d.escenas.length >= LIM.escenas ? {} : { escenas: [...d.escenas, { id, tiempo: '', visual: '', audio: '' }] }));
+  };
   const cambiar = (id, campo) => (v) => api.datos(nodo.id, d => ({ escenas: d.escenas.map(e => (e.id === id ? { ...e, [campo]: v } : e)) }));
   return (
-    <div className="muro-guion">
+    <div className="muro-guion" ref={ref}>
       <div className="muro-escena muro-escena-cab"><span>Tiempo</span><span>En pantalla</span><span>Voz o texto</span><span /></div>
       {nodo.datos.escenas.map(e => (
-        <div key={e.id} className="muro-escena">
-          <MuroCampo valor={e.tiempo} placeholder="0–5 s" maxLength={20} guardar={cambiar(e.id, 'tiempo')} />
+        <div key={e.id} className="muro-escena" data-escena={e.id}>
+          <MuroCampo valor={e.tiempo} placeholder="Tiempo" maxLength={20} guardar={cambiar(e.id, 'tiempo')} />
           <MuroTexto valor={e.visual} ancho={nodo.w} maxLength={LIM.celda} placeholder="Qué se ve" guardar={cambiar(e.id, 'visual')} />
           <MuroTexto valor={e.audio} ancho={nodo.w} maxLength={LIM.celda} placeholder="Qué se dice" guardar={cambiar(e.id, 'audio')} />
           <button type="button" className="muro-x" title="Quitar escena" aria-label="Quitar escena" onClick={() => api.datos(nodo.id, d => ({ escenas: d.escenas.filter(x => x.id !== e.id) }))}><Icon name="x" size={11} /></button>
         </div>
       ))}
       {nodo.datos.escenas.length < LIM.escenas && (
-        <button type="button" className="muro-agregar" onClick={() => api.datos(nodo.id, d => ({ escenas: [...d.escenas, { id: window.MuroModelo.nuevoId('e'), tiempo: '', visual: '', audio: '' }] }))}><Icon name="plus" size={11} /> Escena</button>
+        <button type="button" className="muro-agregar" onClick={agregarEscena}><Icon name="plus" size={11} /> Escena</button>
       )}
     </div>
   );
@@ -217,7 +229,9 @@ const MuroPaleta = ({ nodo, api }) => {
           <label className="muro-muestra" style={{ background: c }} title="Cambiar color">
             <input type="color" value={c} aria-label={`Color ${c}`} onChange={(e) => poner(colores.map((x, j) => (j === i ? e.target.value : x)))} />
           </label>
-          <span>{c.toUpperCase()}</span>
+          <input key={c} type="text" className="muro-hex" defaultValue={c.toUpperCase()} maxLength={7} aria-label="Código del color" spellCheck={false}
+            onBlur={(e) => { const h = window.MuroModelo.hexDe(e.target.value); if (h && h !== c) poner(colores.map((x, j) => (j === i ? h : x))); else e.target.value = c.toUpperCase(); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
           <button type="button" className="muro-x" title="Quitar color" aria-label="Quitar color" onClick={() => poner(colores.filter((_, j) => j !== i))}><Icon name="x" size={10} /></button>
         </div>
       ))}
@@ -279,6 +293,7 @@ const MuroNodo = React.memo(function MuroNodo({ nodo, dx, dy, sel, solo, nuevo, 
       </div>
       <span className="muro-puerto izq" title="Arrastrá para conectar" onPointerDown={(e) => api.conectarDesde(e, nodo.id)} />
       <span className="muro-puerto der" title="Arrastrá para conectar" onPointerDown={(e) => api.conectarDesde(e, nodo.id)} />
+      {solo && <button type="button" className="muro-siguiente" title="Crear la siguiente, conectada" aria-label="Crear la siguiente, conectada" onClick={() => api.menuDesde(nodo.id)}><Icon name="plus" size={13} /></button>}
       <span className="muro-ancho" title="Cambiar ancho" onPointerDown={redimensionar} />
     </div>
   );
@@ -405,7 +420,8 @@ const MuroEspacio = ({ project, muro, onClose }) => {
     const l = leidoAhora();
     if (l.nodos.length + l.conexiones.length >= M.LIM.items) { aviso('Este muro llegó a su límite.'); return null; }
     // Lo que se pide en un punto va ahí; lo demás busca un lugar sin tapar nada.
-    const p = op.exacto ? { x: Math.round(wx), y: Math.round(wy) } : M.lugarLibre(l.nodos.map(n => ({ x: n.x, y: n.y, w: n.w, h: altoDe(n.id) })), wx, wy, M.ANCHOS[tipo], 180, zonaVisible());
+    const cajas = l.nodos.map(n => ({ x: n.x, y: n.y, w: n.w, h: altoDe(n.id) }));
+    const p = op.exacto ? { x: Math.round(wx), y: Math.round(wy) } : M.lugarLibre(cajas, wx, wy, M.ANCHOS[tipo], 200, op.cerca ? null : zonaVisible(), !!op.cerca);
     const n = M.crearNodo(tipo, p.x, p.y, op.datos);
     const c = { [n.id]: n };
     if (op.desde) {
@@ -414,6 +430,7 @@ const MuroEspacio = ({ project, muro, onClose }) => {
     }
     aplicar(c);
     seleccionar([n.id]);
+    mostrar(n);
     if (op.enfocar !== false && tipo !== 'imagen' && tipo !== 'paleta') setNuevo(n.id);
     return n.id;
   };
@@ -428,7 +445,37 @@ const MuroEspacio = ({ project, muro, onClose }) => {
     const r = lienzo.current.getBoundingClientRect();
     return M.aMundo(vistaRef.current, r.width / 2, r.height / 2);
   };
-  const agregar = (tipo) => { const c = centro(); crear(tipo, c.x - M.ANCHOS[tipo] / 2, c.y - 90); };
+  // Con una tarjeta seleccionada, la nueva va a su lado; si no, al centro.
+  const agregar = (tipo) => {
+    const base = selRef.current.length === 1 && indiceRef.current[selRef.current[0]];
+    if (base) { crear(tipo, base.x + base.w + 90, base.y, { cerca: true }); return; }
+    const c = centro();
+    crear(tipo, c.x - M.ANCHOS[tipo] / 2, c.y - 90);
+  };
+  const mostrar = (n) => {
+    const z = zonaVisible();
+    if (n.x >= z.x0 && n.y >= z.y0 && n.x + n.w <= z.x1 && n.y + 120 <= z.y1) return;
+    const r = lienzo.current.getBoundingClientRect();
+    const v = vistaRef.current;
+    ponerVista({ ...v, x: r.width / 2 - (n.x + n.w / 2) * v.z, y: r.height / 2 - (n.y + 90) * v.z });
+  };
+  const menuDesde = (id) => {
+    const n = indiceRef.current[id];
+    if (!n) return;
+    const v = vistaRef.current;
+    setMenu({ ...menuDentro({ sx: v.x + (n.x + n.w + 24) * v.z, sy: v.y + n.y * v.z }), wx: n.x + n.w + 90, wy: n.y, desde: id, buscar: true });
+  };
+  const ordenarMuro = () => {
+    const l = leidoRef.current;
+    const pos = M.ordenar(l.nodos, l.conexiones, altoDe);
+    const cambios = {};
+    Object.keys(pos).forEach(id => { cambios[id] = { ...indiceRef.current[id], ...pos[id] }; });
+    if (!Object.keys(cambios).length) { aviso('El muro ya está ordenado.'); return; }
+    aplicar(cambios);
+    const r = lienzo.current.getBoundingClientRect();
+    ponerVista(M.encuadre(l.nodos.map(n => ({ x: (pos[n.id] || n).x, y: (pos[n.id] || n).y, w: n.w, h: altoDe(n.id) })), r.width, r.height));
+    aviso('Muro ordenado. Ctrl+Z lo deja como estaba.');
+  };
 
   const subir = async (id, file) => {
     const valido = FrameAttachments.validateImageFile(file);
@@ -589,6 +636,7 @@ const MuroEspacio = ({ project, muro, onClose }) => {
     zoom: () => vistaRef.current.z,
     verImagen: setFoto,
     nuevoListo: () => setNuevo(null),
+    menuDesde,
     atajos: { deshacer, rehacer, eliminar, duplicar, seleccionar },
     pegar: { crear, crearImagenes, centro },
   });
@@ -748,13 +796,14 @@ const MuroEspacio = ({ project, muro, onClose }) => {
           <button type="button" className="muro-pct" title="Volver a 100 %" onClick={() => zoomCentro(1 / vistaRef.current.z)}>{Math.round(vista.z * 100)}%</button>
           <button type="button" title="Acercar" aria-label="Acercar" onClick={() => zoomCentro(1.25)}><Icon name="plus" size={14} /></button>
           <button type="button" title="Ver todo el muro" aria-label="Ver todo el muro" onClick={encuadrar}><Icon name="fit" size={14} /></button>
+          <button type="button" title="Ordenar el muro" aria-label="Ordenar el muro" disabled={leido.nodos.length < 2} onClick={ordenarMuro}><Icon name="grid" size={14} /></button>
         </div>
 
         {menu && (
           <div className="muro-menu muro-flotante" style={{ left: menu.sx, top: menu.sy }} role="menu">
             <div className="muro-menu-t">{menu.desde ? 'Crear y conectar' : 'Agregar aquí'}</div>
             {MURO_TIPOS.map(t => (
-              <button key={t.tipo} type="button" role="menuitem" onClick={() => { crear(t.tipo, menu.wx, menu.wy, { desde: menu.desde, exacto: true }); setMenu(null); }}><Icon name={t.icon} size={13} /> {t.label}</button>
+              <button key={t.tipo} type="button" role="menuitem" onClick={() => { crear(t.tipo, menu.wx, menu.wy, { desde: menu.desde, exacto: !menu.buscar, cerca: !!menu.buscar }); setMenu(null); }}><Icon name={t.icon} size={13} /> {t.label}</button>
             ))}
           </div>
         )}

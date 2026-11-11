@@ -1140,3 +1140,14 @@ La ficha ya no tiene Brief. Un botón lleva al **Muro**, un lienzo por tarea par
 - **Auditoría usándolo.** Se corrigió: tarjetas nuevas encimadas o tapadas por la barra, líneas que cruzaban tarjetas, menú cortado en el borde, avisos que quedaban debajo del muro, clases de tipo que rompían el ancho de algunas tarjetas, y arrastrar desde el texto.
 
 **Hay que publicar las reglas** antes de subir la pantalla: sin ellas el muro no abre.
+
+
+## 41. Muro: auditoría con un proceso creativo real (2026-11-11)
+
+Se armó un reel completo en el muro (brief, concepto, ideas, guion, referencias, tomas, paleta e imagen) con mouse y teclado, anotando cada tropiezo.
+
+- **Dónde aparece lo nuevo.** Con una tarjeta seleccionada, la nueva va a su lado y prefiere bajar en la columna antes que subir. Si queda fuera de la vista, la vista va hacia ella.
+- **Crear la siguiente.** La tarjeta seleccionada muestra un «+» que abre el menú para crear la siguiente ya conectada.
+- **Ordenar.** Un botón acomoda el muro: lo conectado en columnas de izquierda a derecha y lo suelto en filas al final, sin tarjetas encimadas. Se deshace con Ctrl+Z.
+- **Guion.** Una escena nueva queda lista para escribir. El tiempo vacío ya no muestra un valor de ejemplo que parecía cargado.
+- **Paleta.** El código del color se puede escribir o pegar (#RGB o #RRGGBB).
