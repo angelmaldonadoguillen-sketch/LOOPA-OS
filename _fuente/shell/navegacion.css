@@ -12,6 +12,36 @@
 /* Tablet: la barra lateral es angosta (sólo íconos); los títulos de grupo no entran. */
 @media (max-width: 900px) {
   .nav-grupo { display: none; }
+  .sidebar-plegar { display: none; }
+}
+
+/* Barra lateral plegable (escritorio; en tablet y celular ya es compacta). */
+.gsearch-plegado { display: none; }
+@media (min-width: 901px) {
+  .app { transition: grid-template-columns .18s ease; }
+  .sidebar { min-width: 0; }
+  /* Si la ventana es baja, el menú se desplaza y el botón de contraer sigue a la vista. */
+  .sidebar .nav { flex: 0 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+  .sidebar .nav::-webkit-scrollbar { display: none; }
+  .nav-item, .nav-grupo { white-space: nowrap; }
+  .sidebar-plegar { flex: none; margin-top: auto; padding: 8px; border-top: 1px solid var(--line); }
+  .sidebar-plegar .nav-item { width: 100%; color: var(--dim); }
+  .sidebar-plegar .nav-item:hover { color: var(--text); }
+
+  .app.collapsed .sidebar-brand { padding: 22px 6px 18px; }
+  .app.collapsed .sidebar-brand svg { width: 42px; height: auto; }
+  .app.collapsed .gsearch-wrap { padding: 8px; }
+  .app.collapsed .gsearch { display: none; }
+  .app.collapsed .gsearch-plegado { display: flex; justify-content: center; width: 100%; padding: 11px 0; border-radius: 999px; color: var(--muted); }
+  .app.collapsed .gsearch-plegado:hover { background: #111; color: var(--text); }
+  .app.collapsed .nav-item { justify-content: center; padding-left: 0; padding-right: 0; }
+  .app.collapsed .nav-item > span { display: none; }
+  /* Los títulos de grupo pasan a ser una línea que separa los grupos. */
+  .app.collapsed .nav-grupo { height: 1px; margin: 8px 12px; padding: 0; overflow: hidden; color: transparent; background: var(--line); }
+  .app.collapsed .nav-agrupada .nav-grupo:first-child { display: none; }
+}
+@media (min-width: 901px) and (prefers-reduced-motion: reduce) {
+  .app { transition: none; }
 }
 
 @media (max-width: 640px) {

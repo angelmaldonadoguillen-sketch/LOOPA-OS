@@ -49,6 +49,14 @@ test('sin Producción, el menú es el original (la navegación agrupada sólo co
   ['nueva', 'ventas', 'servicios', 'clientes', 'produccion', 'metricas', 'gastos', 'config'].forEach(id => assert.match(nav, new RegExp(`'${id}'`), id));
 });
 
+test('la barra lateral se contrae y lo recuerda en este equipo', () => {
+  const app = read('_fuente/app.jsx');
+  assert.match(app, /<div className=\{`app\$\{barraPlegada \? ' collapsed' : ''\}`\}>/);
+  assert.match(app, /localStorage\.getItem\('loopa-barra-plegada'\) === '1'/);
+  assert.match(app, /localStorage\.setItem\('loopa-barra-plegada', barraPlegada \? '1' : '0'\)/);
+  assert.match(app, /onClick=\{\(\) => setBarraPlegada\(v => !v\)\} aria-expanded=\{!barraPlegada\}/);
+});
+
 test('el módulo no depende de globales de FRAME ni escribe datos', () => {
   // TODOS los archivos del módulo (y la navegación).
   const archivos = ['_fuente/produccion/calendario.jsx', '_fuente/produccion/nucleo.js', '_fuente/produccion/datos-reales.js', '_fuente/produccion/tablero.jsx', '_fuente/produccion/resumen.jsx', '_fuente/produccion/cliente.jsx', '_fuente/shell/navegacion.jsx'];

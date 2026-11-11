@@ -403,16 +403,18 @@ function Icon({ name, size = 16 }) {
     case 'calendar': return <svg {...c}><rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>;
     case 'board':    return <svg {...c}><rect x="3" y="4" width="5" height="16"/><rect x="10" y="4" width="5" height="10"/><rect x="17" y="4" width="4" height="13"/></svg>;
     case 'users':    return <svg {...c}><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.9 3.1-7 7-7s7 3.1 7 7M16 4.5a3.5 3.5 0 0 1 0 7M18 13.5c2.4.9 4 3.2 4 6.5"/></svg>;
+    case 'panel':    return <svg {...c}><rect x="3" y="4" width="18" height="16"/><path d="M9 4v16"/></svg>;
     default: return null;
   }
 }
 
 // Logo oficial. Compacto (logo-loopa.svg) en el menú; "largo" (logo-loopa-largo.svg,
 // loop extendido) en acceso y carga. Toma el color del texto que lo rodea.
-function LoopaMark({ height = 30, largo = false }) {
+// "corto": sólo la L y el loop, para la barra lateral plegada.
+function LoopaMark({ height = 30, largo = false, corto = false }) {
   const L0 = (largo ? window.LOOPA_SVG_LARGO : window.LOOPA_SVG) || { viewBox: largo ? '0 0 487.99 31.12' : '0 0 201.77 31.12', inner: '' };
   return (
-    <svg viewBox={L0.viewBox} height={height} style={{ display: 'block', fill: 'currentColor', maxWidth: '100%' }} aria-label="LOOPA"
+    <svg viewBox={corto ? '0 0 102 31.12' : L0.viewBox} height={height} style={{ display: 'block', fill: 'currentColor', maxWidth: '100%' }} aria-label="LOOPA"
       dangerouslySetInnerHTML={{ __html: L0.inner }} />
   );
 }
@@ -2876,6 +2878,15 @@ function App({ onLogout, usuarioFusion = null }) {
   const [focusN, setFocusN] = useState(null);
   const [gSearch, setGSearch] = useState('');
   const [gOpen, setGOpen] = useState(false);
+  // Barra lateral plegada a íconos: se recuerda en este equipo. El ícono de buscar
+  // de la barra plegada la abre y deja el cursor en el buscador.
+  const [barraPlegada, setBarraPlegada] = useState(() => { try { return localStorage.getItem('loopa-barra-plegada') === '1'; } catch (e) { return false; } });
+  const gInput = useRef(null);
+  const buscarAlAbrir = useRef(false);
+  useEffect(() => {
+    try { localStorage.setItem('loopa-barra-plegada', barraPlegada ? '1' : '0'); } catch (e) {}
+    if (!barraPlegada && buscarAlAbrir.current) { buscarAlAbrir.current = false; if (gInput.current) gInput.current.focus(); }
+  }, [barraPlegada]);
   const [colaEstado, setColaEstado] = useState({ pendientes: 0, error: null, etiquetas: [] });
   const cola = useRef(null);
   const recargarRef = useRef(() => {});
@@ -3418,16 +3429,19 @@ function App({ onLogout, usuarioFusion = null }) {
   const gClientes = gq.length >= 2 ? clientes.filter(c => norm(`${c.nombre} ${c.empresa} ${c.telefono}`).includes(gq)).slice(0, 4) : [];
 
   return (
-    <div className="app">
+    <div className={`app${barraPlegada ? ' collapsed' : ''}`}>
       <aside className="sidebar">
         <div className="sidebar-brand" onClick={() => goNueva(null)} title="Nueva venta" style={{ cursor: 'pointer', color: 'var(--accent)' }}>
-          <LoopaMark height={26} />
+          <LoopaMark height={26} corto={barraPlegada} />
         </div>
 
         {!soloProduccion && <div className="gsearch-wrap">
+          <button className="gsearch-plegado" title="Buscar venta o cliente" aria-label="Buscar venta o cliente" onClick={() => { buscarAlAbrir.current = true; setBarraPlegada(false); }}>
+            <Icon name="search" size={15} />
+          </button>
           <div className={`gsearch ${gOpen ? 'on' : ''}`}>
             <Icon name="search" size={12} />
-            <input placeholder="Buscar venta, cliente…" value={gSearch}
+            <input ref={gInput} placeholder="Buscar venta, cliente…" value={gSearch}
               onFocus={() => setGOpen(true)} onBlur={() => setTimeout(() => setGOpen(false), 180)}
               onChange={e => { setGSearch(e.target.value); setGOpen(true); }} />
             {gSearch && <button onClick={() => setGSearch('')} className="dim">×</button>}
@@ -3462,6 +3476,13 @@ function App({ onLogout, usuarioFusion = null }) {
           ))}
         </nav>
         )}
+
+        <div className="sidebar-plegar">
+          <button className="nav-item" onClick={() => setBarraPlegada(v => !v)} aria-expanded={!barraPlegada} title={barraPlegada ? 'Expandir barra' : 'Contraer barra'}>
+            <Icon name="panel" size={15} />
+            <span>Contraer</span>
+          </button>
+        </div>
       </aside>
 
       <div className="main">
