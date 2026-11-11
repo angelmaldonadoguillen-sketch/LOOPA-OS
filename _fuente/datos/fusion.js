@@ -104,6 +104,8 @@ const LoopaFusion = (function () {
       modelo: doc.modelo,
       recomendado: doc.recomendado,
       clienteIdEspecial: doc.specialClientId || '',
+      // Ficha del producto (qué incluye, patrón, proceso, costos): null en los viejos.
+      ficha: doc.ficha || null,
       // ¿Genera producción al venderse? (tiene plantilla activa)
       generaProduccion: !!(doc.executionPlan && doc.executionPlan.enabled),
     };
@@ -212,7 +214,7 @@ const LoopaFusion = (function () {
 
   const operacionServicio = (s) => ({
     fn: 'loopaSaveService',
-    data: { service: { id: s.id, nombre: s.nombre, categoria: s.categoria, unidad: s.unidad, modelo: s.modelo, descripcion: s.descripcion || '', precio: num(s.precio), costo: num(s.costo), activo: s.activo !== false, recomendado: s.recomendado === true, ...(s.modelo === 'especial' ? { specialClientId: s.clienteIdEspecial || '' } : {}) } },
+    data: { service: { id: s.id, nombre: s.nombre, categoria: s.categoria, unidad: s.unidad, modelo: s.modelo, descripcion: s.descripcion || '', precio: num(s.precio), costo: num(s.costo), activo: s.activo !== false, recomendado: s.recomendado === true, ...(s.modelo === 'especial' ? { specialClientId: s.clienteIdEspecial || '' } : {}), ...(s.ficha ? { ficha: s.ficha } : {}) } },
   });
 
   const operacionCliente = (c) => ({ fn: 'loopaSaveClient', data: { client: clienteParaServidor(c, c.id) } });

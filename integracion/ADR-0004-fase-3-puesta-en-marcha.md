@@ -894,3 +894,42 @@ El detalle y el orden del corte están en `integracion/puesta-en-marcha/PUNTO-B-
   - Al terminar, el script volvió a leer todo y confirmó que quedó en cero.
 - **Quedan:** usuarios, tableros, equipo, servicios, configuración, el registro de la migración (`loopa_migrations`) y el portfolio.
 - **Pruebas:** 6 sin red (`vaciar.test.cjs`) y 1 en el emulador (`vaciar-commit.test.cjs`). En total: 271 sin red y 36 en el emulador.
+## 30. Experiencia 1: la ficha del producto (2026-11-10)
+
+**Pedido.** Una venta tiene que reflejarse en el calendario. No más ventas abiertas: cada producto se define antes, con parámetros claros (qué incluye, proceso, checklist, utilidad). Al vender se elige la fecha de inicio y el fin se calcula solo según la duración del paquete (empieza el 10, termina el 10 del mes siguiente). El calendario se acomoda a ese rango por patrones.
+
+**Modelo (`functions/production-plan/ficha.js`, puro).** Lo usan el servidor y la pantalla: `build.js` lo incluye como primer módulo, así las fechas que muestra la pantalla son las mismas que genera el servidor.
+- `duracion`: cantidad en días, semanas o meses. `rango(inicio, duracion)` da el fin; si el mes no tiene ese día, se ajusta al último.
+- `entregables`: nombre, detalle, cantidad, costo por entrega y patrón.
+  - `dia`: el día N del rango.
+  - `repartido`: N entregas parejas, sin caer en el último día.
+  - `semanal`: los días de la semana elegidos.
+  - `final`: el último día.
+- `proceso`: los pasos del checklist de cada entrega.
+- `costosExtra`: costos del paquete que no son de una entrega.
+- `costos`/`utilidad`: el costo típico cuenta las entregas semanales sobre 30 días; con un inicio real cuenta las fechas reales.
+- `faltantes`/`lista`: un producto está listo para vender con nombre, precio, al menos un entregable válido y proceso.
+
+**Servidor.** `saveService` acepta `ficha`, la normaliza y calcula `costo` desde ella; el costo escrito a mano ya no cuenta. Sin ficha, todo funciona como antes. **Hay que publicar `functions:loopa`.**
+
+**Pantalla.**
+- El catálogo pasa a llamarse **Productos**, con columnas de duración y estado («Lista para vender» o «Incompleta»).
+- El editor tiene 4 pasos (Producto, Qué incluye, Proceso, Utilidad):
+  - entregables con patrón y un color por entregable;
+  - vista previa «Así cae en el calendario»;
+  - pasos sugeridos para el proceso;
+  - utilidad con su margen y una barra.
+- En el teléfono sólo se muestra el nombre del paso activo.
+
+**Pruebas.**
+- 279 sin red, 7 de ellas nuevas en `ficha.test.cjs` y 1 en `servidor.test.cjs`.
+- 20 de Producción, 36 en el emulador y 11 de funciones.
+
+**Verificado en el emulador.** Creé desde la pantalla «Plan Impulso redes»:
+- precio 12.000 y 1 mes;
+- 12 posts repartidos, reels L·X·V y una sesión el día 3;
+- 4 pasos de proceso y pauta 1.000.
+
+El servidor la guardó normalizada, con costo 9.500. El catálogo la muestra «Lista para vender» con 21 % de margen. En el teléfono no hay desborde.
+
+**Sigue:** la venta cerrada (sólo productos listos, fecha de inicio, vista previa del calendario y precio fijo con descuento) y después el servidor que genera una tarjeta por entrega.

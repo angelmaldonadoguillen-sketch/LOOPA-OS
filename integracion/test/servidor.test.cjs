@@ -379,6 +379,30 @@ test('servicios desde LOOPA: lo comercial sí, la plantilla de producción no', 
   assert.equal(await kindOf(server.saveService(store, { uid: 'u-prod' }, { service: { id: 'SRV-X', nombre: 'X', modelo: 'unitario', precio: 1, costo: 0 } }, { now })), 'permission-denied:');
 });
 
+test('ficha del producto: se guarda normalizada y el costo sale de ella', async () => {
+  const store = seeded();
+  const ficha = {
+    duracion: { cantidad: 1, unidad: 'meses' },
+    entregables: [{ id: 'posts', nombre: 'Post', cantidad: 12, costo: 100, patron: { tipo: 'repartido' } }, { nombre: 'Sesión', costo: 1500, patron: { tipo: 'dia', dia: 3 }, hack: true }],
+    proceso: [{ texto: 'Idea' }, { texto: '' }],
+    costosExtra: [{ concepto: 'Pauta', monto: 2000 }],
+    executionPlan: { enabled: true },
+  };
+  await server.saveService(store, U, { service: { id: 'SRV-PLAN-1', nombre: 'Plan redes', modelo: 'plan', precio: 10000, costo: 1, ficha } }, { now });
+  const doc = await store.get('loopa_services', 'SRV-PLAN-1');
+  assert.equal(doc.costo, 12 * 100 + 1500 + 2000, 'el costo escrito a mano no cuenta');
+  assert.equal(doc.ficha.entregables[1].hack, undefined);
+  assert.equal(doc.ficha.entregables[1].id, 'e2');
+  assert.deepEqual(doc.ficha.proceso, [{ id: 'p1', texto: 'Idea' }]);
+  assert.equal(doc.ficha.executionPlan, undefined);
+  assert.equal(doc.executionPlan, null, 'la plantilla sigue sin viajar desde LOOPA');
+  // Sin ficha, el costo es el de siempre (servicios viejos).
+  await server.saveService(store, U, { service: { id: 'SRV-PLAN-1', nombre: 'Plan redes', modelo: 'plan', precio: 10000, costo: 50 } }, { now });
+  const d2 = await store.get('loopa_services', 'SRV-PLAN-1');
+  assert.equal(d2.costo, 50);
+  assert.ok(d2.ficha, 'guardar sin ficha no la borra');
+});
+
 test('avance comercial (D17): se guarda, no genera eventos y sólo con valores conocidos', async () => {
   const store = seeded();
   const draft = draftOf('paquete-mismo-dia');

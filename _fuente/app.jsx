@@ -1520,16 +1520,16 @@ function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVen
       <div className="page-head">
         <div>
           <div className="page-kicker">Catálogo</div>
-          <div className="page-title">Tipos de servicio</div>
-          <div className="page-desc">Lo que vende LOOPA. Cada tipo guarda nombre, precio y costo base; al vender solo lo elegís y ajustás el detalle. {activos} activos{archivados > 0 ? ` · ${archivados} archivados` : ''}.</div>
+          <div className="page-title">Productos</div>
+          <div className="page-desc">Lo que vende LOOPA. Cada producto trae qué incluye, cuándo cae cada entrega, su proceso y su utilidad; sólo los completos se pueden vender. {activos} activos{archivados > 0 ? ` · ${archivados} archivados` : ''}.</div>
         </div>
-        <button className="btn primary" onClick={() => setEditing({})}><Icon name="plus" size={12} /> Nuevo tipo</button>
+        <button className="btn primary" onClick={() => setEditing({})}><Icon name="plus" size={12} /> Nuevo producto</button>
       </div>
 
       <div className="filterbar">
         <div className="filter-group">
           <Icon name="search" size={13} />
-          <input className="fg-input" style={{ width: 200 }} placeholder="Buscar tipo…" value={q} onChange={e => setQ(e.target.value)} />
+          <input className="fg-input" style={{ width: 200 }} placeholder="Buscar producto…" value={q} onChange={e => setQ(e.target.value)} />
         </div>
         <div className="filter-group">
           <span className="flabel">Categoría</span>
@@ -1564,7 +1564,7 @@ function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVen
               <thead>
                 <tr>
                   {[
-                    { col: 'nombre', label: 'Servicio' }, { col: null, label: 'Modelo' }, { col: 'categoria', label: 'Categoría' }, { col: null, label: 'Unidad' },
+                    { col: 'nombre', label: 'Servicio' }, { col: null, label: 'Modelo' }, { col: 'categoria', label: 'Categoría' }, { col: null, label: 'Duración' }, { col: null, label: 'Estado' },
                     { col: 'precio', label: 'Precio base', r: 1 }, { col: null, label: 'Costo', r: 1 }, { col: 'margen', label: 'Margen', r: 1 },
                     { col: 'q', label: 'Vendidos', r: 1 }, { col: 'ingresos', label: 'Ingresos', r: 1 }, { col: 'ultima', label: 'Última venta' }, { col: null, label: '' },
                   ].map((h, i) => (
@@ -1592,7 +1592,8 @@ function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVen
                         </div>
                       </td>
                       <td><span className="srv-chip">{s.categoria}</span></td>
-                      <td className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>{s.unidad}</td>
+                      <td className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>{s.ficha ? LoopaFicha.describirDuracion(LoopaFicha.normalizarFicha(s.ficha).duracion) : '—'}</td>
+                      <td><FichaEstado servicio={s} compacto /></td>
                       <td className="num">{L(s.precio)}</td>
                       <td className="num dim">{num(s.costo) > 0 ? L(s.costo) : '—'}</td>
                       <td className="num" style={{ color: margen == null ? 'var(--dim)' : margen >= 50 ? 'var(--ok)' : margen >= 25 ? 'var(--warn)' : 'var(--danger)' }}>{margen == null ? '—' : `${margen.toFixed(0)}%`}</td>
@@ -1605,7 +1606,7 @@ function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVen
                     </tr>
                   );
                 })}
-                {sorted.length === 0 && <tr><td colSpan="11" className="mono" style={{ textAlign: 'center', padding: 32, color: 'var(--muted)', cursor: 'default' }}>Ningún tipo coincide</td></tr>}
+                {sorted.length === 0 && <tr><td colSpan="12" className="mono" style={{ textAlign: 'center', padding: 32, color: 'var(--muted)', cursor: 'default' }}>Ningún tipo coincide</td></tr>}
               </tbody>
             </table>
           </div>
@@ -1627,46 +1628,55 @@ function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClos
   const [paso, setPaso] = useState(1);
   const [d, setD] = useState(() => ({
     nombre: servicio.nombre || '', categoria: servicio.categoria || categorias[0] || 'Otro', unidad: servicio.unidad || 'proyecto',
-    precio: servicio.precio != null ? String(servicio.precio) : '', costo: servicio.costo != null ? String(servicio.costo) : '',
+    precio: servicio.precio != null ? String(servicio.precio) : '',
     descripcion: servicio.descripcion || '', activo: servicio.activo !== false,
     modelo: modeloServicio(servicio), recomendado: servicio.recomendado === true, clienteIdEspecial: servicio.clienteIdEspecial || '',
+    ficha: servicio.ficha ? LoopaFicha.normalizarFicha(servicio.ficha) : fichaVacia(),
   }));
   const set = (k) => (e) => setD(x => ({ ...x, [k]: e.target.value }));
+  const setFicha = (patch) => setD(x => ({ ...x, ficha: { ...x.ficha, ...patch } }));
   const dup = servicios.find(s => s.id !== servicio.id && norm(s.nombre) === norm(d.nombre));
   const st = stats[servicio.id] || {};
-  const margen = num(d.precio) > 0 ? ((num(d.precio) - num(d.costo)) / num(d.precio)) * 100 : null;
   const ofertaValida = !!d.nombre.trim() && !dup;
   const alcanceValido = d.modelo !== 'especial' || !!d.clienteIdEspecial;
-  const steps = [{ n: '01', t: 'Oferta' }, { n: '02', t: 'Alcance' }, { n: '03', t: 'Finanzas' }];
-  const puedeAbrir = (n) => n <= paso || (n === 2 && ofertaValida) || (n === 3 && ofertaValida && alcanceValido);
+  const fichaLimpia = LoopaFicha.normalizarFicha(d.ficha);
+  const borrador = { nombre: d.nombre, precio: num(d.precio), ficha: fichaLimpia };
+  const steps = [{ n: '01', t: 'Producto' }, { n: '02', t: 'Qué incluye' }, { n: '03', t: 'Proceso' }, { n: '04', t: 'Utilidad' }];
+  const puedeAbrir = (n) => n <= paso || (ofertaValida && alcanceValido);
   const save = () => {
-    if (!d.nombre.trim() || dup || (d.modelo === 'especial' && !d.clienteIdEspecial)) return;
+    if (!ofertaValida || !alcanceValido) return;
+    const u = LoopaFicha.utilidad(fichaLimpia, num(d.precio));
     onSave({
       ...servicio, ...d,
-      nombre: d.nombre.trim(), categoria: d.categoria.trim() || 'Otro', precio: num(d.precio), costo: num(d.costo), descripcion: d.descripcion.trim(),
+      nombre: d.nombre.trim(), categoria: d.categoria.trim() || 'Otro', precio: num(d.precio), costo: u.costo, descripcion: d.descripcion.trim(),
+      // La unidad sale de la duración: un paquete de meses se cobra por mes.
+      unidad: fichaLimpia.duracion.unidad === 'meses' ? 'mes' : d.unidad,
       recomendado: d.modelo === 'plan' && d.recomendado === true,
       clienteIdEspecial: d.modelo === 'especial' ? d.clienteIdEspecial : '',
+      ficha: fichaLimpia,
     });
   };
+  // Un ejemplo de inicio para la vista previa: el próximo lunes.
+  const inicioEjemplo = (() => { const t = today(); const w = LoopaFicha.diaSemana(t); return LoopaFicha.sumarDias(t, w === 1 ? 0 : 8 - w); })();
   return (
-    <Modal kicker={isNew ? 'Catálogo · nueva plantilla' : `Catálogo · ${servicio.id}`} title={isNew ? 'Nuevo servicio' : servicio.nombre} onClose={onClose} width={760}
+    <Modal kicker={isNew ? 'Catálogo · nuevo producto' : `Catálogo · ${servicio.id}`} title={isNew ? 'Nuevo producto' : servicio.nombre} onClose={onClose} width={860}
       footer={<>
         {onRemove && <button className="btn sm ghost" style={{ color: 'var(--danger)', marginRight: 'auto' }} onClick={onRemove}>
           <Icon name={st.ventas ? 'archive' : 'trash'} size={12} /> {st.ventas ? 'Archivar' : 'Eliminar'}
         </button>}
         <button className="btn sm ghost" onClick={onClose}>Cancelar</button>
         {paso > 1 && <button className="btn sm ghost" onClick={() => setPaso(p => p - 1)}><Icon name="arrow-l" size={12} /> Volver</button>}
-        {paso < 3
-          ? <button className="btn sm primary" disabled={paso === 1 ? !ofertaValida : !alcanceValido} onClick={() => setPaso(p => p + 1)}>Continuar <Icon name="arrow-r" size={12} /></button>
-          : <button className="btn sm primary" onClick={save} disabled={!ofertaValida || !alcanceValido}>{isNew ? 'Crear servicio' : 'Guardar cambios'}</button>}
+        {paso < 4 && <button className="btn sm ghost" disabled={!ofertaValida || !alcanceValido} onClick={() => setPaso(p => p + 1)}>Continuar <Icon name="arrow-r" size={12} /></button>}
+        <button className="btn sm primary" onClick={save} disabled={!ofertaValida || !alcanceValido}>{isNew ? 'Crear producto' : 'Guardar cambios'}</button>
       </>}>
       <div className="service-form-lead">
         <div>
           <div className="service-badges">
             <span className={`service-model ${d.modelo}`}>{MODELOS_SERVICIO.find(m => m.id === d.modelo)?.label}</span>
             {d.recomendado && <span className="service-recommended">Recomendado</span>}
+            <FichaEstado servicio={borrador} />
           </div>
-          <div className="service-form-copy">Esta plantilla define cómo se presenta el servicio en el catálogo y qué información pasa a Nueva venta.</div>
+          <div className="service-form-copy">Definilo una vez: qué incluye, cuándo cae cada entrega, el proceso y la utilidad. Sólo los productos completos se pueden vender, y cada venta pasa sola a Producción y al calendario.</div>
         </div>
         {!isNew && <span className={`service-availability ${d.activo ? 'active' : 'archived'}`}>{d.activo ? 'Disponible' : 'Archivado'}</span>}
       </div>
@@ -1689,17 +1699,25 @@ function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClos
       </div>
       {paso === 1 && (
         <div className="service-form-stage">
-          <div className="service-stage-head"><span>01</span><div><b>Definición de la oferta</b><small>Lo que el equipo seleccionará en Nueva venta.</small></div></div>
+          <div className="service-stage-head"><span>01</span><div><b>El producto</b><small>Cómo se llama, cuánto cuesta y cuánto dura el paquete.</small></div></div>
           <div className="grid-2">
             <div className="field" style={{ gridColumn: '1 / -1' }}>
-              <label>Nombre <span className="req">*</span> {dup && <span style={{ color: 'var(--danger)' }}>· ya existe un servicio con ese nombre</span>}</label>
-              <input className="input" autoFocus value={d.nombre} onChange={set('nombre')} placeholder="Ej. Plan Impulso" />
+              <label>Nombre <span className="req">*</span> {dup && <span style={{ color: 'var(--danger)' }}>· ya existe un producto con ese nombre</span>}</label>
+              <input className="input" autoFocus value={d.nombre} onChange={set('nombre')} placeholder="Ej. Plan Impulso · redes mensual" />
+            </div>
+            <div className="field">
+              <label>Precio <span className="req">*</span></label>
+              <input className="input mono" inputMode="decimal" value={d.precio} onChange={set('precio')} placeholder="0" />
+            </div>
+            <div className="field">
+              <label>Duración del paquete</label>
+              <FichaDuracion duracion={d.ficha.duracion} onChange={duracion => setFicha({ duracion })} />
+              <div className="field-help">Al vender elegís el inicio; el fin se calcula solo ({LoopaFicha.describirDuracion(fichaLimpia.duracion)} después).</div>
             </div>
             <div className="field">
               <label>Modelo comercial</label>
               <select className="select" value={d.modelo} onChange={e => setD(x => ({
                 ...x, modelo: e.target.value,
-                unidad: e.target.value === 'plan' ? 'mes' : e.target.value === 'unitario' ? 'pieza' : x.unidad,
                 recomendado: e.target.value === 'plan' ? x.recomendado : false,
                 clienteIdEspecial: e.target.value === 'especial' ? x.clienteIdEspecial : '',
               }))}>{MODELOS_SERVICIO.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}</select>
@@ -1708,10 +1726,6 @@ function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClos
               <label>Categoría</label>
               <input className="input" list="loopa-cats-form" value={d.categoria} onChange={set('categoria')} />
               <datalist id="loopa-cats-form">{categorias.map(c => <option key={c} value={c} />)}</datalist>
-            </div>
-            <div className="field">
-              <label>Unidad de cobro</label>
-              <select className="select" value={d.unidad} onChange={set('unidad')}>{UNIDADES.map(u => <option key={u} value={u}>{u}</option>)}</select>
             </div>
             {d.modelo === 'plan' && (
               <div className="field">
@@ -1732,37 +1746,31 @@ function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClos
                 <div className="field-help">Solo aparecerá en Nueva venta cuando este cliente esté seleccionado.</div>
               </div>
             )}
+            <div className="field" style={{ gridColumn: '1 / -1' }}>
+              <label>Descripción para el cliente <span className="dim">(opcional)</span></label>
+              <textarea className="textarea" rows="2" value={d.descripcion} onChange={set('descripcion')} placeholder="Una línea que resuma la propuesta: para quién es y qué logra." />
+            </div>
           </div>
         </div>
       )}
       {paso === 2 && (
         <div className="service-form-stage">
-          <div className="service-stage-head"><span>02</span><div><b>Alcance reutilizable</b><small>La base que se copia a cada venta y luego puede ajustarse.</small></div></div>
-          <div className="field">
-            <label>Qué incluye</label>
-            <textarea className="textarea service-scope" rows="8" autoFocus value={d.descripcion} onChange={set('descripcion')} placeholder="Entregables, frecuencia, límites, seguimiento y exclusiones principales…" />
-            <div className="field-help">Escribí el alcance comercial, no el proceso interno. Esta información aparecerá como detalle editable de la venta.</div>
-          </div>
+          <div className="service-stage-head"><span>02</span><div><b>Qué incluye</b><small>Cada entregable, cuántas veces y cuándo cae dentro del paquete. Cada entrega será una tarjeta en Producción.</small></div></div>
+          <FichaEntregables ficha={d.ficha} onChange={entregables => setFicha({ entregables })} />
+          <FichaLinea ficha={d.ficha} inicio={inicioEjemplo} />
         </div>
       )}
       {paso === 3 && (
         <div className="service-form-stage">
-          <div className="service-stage-head"><span>03</span><div><b>Finanzas y disponibilidad</b><small>Valores base para cotizar sin alterar ventas históricas.</small></div></div>
-          <div className="grid-2">
-            <div className="field">
-              <label>Precio base</label>
-              <input className="input mono" autoFocus inputMode="decimal" value={d.precio} onChange={set('precio')} placeholder="0" />
-            </div>
-            <div className="field">
-              <label>Costo base</label>
-              <input className="input mono" inputMode="decimal" value={d.costo} onChange={set('costo')} placeholder="0" />
-            </div>
-          </div>
-          <div className="service-finance-preview">
-            <div><span>Precio</span><b>{L(d.precio)}</b></div>
-            <div><span>Costo</span><b>{L(d.costo)}</b></div>
-            <div><span>Margen estimado</span><b className={margen != null && margen < 25 ? 'low' : ''}>{margen == null ? '—' : `${margen.toFixed(0)}%`}</b></div>
-          </div>
+          <div className="service-stage-head"><span>03</span><div><b>Proceso</b><small>Los pasos que sigue cada entrega. Llegan como checklist a cada tarjeta.</small></div></div>
+          <FichaProceso proceso={d.ficha.proceso} onChange={proceso => setFicha({ proceso })} />
+        </div>
+      )}
+      {paso === 4 && (
+        <div className="service-form-stage">
+          <div className="service-stage-head"><span>04</span><div><b>Utilidad</b><small>Lo que te cuesta cada entrega ya está en «Qué incluye». Sumá acá lo que es del paquete completo.</small></div></div>
+          <FichaCostosExtra costosExtra={d.ficha.costosExtra} onChange={costosExtra => setFicha({ costosExtra })} />
+          <FichaUtilidad ficha={d.ficha} precio={num(d.precio)} />
           {!isNew && (
             <div className="field" style={{ marginTop: 18 }}>
               <label>Disponibilidad en Nueva venta</label>
@@ -1772,7 +1780,7 @@ function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClos
               </div>
             </div>
           )}
-          {!isNew && <div className="service-history-note">Los cambios aplican a ventas nuevas. Las ventas anteriores conservan nombre, alcance y precio registrados.</div>}
+          {!isNew && <div className="service-history-note">Los cambios aplican a ventas nuevas. Las ventas anteriores conservan lo que se vendió.</div>}
         </div>
       )}
     </Modal>
@@ -3229,6 +3237,7 @@ function App({ onLogout, usuarioFusion = null }) {
       modelo: d.modelo || (d.unidad === 'mes' ? 'plan' : d.unidad === 'pieza' ? 'unitario' : 'proyecto'),
       recomendado: d.modelo === 'plan' && d.recomendado === true,
       clienteIdEspecial: d.modelo === 'especial' ? (d.clienteIdEspecial || '') : '',
+      ...(d.ficha ? { ficha: d.ficha } : {}),
     };
     // Con la fusión se guarda en el catálogo ANTES que la venta que lo usa (la cola va en orden).
     if (DATOS_FUSION && !encolar(`Servicio «${s.nombre}»`, [LoopaFusion.operacionServicio(s)])) return null;
@@ -3248,7 +3257,7 @@ function App({ onLogout, usuarioFusion = null }) {
   const handleSaveServicio = (s) => {
     if (s.id) {
       if (DATOS_FUSION && !encolar(`Servicio «${s.nombre}»`, [LoopaFusion.operacionServicio(s)])) return;
-      setServicios(prev => prev.map(x => x.id === s.id ? s : x)); addCategoria(s.categoria); showToast('✓ Tipo guardado');
+      setServicios(prev => prev.map(x => x.id === s.id ? s : x)); addCategoria(s.categoria); showToast('✓ Producto guardado');
     }
     else handleCreateServicio(s);
   };

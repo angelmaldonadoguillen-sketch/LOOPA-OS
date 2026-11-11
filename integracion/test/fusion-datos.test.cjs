@@ -79,7 +79,9 @@ test('lectura: misma forma que el lector de la migración (paridad con compat.js
   });
   docs('frame_clients').filter(c => c.commercial).forEach(c => assert.deepEqual(F.clienteDesdeDoc(c), compat.toLegacyCliente(c)));
   docs('loopa_services').forEach(s => {
-    const { generaProduccion, ...resto } = F.servicioDesdeDoc(s);
+    // La ficha del producto es nueva (etapa «experiencia»): el lector viejo no la conoce.
+    const { generaProduccion, ficha, ...resto } = F.servicioDesdeDoc(s);
+    assert.equal(ficha, null, 'un servicio migrado no trae ficha');
     assert.deepEqual(resto, compat.toLegacyServicio(s));
   });
 });

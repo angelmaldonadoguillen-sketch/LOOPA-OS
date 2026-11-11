@@ -1,0 +1,84 @@
+/* ═══ Ficha del producto (etapa «experiencia») ═══════════════════ */
+.ficha-duracion { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ficha-duracion .qty { width: 120px; }
+
+.ficha-vacio { display: flex; flex-direction: column; gap: 6px; padding: 18px; border: 1px dashed var(--line-2); border-radius: 14px; color: var(--muted); font-size: var(--fs-s); line-height: 1.6; }
+.ficha-vacio b { color: var(--text); font-size: var(--fs-m); font-weight: 500; }
+.ficha-vacio i { font-style: normal; color: var(--text); }
+
+.ficha-entregables, .ficha-proceso, .ficha-costos { display: flex; flex-direction: column; gap: 10px; }
+.ficha-ent { position: relative; padding: 14px 14px 12px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.ficha-ent::before { content: ''; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 0 3px 3px 0; background: var(--tono); }
+.ficha-ent-top { display: flex; align-items: center; gap: 10px; }
+.ficha-ent-dot { width: 10px; height: 10px; flex: 0 0 10px; border-radius: 50%; background: var(--tono); box-shadow: 0 0 0 4px color-mix(in srgb, var(--tono) 18%, transparent); }
+.ficha-ent-nombre { flex: 1; min-width: 0; font-weight: 500; }
+.ficha-ent-detalle { width: 100%; margin-top: 8px; }
+.ficha-ent-patron { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.ficha-patron-tipos { display: flex; flex-wrap: wrap; gap: 6px; }
+.ficha-patron { padding: 6px 12px; border: 1px solid var(--line); border-radius: var(--r-pill); background: transparent; color: var(--muted); font: inherit; font-size: var(--fs-s); cursor: pointer; }
+.ficha-patron:hover { color: var(--text); border-color: var(--line-2); }
+.ficha-patron.on { color: #121211; background: var(--tono); border-color: var(--tono); }
+.ficha-patron-params { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.ficha-patron-params .qty { width: 112px; }
+.ficha-patron-params label > .input { width: 112px; }
+.ficha-dias { display: flex; gap: 4px; }
+.ficha-dias button { width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 50%; background: transparent; color: var(--muted); font: inherit; font-size: var(--fs-s); cursor: pointer; }
+.ficha-dias button.on { background: var(--tono); border-color: var(--tono); color: #121211; font-weight: 600; }
+.ficha-ent-resumen { color: var(--dim); font-size: var(--fs-s); letter-spacing: .06em; }
+
+.ficha-add { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border: 1px dashed var(--line-2); border-radius: var(--r-pill); background: transparent; color: var(--muted); font: inherit; font-size: var(--fs-s); cursor: pointer; }
+.ficha-add:hover { color: var(--accent); border-color: var(--accent); }
+
+/* Línea de tiempo */
+.ficha-linea { margin-top: 16px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--surface) 70%, transparent); }
+.ficha-linea-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.ficha-linea-head .mono { color: var(--muted); font-size: var(--fs-s); }
+.ficha-linea-fila { display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 12px; height: 26px; }
+.ficha-linea-nombre { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--muted); font-size: var(--fs-s); }
+.ficha-linea-pista { position: relative; height: 2px; background: var(--line); border-radius: 2px; }
+.ficha-linea-punto { position: absolute; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: var(--tono); box-shadow: 0 0 0 3px var(--bg); }
+.ficha-linea-eje { display: grid; grid-template-columns: 120px 1fr auto 1fr auto; gap: 12px; margin-top: 10px; color: var(--dim); font-size: var(--fs-s); letter-spacing: .08em; text-transform: uppercase; }
+.ficha-linea-eje span:nth-child(1) { grid-column: 2; }
+.ficha-linea-eje span:nth-child(2) { grid-column: 3; }
+.ficha-linea-eje span:nth-child(3) { grid-column: 5; }
+
+/* Proceso */
+.ficha-pasos { display: flex; flex-direction: column; gap: 8px; counter-reset: paso; }
+.ficha-paso { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 10px; }
+.ficha-paso-n { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border: 1px solid var(--line-2); border-radius: 50%; color: var(--accent); font-size: var(--fs-s); }
+.ficha-paso-acc { display: flex; gap: 4px; }
+.ficha-sugeridos { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
+
+/* Costos y utilidad */
+.ficha-costo { display: grid; grid-template-columns: 1fr 120px auto; gap: 8px; align-items: center; }
+.ficha-utilidad { margin-top: 16px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.ficha-util-filas > div, .ficha-util-total > div:first-child { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.ficha-util-filas { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; background: var(--surface); }
+.ficha-util-filas span { color: var(--muted); font-size: var(--fs-s); }
+.ficha-util-total { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; border-top: 1px solid var(--line); }
+.ficha-util-total > div:first-child { flex-direction: column; align-items: flex-start; gap: 4px; }
+.ficha-util-total span { color: var(--dim); font-family: var(--font-mono); font-size: var(--fs-s); letter-spacing: .1em; text-transform: uppercase; }
+.ficha-util-total b { font-size: 22px; font-weight: 500; }
+.ficha-util-margen { font-size: 30px; letter-spacing: -.02em; }
+.ficha-util-total.ok .ficha-util-margen { color: var(--ok); }
+.ficha-util-total.warn .ficha-util-margen { color: var(--warn); }
+.ficha-util-total.bad .ficha-util-margen { color: var(--danger); }
+.ficha-util-barra { height: 4px; background: var(--line); }
+.ficha-util-barra span { display: block; height: 100%; background: var(--muted); transition: width .3s ease; }
+.ficha-util-barra span.ok { background: var(--ok); }
+.ficha-util-barra span.warn { background: var(--warn); }
+.ficha-util-barra span.bad { background: var(--danger); }
+
+/* Estado en el catálogo */
+.ficha-estado { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: var(--r-pill); font-size: var(--fs-s); white-space: nowrap; }
+.ficha-estado.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.ficha-estado.falta { color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); }
+
+@media (max-width: 640px) {
+  /* Cuatro pasos no entran: se ve el número de todos y el nombre del activo. */
+  .service-form-stepper .step:not(.active) .t { display: none; }
+  .service-form-stepper .step.active { flex: 2.4; }
+  .ficha-linea-fila { grid-template-columns: 80px 1fr; }
+  .ficha-linea-eje { grid-template-columns: 80px 1fr auto 1fr auto; }
+  .ficha-costo { grid-template-columns: 1fr 90px auto; }
+}

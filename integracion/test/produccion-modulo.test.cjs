@@ -17,8 +17,9 @@ const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
 test('el build incluye los módulos de Producción antes de app.jsx', () => {
   const build = read('_fuente/build.js');
   // Tanda 3.3: los módulos de datos de la fusión van primero.
-  assert.match(build, /const MODULES = \['datos\/fusion\.js', 'datos\/fuente\.js', 'produccion\/nucleo\.js', 'produccion\/datos-reales\.js', 'produccion\/calendario\.jsx', 'produccion\/tablero\.jsx', 'produccion\/resumen\.jsx', 'produccion\/cliente\.jsx', 'shell\/navegacion\.jsx'\]/);
-  assert.match(build, /const MODULE_CSS = \['produccion\/produccion\.css', 'shell\/navegacion\.css'\]/);
+  // Etapa «experiencia»: la ficha del producto (la misma lógica que el servidor) va primero.
+  assert.match(build, /const MODULES = \['\.\.\/functions\/production-plan\/ficha\.js', 'datos\/fusion\.js', 'datos\/fuente\.js', 'produccion\/nucleo\.js', 'produccion\/datos-reales\.js', 'produccion\/calendario\.jsx', 'produccion\/tablero\.jsx', 'produccion\/resumen\.jsx', 'produccion\/cliente\.jsx', 'shell\/navegacion\.jsx', 'catalogo\/ficha\.jsx'\]/);
+  assert.match(build, /const MODULE_CSS = \['produccion\/produccion\.css', 'shell\/navegacion\.css', 'catalogo\/ficha\.css'\]/);
   const html = read('index.html');
   // index.html lleva el JS ya compilado (fase 4.6): se busca sin depender de espacios.
   const iNucleo = html.search(/const LoopaProduccion\s*=\s*\(?function/);

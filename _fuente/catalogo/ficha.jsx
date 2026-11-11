@@ -1,0 +1,221 @@
+// ═══════════════════════ FICHA DEL PRODUCTO ═══════════════════════
+// Etapa «experiencia»: un producto se define una vez —qué incluye, cuándo
+// cae cada entrega (patrón), el proceso que sigue y su utilidad— y queda
+// listo para vender. La lógica (fechas, costos, qué falta) vive en
+// functions/production-plan/ficha.js (LoopaFicha), la misma que usa el
+// servidor: lo que se ve acá es lo que después genera Producción.
+
+const FICHA_TONOS = ['#E8FF6B', '#7CC4FF', '#FF9F6B', '#C79BFF', '#6BF0C0', '#FF7AA8', '#F5D06B', '#9BE0FF'];
+const fichaTono = (i) => FICHA_TONOS[i % FICHA_TONOS.length];
+const fichaId = (p) => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const PATRON_OPCIONES = [
+  { id: 'repartido', label: 'Repartidas', ayuda: 'Parejas en todo el rango' },
+  { id: 'semanal', label: 'Cada semana', ayuda: 'Los días que elijas' },
+  { id: 'dia', label: 'Día fijo', ayuda: 'El día N del rango' },
+  { id: 'final', label: 'Al final', ayuda: 'El último día' },
+];
+const PASOS_SUGERIDOS = ['Brief', 'Producción', 'Edición', 'Revisión interna', 'Aprobación del cliente', 'Entregado'];
+const fmtCorta = (ymd) => { const [y, m, d] = ymd.split('-').map(Number); return `${d} ${['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'][m - 1]}`; };
+
+function fichaVacia() {
+  return { version: 1, duracion: { cantidad: 1, unidad: 'meses' }, entregables: [], proceso: [], costosExtra: [] };
+}
+
+// ── Duración del paquete ──────────────────────────────────────────
+function FichaDuracion({ duracion, onChange }) {
+  const max = LoopaFicha.MAX_DURACION[duracion.unidad];
+  return (
+    <div className="ficha-duracion">
+      <Qty value={duracion.cantidad} onChange={q => onChange({ ...duracion, cantidad: Math.max(1, Math.min(max, num(q) || 1)) })} />
+      <div className="segmented">
+        {[['dias', 'Días'], ['semanas', 'Semanas'], ['meses', 'Meses']].map(([u, l]) => (
+          <button key={u} className={duracion.unidad === u ? 'on' : ''}
+            onClick={() => onChange({ cantidad: Math.min(duracion.cantidad, LoopaFicha.MAX_DURACION[u]), unidad: u })}>{l}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Qué incluye ───────────────────────────────────────────────────
+function FichaEntregables({ ficha, onChange }) {
+  const lista = ficha.entregables;
+  const upd = (id, patch) => onChange(lista.map(e => (e.id === id ? { ...e, ...patch } : e)));
+  const updPatron = (e, patch) => upd(e.id, { patron: { ...e.patron, ...patch } });
+  const add = () => onChange([...lista, { id: fichaId('e'), nombre: '', detalle: '', cantidad: 1, costo: 0, patron: { tipo: 'repartido' } }]);
+  const del = (id) => onChange(lista.filter(e => e.id !== id));
+  const cambiarTipo = (e, tipo) => upd(e.id, {
+    patron: tipo === 'dia' ? { tipo, dia: 1 } : tipo === 'semanal' ? { tipo, dias: [1, 3, 5] } : { tipo },
+  });
+  const r = LoopaFicha.rango('2026-01-05', ficha.duracion);
+  return (
+    <div className="ficha-entregables">
+      {lista.length === 0 && (
+        <div className="ficha-vacio">
+          <b>¿Qué recibe el cliente?</b>
+          <span>Cada entregable se convierte en tarjetas de Producción, con su fecha en el calendario. Por ejemplo: <i>Post · 12 repartidas</i>, <i>Reel · lunes y jueves</i>, <i>Reporte · al final</i>.</span>
+        </div>
+      )}
+      {lista.map((e, i) => {
+        const n = LoopaFicha.fechasEntregable(LoopaFicha.normalizarFicha({ entregables: [e] }).entregables[0], r).length;
+        return (
+          <div className="ficha-ent" key={e.id} style={{ '--tono': fichaTono(i) }}>
+            <div className="ficha-ent-top">
+              <span className="ficha-ent-dot" />
+              <input className="input ficha-ent-nombre" placeholder="Nombre del entregable (ej. Post, Reel, Sesión de fotos)" value={e.nombre}
+                autoFocus={!e.nombre && i === lista.length - 1} onChange={ev => upd(e.id, { nombre: ev.target.value })} />
+              <button className="icon-btn danger" onClick={() => del(e.id)} title="Quitar"><Icon name="x" size={12} /></button>
+            </div>
+            <input className="input mini ficha-ent-detalle" placeholder="Detalle (opcional): 30 fotos editadas, 1080×1350, copy incluido…" value={e.detalle}
+              onChange={ev => upd(e.id, { detalle: ev.target.value })} />
+            <div className="ficha-ent-patron">
+              <div className="ficha-patron-tipos">
+                {PATRON_OPCIONES.map(p => (
+                  <button key={p.id} className={`ficha-patron ${e.patron.tipo === p.id ? 'on' : ''}`} onClick={() => cambiarTipo(e, p.id)} title={p.ayuda}>{p.label}</button>
+                ))}
+              </div>
+              <div className="ficha-patron-params">
+                {e.patron.tipo !== 'semanal' && (
+                  <label><span className="mini-lbl">{e.patron.tipo === 'repartido' ? 'Cuántas' : 'Entregas'}</span>
+                    <Qty value={e.cantidad} onChange={q => upd(e.id, { cantidad: Math.max(1, Math.min(200, q)) })} /></label>
+                )}
+                {e.patron.tipo === 'dia' && (
+                  <label><span className="mini-lbl">Día del rango</span>
+                    <Qty value={e.patron.dia} onChange={q => updPatron(e, { dia: Math.max(1, Math.min(r.dias + 1, q)) })} /></label>
+                )}
+                {e.patron.tipo === 'semanal' && (
+                  <div><span className="mini-lbl">Días</span>
+                    <div className="ficha-dias">
+                      {LoopaFicha.DIAS_SEMANA.map((d, k) => {
+                        const on = (e.patron.dias || []).includes(k + 1);
+                        return <button key={d} className={on ? 'on' : ''} onClick={() => updPatron(e, { dias: on ? e.patron.dias.filter(x => x !== k + 1) : [...(e.patron.dias || []), k + 1].sort() })}>{d}</button>;
+                      })}
+                    </div>
+                  </div>
+                )}
+                <label><span className="mini-lbl">Costo c/u</span>
+                  <input className="input mini mono" inputMode="decimal" value={e.costo === 0 ? '' : e.costo} placeholder="0"
+                    onChange={ev => upd(e.id, { costo: ev.target.value.replace(/[^\d.]/g, '') })} /></label>
+              </div>
+              <div className="ficha-ent-resumen mono">{n} {n === 1 ? 'entrega' : 'entregas'} · {LoopaFicha.describirPatron(LoopaFicha.normalizarFicha({ entregables: [e] }).entregables[0])}</div>
+            </div>
+          </div>
+        );
+      })}
+      <button className="ficha-add" onClick={add}><Icon name="plus" size={12} /> Agregar entregable</button>
+    </div>
+  );
+}
+
+// ── Línea de tiempo: cómo cae el paquete en el calendario ──────────
+function FichaLinea({ ficha, inicio }) {
+  const f = LoopaFicha.normalizarFicha(ficha);
+  const cal = LoopaFicha.calendario(f, inicio);
+  if (!cal.rango || !f.entregables.length) return null;
+  const { rango } = cal;
+  const pos = (ymd) => {
+    const dias = (Date.parse(ymd) - Date.parse(rango.inicio)) / 864e5;
+    return `${(dias / Math.max(rango.dias, 1)) * 100}%`;
+  };
+  return (
+    <div className="ficha-linea">
+      <div className="ficha-linea-head">
+        <span className="mini-lbl" style={{ margin: 0 }}>Así cae en el calendario</span>
+        <span className="mono">{fmtCorta(rango.inicio)} → {fmtCorta(rango.fin)} · {cal.entregas.length} {cal.entregas.length === 1 ? 'entrega' : 'entregas'}</span>
+      </div>
+      {f.entregables.map((e, i) => {
+        const suyas = cal.entregas.filter(x => x.entregableId === e.id);
+        return (
+          <div className="ficha-linea-fila" key={e.id} style={{ '--tono': fichaTono(i) }}>
+            <span className="ficha-linea-nombre">{e.nombre || 'Sin nombre'}</span>
+            <div className="ficha-linea-pista">
+              {suyas.map((x, k) => <span key={k} className="ficha-linea-punto" style={{ left: pos(x.fecha) }} title={`${e.nombre || 'Entrega'} ${x.n}/${x.total} · ${fmtCorta(x.fecha)}`} />)}
+            </div>
+          </div>
+        );
+      })}
+      <div className="ficha-linea-eje mono"><span>Inicio</span><span>{LoopaFicha.describirDuracion(f.duracion)}</span><span>Fin</span></div>
+    </div>
+  );
+}
+
+// ── Proceso: el checklist de cada entrega ─────────────────────────
+function FichaProceso({ proceso, onChange }) {
+  const upd = (id, texto) => onChange(proceso.map(p => (p.id === id ? { ...p, texto } : p)));
+  const add = (texto = '') => onChange([...proceso, { id: fichaId('p'), texto }]);
+  const del = (id) => onChange(proceso.filter(p => p.id !== id));
+  const mover = (i, d) => { const a = [...proceso]; const j = i + d; if (j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; onChange(a); };
+  const sugeridos = PASOS_SUGERIDOS.filter(s => !proceso.some(p => norm(p.texto) === norm(s)));
+  return (
+    <div className="ficha-proceso">
+      <div className="ficha-pasos">
+        {proceso.map((p, i) => (
+          <div className="ficha-paso" key={p.id}>
+            <span className="ficha-paso-n mono">{pad2(i + 1)}</span>
+            <input className="input" value={p.texto} placeholder="Paso del proceso" autoFocus={!p.texto && i === proceso.length - 1}
+              onChange={e => upd(p.id, e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && p.texto.trim()) add(); }} />
+            <div className="ficha-paso-acc">
+              <button className="icon-btn" disabled={i === 0} onClick={() => mover(i, -1)} title="Subir">↑</button>
+              <button className="icon-btn" disabled={i === proceso.length - 1} onClick={() => mover(i, 1)} title="Bajar">↓</button>
+              <button className="icon-btn danger" onClick={() => del(p.id)} title="Quitar"><Icon name="x" size={12} /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+      <button className="ficha-add" onClick={() => add()}><Icon name="plus" size={12} /> Agregar paso</button>
+      {sugeridos.length > 0 && (
+        <div className="ficha-sugeridos">
+          <span className="mini-lbl" style={{ margin: 0 }}>Sugeridos</span>
+          {sugeridos.map(s => <button key={s} className="chipbtn" onClick={() => add(s)}>+ {s}</button>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Costos extra y utilidad ───────────────────────────────────────
+function FichaCostosExtra({ costosExtra, onChange }) {
+  const upd = (id, patch) => onChange(costosExtra.map(c => (c.id === id ? { ...c, ...patch } : c)));
+  return (
+    <div className="ficha-costos">
+      {costosExtra.map(c => (
+        <div className="ficha-costo" key={c.id}>
+          <input className="input mini" placeholder="Concepto (pauta, licencia, transporte…)" value={c.concepto} onChange={e => upd(c.id, { concepto: e.target.value })} />
+          <input className="input mini mono" inputMode="decimal" placeholder="0" value={c.monto === 0 ? '' : c.monto} onChange={e => upd(c.id, { monto: e.target.value.replace(/[^\d.]/g, '') })} />
+          <button className="icon-btn danger" onClick={() => onChange(costosExtra.filter(x => x.id !== c.id))} title="Quitar"><Icon name="x" size={12} /></button>
+        </div>
+      ))}
+      <button className="ficha-add" onClick={() => onChange([...costosExtra, { id: fichaId('c'), concepto: '', monto: 0 }])}><Icon name="plus" size={12} /> Agregar costo del paquete</button>
+    </div>
+  );
+}
+
+function FichaUtilidad({ ficha, precio }) {
+  const f = LoopaFicha.normalizarFicha(ficha);
+  const c = LoopaFicha.costos(f);
+  const u = LoopaFicha.utilidad(f, precio);
+  const m = u.margen;
+  const tono = m == null ? '' : m >= 50 ? 'ok' : m >= 25 ? 'warn' : 'bad';
+  return (
+    <div className="ficha-utilidad">
+      <div className="ficha-util-filas">
+        <div><span>Precio</span><b className="mono">{L(precio)}</b></div>
+        <div><span>Costo de las entregas</span><b className="mono">−{L(c.entregables)}</b></div>
+        <div><span>Costos del paquete</span><b className="mono">−{L(c.extras)}</b></div>
+      </div>
+      <div className={`ficha-util-total ${tono}`}>
+        <div><span>Utilidad</span><b className="mono">{L(u.utilidad)}</b></div>
+        <div className="ficha-util-margen mono">{m == null ? '—' : `${m.toFixed(0)}%`}</div>
+      </div>
+      <div className="ficha-util-barra"><span className={tono} style={{ width: `${Math.max(0, Math.min(100, m || 0))}%` }} /></div>
+      {f.entregables.some(e => e.patron.tipo === 'semanal') && <div className="field-help">Las entregas semanales se cuentan para un paquete típico; en cada venta se usan las fechas reales.</div>}
+    </div>
+  );
+}
+
+// ── Estado: ¿se puede vender? ─────────────────────────────────────
+function FichaEstado({ servicio, compacto = false }) {
+  const falta = LoopaFicha.faltantes(servicio);
+  if (!falta.length) return <span className="ficha-estado ok"><Icon name="check" size={11} /> Lista para vender</span>;
+  return <span className="ficha-estado falta" title={`Falta: ${falta.join(', ')}`}>{compacto ? 'Incompleta' : `Falta: ${falta.join(', ')}`}</span>;
+}

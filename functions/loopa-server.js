@@ -19,6 +19,7 @@ const core = require('./production-plan');
 const repo = require('./repositories/sales');
 const { sanitizeError } = require('./production-plan/errors');
 const { todayInTimeZone } = require('./production-plan/dates');
+const Ficha = require('./production-plan/ficha');
 
 const { COLLECTIONS } = core;
 const CONFIG = 'loopa_config';
@@ -266,7 +267,11 @@ const saveService = asCall(async (store, auth, data, { now = () => new Date().to
   if (!/^SRV-[A-Za-z0-9_-]{1,60}$/.test(s.id) || s.id === UNCATALOGUED) throw new ServerError('invalid-argument', 'Id de servicio inválido');
   if (!texto(s.nombre)) throw new ServerError('invalid-argument', 'El servicio necesita nombre');
   if (!SERVICE_MODELS.includes(s.modelo)) throw new ServerError('invalid-argument', 'Modelo de servicio desconocido');
-  const precio = Number(s.precio), costo = Number(s.costo);
+  const precio = Number(s.precio);
+  // Ficha del producto (etapa «experiencia»): qué incluye, patrón de fechas,
+  // proceso y costos. Si viene, el costo sale de ella (no se escribe a mano).
+  const ficha = isPlain(s.ficha) ? Ficha.normalizarFicha(s.ficha) : undefined;
+  const costo = ficha ? Ficha.costos(ficha).total : Number(s.costo);
   if (!Number.isFinite(precio) || precio < 0 || !Number.isFinite(costo) || costo < 0) throw new ServerError('invalid-argument', 'Precio y costo deben ser números ≥ 0');
   let specialClientId = null;
   if (s.modelo === 'especial') {
@@ -279,6 +284,7 @@ const saveService = asCall(async (store, auth, data, { now = () => new Date().to
       nombre: texto(s.nombre), categoria: texto(s.categoria, 80) || 'Otro', unidad: texto(s.unidad, 40) || 'proyecto', modelo: s.modelo,
       descripcion: texto(s.descripcion, 2000), precio, costo, activo: s.activo !== false,
       recomendado: s.modelo === 'plan' && s.recomendado === true, specialClientId,
+      ...(ficha ? { ficha } : {}),
     };
     if (existing) {
       tx.update('loopa_services', s.id, { ...commercial, updatedBy: uid });
