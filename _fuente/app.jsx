@@ -46,6 +46,14 @@ const MODELOS_SERVICIO = [
 const modeloServicio = (s = {}) => s.modelo || (s.unidad === 'mes' ? 'plan' : s.unidad === 'pieza' ? 'unitario' : 'proyecto');
 const modeloLabel = (s) => MODELOS_SERVICIO.find(m => m.id === modeloServicio(s))?.label || 'Proyecto';
 const servicioDisponiblePara = (s, cliente) => modeloServicio(s) !== 'especial' || (!!cliente?.id && s.clienteIdEspecial === cliente.id);
+// Un cliente NUEVO cuyo nombre o empresa ya está en otra ficha casi siempre es
+// la misma empresa con otro contacto (así quedaron «Osman Garrido» y «KM Motos»).
+const posiblesDuplicados = (cliente, clientes) => {
+  if (!cliente || cliente.id) return [];
+  const claves = [cliente.nombre, cliente.empresa].map(norm).filter(k => k.length >= 3);
+  if (!claves.length) return [];
+  return (clientes || []).filter(c => [c.nombre, c.empresa].map(norm).some(k => k.length >= 3 && claves.includes(k))).slice(0, 3);
+};
 const snapshotServicio = (s) => ({
   tipoId: s.id, nombre: s.nombre, categoria: s.categoria, unidad: s.unidad,
   descripcion: s.descripcion || '', modelo: modeloServicio(s), recomendado: s.recomendado === true,
@@ -679,6 +687,7 @@ function PasoCliente({ cliente, setCliente, clientes, ventas, canales, nota, set
     for (const v of ventas) { if (v.clienteId && !seen.has(v.clienteId)) { seen.add(v.clienteId); const c = clientes.find(x => x.id === v.clienteId); if (c) out.push(c); } if (out.length >= 6) break; }
     return out;
   }, [ventas, clientes]);
+  const duplicados = posiblesDuplicados(cliente, clientes);
 
   return (
     <div className="panel crop">
@@ -724,6 +733,15 @@ function PasoCliente({ cliente, setCliente, clientes, ventas, canales, nota, set
             </div>
           )}
         </div>
+
+        {duplicados.length > 0 && (
+          <div className="cliente-repetido" role="status">
+            <span>Ya hay {duplicados.length === 1 ? 'un cliente' : 'clientes'} con ese nombre o empresa. Si es el mismo, usá su ficha para no duplicarlo.</span>
+            {duplicados.map(c => (
+              <button key={c.id} className="btn sm" onClick={() => apply(c)}>Usar {c.nombre}{c.empresa && norm(c.empresa) !== norm(c.nombre) ? ` · ${c.empresa}` : ''}</button>
+            ))}
+          </div>
+        )}
 
         <div className="grid-2">
           <div className="field">

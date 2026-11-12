@@ -86,7 +86,7 @@
   }
 
   // Igual que la regla: alcanza con que la CLAVE exista (aunque esté vacía).
-  const SALES_KEYS = ['commercial', 'legacyLoopaIds', 'hasSales'];
+  const SALES_KEYS = ['legacyLoopaIds', 'hasSales'];
   const clientHasSales = (c) => !!c && SALES_KEYS.some(k => Object.prototype.hasOwnProperty.call(c, k));
 
   const same = (a, b) => JSON.stringify(a === undefined ? null : a) === JSON.stringify(b === undefined ? null : b);

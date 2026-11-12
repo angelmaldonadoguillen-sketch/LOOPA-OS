@@ -1180,3 +1180,17 @@ Cada venta congela la ficha y el costo del producto al venderse. Por eso cambiar
 - **Fecha local.** `todayInTimeZone` ahora arma YYYY-MM-DD por partes. Con datos de idioma reducidos (el Node del emulador) `en-CA` caía a `en` y daba «11/11/2026», así que ninguna venta parecía en curso.
 
 Hay que redesplegar `functions:loopa`.
+
+
+## 45. Clientes: borrar los que nunca vendieron y no duplicar empresas (2026-11-11)
+
+Auditoría pedida por el usuario: al vender la Consultoría se creó la ficha «Osman Garrido» (empresa KM Motos), ya existía «KM Motos» (creada en §42) y al borrar «KM Motos» no pasaba nada.
+
+- **Causa del borrado.** La regla y la pantalla trataban como «con ventas» a toda ficha con la clave `commercial`, y `saveClient` la pone al crear cualquier cliente desde LOOPA. Así, ningún cliente creado desde LOOPA se podía borrar, aunque tuviera 0 ventas, y el aviso decía «tiene ventas» sin tenerlas.
+- **Arreglo.** Sólo `hasSales` (lo pone toda venta, también un borrador) y `legacyLoopaIds` (ventas migradas) impiden borrar. `commercial` sigue siendo del servidor (no se crea ni se edita desde el navegador). Se cambia en el borrador, en `firestore.rules.v2` (generado) y en `clientHasSales`.
+- **Duplicados.** Nueva venta avisa cuando un cliente nuevo tiene el nombre o la empresa de otra ficha (sin tildes ni mayúsculas) y ofrece «Usar» esa ficha (`posiblesDuplicados`).
+- **Tarjeta del cliente.** Muestra la empresa de LOOPA debajo del nombre cuando no es igual: «Osman Garrido» se ve como KM Motos.
+- **Datos reales (no se tocaron).** La venta de Consultoría quedó a nombre de «Osman Garrido»; «KM Motos» no tiene ventas ni tareas. Los paquetes Consultoría y Plan mensual ID Motos están hoy como «Plan mensual», no como acuerdo especial.
+- **Pruebas.** Reglas en el emulador 25/25 (ficha creada en LOOPA sin ventas se borra; con ventas, no). Sin red: 315. En el emulador: crear un cliente con `loopaSaveClient` y borrarlo desde Clientes funcionó; el aviso de duplicado aparece y «Usar» elige la ficha.
+
+Hay que publicar las reglas: `firebase deploy --only firestore:rules --config servidor-produccion/firebase.json --project frame-studio-3a18f`.

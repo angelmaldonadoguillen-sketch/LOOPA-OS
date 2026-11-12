@@ -269,6 +269,9 @@ test('fichas de cliente: lo comercial lo escribe el servidor; con historial no s
   await no(fsMod.updateDoc(ref(db, 'frame_clients', 'cm'), { commercial: fsMod.deleteField() }), 'quitar lo comercial');
   await no(fsMod.deleteDoc(ref(db, 'frame_clients', 'cm')), 'con historial comercial no se borra');
   await ok(fsMod.deleteDoc(ref(db, 'frame_clients', 'c1')), 'una ficha sin historial sí (FRAME)');
+  // Creada desde LOOPA (saveClient) sin vender: sólo «commercial». Se borra.
+  await env.withSecurityRulesDisabled(async (ctx) => { await fsMod.setDoc(ref(ctx.firestore(), 'frame_clients', 'cl'), { id: 'cl', name: 'KM Motos', workspaceId: 'ws1', commercial: { empresa: 'KM Motos' }, createdBy: 'u1' }); });
+  await ok(fsMod.deleteDoc(ref(db, 'frame_clients', 'cl')), 'creada en LOOPA sin ventas sí se borra');
   // u5 es miembro de los dos tableros: el rechazo es por la regla de LOOPA,
   // no porque no pertenezca al tablero destino.
   await no(fsMod.updateDoc(ref(as('u5'), 'frame_clients', 'cm'), { workspaceId: 'ws2' }), 'no se muda de tablero');

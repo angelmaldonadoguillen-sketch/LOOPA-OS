@@ -294,3 +294,6 @@ b, strong { font-weight: 500; }
 /* Editor de producto: costos nuevos y ventas en curso. */
 .costos-en-curso { flex: 1 1 100%; font-size: var(--fs-s, 12px); line-height: 1.5; color: var(--dim); padding: 10px 12px; border-radius: 8px; background: rgba(var(--accent-rgb), .07); border: 1px solid var(--line); }
 .costos-en-curso b { color: var(--text); }
+/* Nueva venta: cliente nuevo que ya existe con ese nombre o empresa */
+.cliente-repetido { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: -6px 0 16px; font-size: var(--fs-s, 12px); line-height: 1.5; color: var(--dim); padding: 10px 12px; border-radius: 8px; background: rgba(var(--accent-rgb), .07); border: 1px solid var(--line); }
+.cliente-repetido > span { flex: 1 1 260px; }

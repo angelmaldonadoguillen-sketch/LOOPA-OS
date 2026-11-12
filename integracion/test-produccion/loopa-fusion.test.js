@@ -42,13 +42,14 @@ const r3 = L.restorableFromTrash({ ...manual, clientId: '' }, { originId: 'ws1',
 assert.equal(Object.prototype.hasOwnProperty.call(r3.project, 'clientId'), false, 'un clientId vacío tampoco se recrea');
 
 // Fichas con ventas de LOOPA.
-assert.equal(L.clientHasSales({ commercial: {} }), true);
+// Creada desde LOOPA sin vender (sólo «commercial»): se puede borrar.
+assert.equal(L.clientHasSales({ commercial: {} }), false);
 assert.equal(L.clientHasSales({ legacyLoopaIds: ['CL-1'] }), true);
 assert.equal(L.clientHasSales({ hasSales: true }), true);
 // Como la regla: alcanza con que la clave exista, aunque esté vacía.
 assert.equal(L.clientHasSales({ legacyLoopaIds: [] }), true);
 assert.equal(L.clientHasSales({ hasSales: false }), true);
-assert.equal(L.clientHasSales({ commercial: null }), true);
+assert.equal(L.clientHasSales({ commercial: { empresa: 'KM Motos' }, hasSales: true }), true);
 assert.equal(L.clientHasSales({ name: 'x' }), false);
 
 // Editar una ficha: sólo lo de FRAME que cambió; lo del servidor, nunca.

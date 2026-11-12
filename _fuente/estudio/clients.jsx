@@ -150,6 +150,10 @@ const ClientCard = ({ client, projects, onClick, com = null, dinero = null }) =>
             <div className="font-semibold text-[15px] truncate mb-1" style={{ letterSpacing: '-0.01em' }}>
               {client.name}
             </div>
+            {/* La empresa de LOOPA, si no es el nombre: «Osman Garrido» es KM Motos. */}
+            {client.commercial?.empresa && client.commercial.empresa.trim().toLowerCase() !== client.name.trim().toLowerCase() && (
+              <div className="text-[12px] text-[var(--text-muted)] truncate mb-1">{client.commercial.empresa}</div>
+            )}
             <IndustryBadge industry={client.industry} color={clientColor} />
           </div>
           <Icon

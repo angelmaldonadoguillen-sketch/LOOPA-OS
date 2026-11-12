@@ -496,14 +496,18 @@ service cloud.firestore {
       // LOOPA: «commercial» (contacto y datos que traía LOOPA),
       // «legacyLoopaIds» (vínculo con las ventas migradas) y «hasSales» (la
       // marca que pone createSale/updateSale al vender a esta ficha) los
-      // escribe sólo el servidor. Una ficha con cualquiera de ellos no se
-      // borra: ventas y tareas la referencian por id, y ese id no puede
-      // quedar libre para que otro tablero lo ocupe.
+      // escribe sólo el servidor. Una ficha CON VENTAS («legacyLoopaIds» o
+      // «hasSales») no se borra: las ventas la referencian por id, y ese id
+      // no puede quedar libre para que otro tablero lo ocupe. Una ficha creada
+      // desde LOOPA que nunca vendió (sólo «commercial») sí se borra.
       function serverOwnedClientKeys() {
         return ['commercial', 'legacyLoopaIds', 'hasSales'];
       }
+      function clientSalesKeys() {
+        return ['legacyLoopaIds', 'hasSales'];
+      }
       allow read:   if memberOfExisting();
-      allow delete: if memberOfExisting() && !resource.data.keys().hasAny(serverOwnedClientKeys());
+      allow delete: if memberOfExisting() && !resource.data.keys().hasAny(clientSalesKeys());
       // Auditoría: quién creó o editó desde LOOPA lo escribe sólo el servidor.
       // createdAt sí puede venir al crear (FRAME crea así sus fichas), pero
       // después no cambia.

@@ -262,3 +262,19 @@ test('editor de producto: costos nuevos → pregunta y aplica a las ventas en cu
   assert.match(app, /Aplicar también \{afectadas\.length === 1 \? 'a esa venta' : 'a esas ventas'\}/);
   assert.match(app, /operacionServicio\(s, \{ aplicarCostosEnCurso \}\)/);
 });
+
+test('Nueva venta: un cliente nuevo con nombre o empresa de otra ficha avisa (no duplicar KM Motos)', () => {
+  const app = fs.readFileSync(path.join(__dirname, '..', '..', '_fuente', 'app.jsx'), 'utf8');
+  const normSrc = app.slice(app.indexOf('const norm = '), app.indexOf('\n', app.indexOf('const norm = ')));
+  const ini = app.indexOf('const posiblesDuplicados');
+  const src = app.slice(ini, app.indexOf('\n};', ini) + 3);
+  const fn = new Function(`${normSrc}\n${src}; return posiblesDuplicados;`)();
+  const clientes = [{ id: 'a', nombre: 'KM Motos', empresa: 'KM Motos' }, { id: 'b', nombre: 'Christian Padilla', empresa: 'ID Motos' }];
+  assert.deepEqual(fn({ id: null, nombre: 'Osman Garrido', empresa: 'km motos ' }, clientes).map(c => c.id), ['a'], 'misma empresa, otro contacto');
+  assert.deepEqual(fn({ id: null, nombre: 'Christián Padilla', empresa: '' }, clientes).map(c => c.id), ['b'], 'mismo nombre, sin tildes');
+  assert.deepEqual(fn({ id: 'a', nombre: 'KM Motos', empresa: 'KM Motos' }, clientes), [], 'un cliente ya elegido no avisa');
+  assert.deepEqual(fn({ id: null, nombre: 'Ana', empresa: 'Café Aurora' }, clientes), [], 'sin coincidencias');
+  assert.match(app, /className="cliente-repetido"/);
+  const cli = fs.readFileSync(path.join(__dirname, '..', '..', '_fuente', 'estudio', 'clients.jsx'), 'utf8');
+  assert.match(cli, /client\.commercial\?\.empresa/, 'la tarjeta muestra la empresa');
+});
