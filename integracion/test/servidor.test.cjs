@@ -550,3 +550,27 @@ test('al crear, el avance sólo acepta valores conocidos', async () => {
   await server.createSale(store, U, { draft: ok }, { now });
   assert.equal((await store.get(COLLECTIONS.sales, ok.id)).legacyProductionState, 'revision');
 });
+
+test('paquete abierto (consultoría): se vende con su rango y no crea tarjetas; el acuerdo especial es de un solo cliente', async () => {
+  const store = seeded();
+  const draft = draftOf('plan-mensual');
+  const cliente = draft.client.clientId;
+  const otro = Object.keys(fx.context.clients).find(id => id !== cliente);
+  const ficha = { duracion: { cantidad: 1, unidad: 'meses' }, abierto: true, entregables: [{ nombre: 'Se ignora', patron: { tipo: 'final' } }], proceso: [], costosExtra: [] };
+  await server.saveService(store, U, { service: { id: 'SRV-CONSULTORIA', clase: 'paquete', nombre: 'Consultoría', modelo: 'especial', specialClientId: cliente, precio: 24000, ficha } }, { now });
+  const svc = await store.get('loopa_services', 'SRV-CONSULTORIA');
+  assert.deepEqual([svc.ficha.abierto, svc.ficha.entregables.length, svc.costo], [true, 0, 0], 'abierto: sin entregables, sin costo de entregas');
+  draft.lines = [{ lineId: 'l-cons', serviceId: 'SRV-CONSULTORIA', quantity: 1, inicio: '2026-11-16' }];
+  draft.commercial = { ...draft.commercial, subtotal: 24000, total: 24000 };
+  const r = await server.createSale(store, U, { draft }, { now });
+  const line = (await store.get(COLLECTIONS.sales, draft.id)).lines[0];
+  assert.deepEqual([line.snapshot.precio, line.inicio, line.fin, line.ficha.abierto], [24000, '2026-11-16', '2026-12-16', true]);
+  const done = await server.onEventCreated(store, r.eventId, { now });
+  assert.equal(done.status, 'done');
+  assert.equal(store.list(COLLECTIONS.tasks).filter(t => t.sourceSaleId === draft.id).length, 0, 'las tarjetas se crean al día, a mano');
+  if (otro) {
+    const d2 = draftOf('plan-mensual', { client: { ...draft.client, clientId: otro } });
+    d2.lines = [{ lineId: 'l-cons', serviceId: 'SRV-CONSULTORIA', quantity: 1, inicio: '2026-11-16' }];
+    assert.equal(await kindOf(server.createSale(store, U, { draft: d2 }, { now })), 'failed-precondition:service_not_for_client');
+  }
+});

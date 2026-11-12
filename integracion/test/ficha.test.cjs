@@ -124,3 +124,15 @@ test('ficha: textos cortos para la pantalla', () => {
   assert.equal(F.describirDuracion({ cantidad: 1, unidad: 'meses' }), '1 mes');
   assert.equal(F.describirDuracion({ cantidad: 2, unidad: 'semanas' }), '2 semanas');
 });
+
+test('ficha: paquete abierto (consultoría) se vende con nombre, precio y duración; no trae entregas', () => {
+  const f = F.normalizarFicha({ abierto: true, duracion: { cantidad: 1, unidad: 'meses' }, entregables: [{ nombre: 'x' }], proceso: [] });
+  assert.deepEqual([f.abierto, f.entregables.length], [true, 0]);
+  assert.deepEqual(F.faltantes({ nombre: 'Consultoría', precio: 24000, ficha: f }), []);
+  assert.deepEqual(F.faltantes({ nombre: '', precio: 0, ficha: f }), ['nombre', 'precio']);
+  const cal = F.calendario(f, '2026-11-16');
+  assert.deepEqual([cal.rango.fin, cal.entregas.length], ['2026-12-16', 0]);
+  assert.equal(F.costos(f).total, 0);
+  // Un abierto=false (o ausente) no agrega la marca: las fichas de siempre no cambian.
+  assert.equal('abierto' in F.normalizarFicha({ abierto: false }), false);
+});

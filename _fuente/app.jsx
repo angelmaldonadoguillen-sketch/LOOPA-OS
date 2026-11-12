@@ -839,7 +839,7 @@ function PasoServicios({ cliente, servicios, stats, categorias, items, addItem, 
                       <input className="input mini mono" type="date" value={i.inicio} onChange={e => updItem(i.key, { inicio: e.target.value })} style={{ colorScheme: 'dark' }} /></label>
                     <span className="nv-rango-flecha">→</span>
                     <div><span className="mini-lbl">Termina</span><div className="mono nv-rango-fin">{r ? fmtFechaLarga(r.fin) : '—'}</div></div>
-                    <div className="nv-rango-n mono">{cal ? `${cal.entregas.length} ${cal.entregas.length === 1 ? 'tarjeta' : 'tarjetas'}` : ''}</div>
+                    <div className="nv-rango-n mono">{!cal ? '' : f.abierto ? 'Tarjetas al día' : `${cal.entregas.length} ${cal.entregas.length === 1 ? 'tarjeta' : 'tarjetas'}`}</div>
                   </div>
                 )}
                 {f && i.inicio && <FichaLinea ficha={f} inicio={i.inicio} />}
@@ -1746,11 +1746,24 @@ function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClos
       )}
       {paso === 2 && (
         <div className="service-form-stage">
-          <div className="service-stage-head"><span>02</span><div><b>Qué incluye</b><small>Cada entregable, cuántas veces y cuándo cae dentro del paquete. Cada entrega será una tarjeta en Producción.</small></div></div>
-          {esPaquete
-            ? <FichaItemsPaquete ficha={d.ficha} onChange={entregables => setFicha({ entregables })} items={items} />
-            : <FichaEntregables ficha={d.ficha} onChange={entregables => setFicha({ entregables })} tipos={tiposTarjeta} />}
-          <FichaLinea ficha={esPaquete ? borrador.ficha : d.ficha} inicio={inicioEjemplo} />
+          <div className="service-stage-head"><span>02</span><div><b>Qué incluye</b><small>{esPaquete && d.ficha.abierto ? 'Un paquete abierto no trae entregables fijos.' : 'Cada entregable, cuántas veces y cuándo cae dentro del paquete. Cada entrega será una tarjeta en Producción.'}</small></div></div>
+          {/* Abierto (consultoría…): sin entregables; las tarjetas se crean al
+              día y se marcan con el paquete. La lista armada se conserva si
+              se vuelve a «Entregables fijos». */}
+          {esPaquete && (
+            <div className="segmented" style={{ alignSelf: 'flex-start', marginBottom: 14 }}>
+              <button className={d.ficha.abierto ? '' : 'on'} onClick={() => setFicha({ abierto: false })}>Entregables fijos</button>
+              <button className={d.ficha.abierto ? 'on' : ''} onClick={() => setFicha({ abierto: true })}>Abierto · sin entregables</button>
+            </div>
+          )}
+          {esPaquete && d.ficha.abierto
+            ? <div className="service-history-note">Venderlo no crea tarjetas. Durante el paquete, el equipo crea las tarjetas al día con lo que se está trabajando y les pone este paquete en «Paquete», dentro de la tarjeta.</div>
+            : <>
+              {esPaquete
+                ? <FichaItemsPaquete ficha={d.ficha} onChange={entregables => setFicha({ entregables })} items={items} />
+                : <FichaEntregables ficha={d.ficha} onChange={entregables => setFicha({ entregables })} tipos={tiposTarjeta} />}
+              <FichaLinea ficha={esPaquete ? borrador.ficha : d.ficha} inicio={inicioEjemplo} />
+            </>}
         </div>
       )}
       {paso === 3 && (
@@ -3359,6 +3372,12 @@ function App({ onLogout, usuarioFusion = null }) {
     Object.values(porCliente).forEach(r => r.historial.sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : b.n - a.n)));
     return {
       porCliente,
+      // Paquetes abiertos (consultoría…): se le ponen a mano a las tarjetas del
+      // día. Un acuerdo especial sólo se ofrece en las tarjetas de su cliente.
+      paquetes: servicios.filter(s => s.activo !== false && s.ficha && s.ficha.abierto === true).map(s => ({
+        id: s.id, nombre: s.nombre,
+        cliente: modeloServicio(s) === 'especial' ? (clientes.find(c => c.id === s.clienteIdEspecial)?.nombre || '') : '',
+      })),
       datos: Object.fromEntries(clientes.map(c => [c.id, { empresa: c.empresa || '', canal: c.canal || '' }])),
       canales: config.canales || [],
       dinero: L,
@@ -3375,7 +3394,7 @@ function App({ onLogout, usuarioFusion = null }) {
         handleSaveCliente({ ...base, ...patch });
       },
     };
-  }, [ventas, clientes, config, soloProduccion]);
+  }, [ventas, clientes, config, soloProduccion, servicios]);
   // Una ficha creada en Producción tiene que poder elegirse al vender: al ir a
   // Nueva venta se releen clientes y servicios.
   useEffect(() => {

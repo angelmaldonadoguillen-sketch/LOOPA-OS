@@ -888,7 +888,7 @@ const ClientAutocomplete = ({ value, onChange, clients = [], onCreateClient, fie
 };
 
 // ── Clients section (main) ───────────────────────────────────────
-const ClientsSection = ({ clients, projects, columns = [], onCreateClient, onUpdateClient, onDeleteClient, onSetClientPortal, onTogglePortalTask, openClientId, onOpenClient, onCloseClient, comercial = null }) => {
+const ClientsSection = ({ clients, projects, columns = [], onCreateClient, onUpdateClient, onDeleteClient, onSetClientPortal, onTogglePortalTask, openClientId, onOpenClient, onCloseClient, comercial = null, tableroVentas = null, onIrATablero }) => {
   const [search, setSearch]   = useState('');
   const [showNew, setShowNew] = useState(false);
   const [conSaldo, setConSaldo] = useState(false);
@@ -966,6 +966,15 @@ const ClientsSection = ({ clients, projects, columns = [], onCreateClient, onUpd
 
         {/* Grid */}
         <div className="flex-1 overflow-y-auto p-5">
+          {/* Las fichas de las ventas viven en el tablero de Producción: desde
+              otro tablero no se ven, y parecía que vender no creaba el cliente. */}
+          {tableroVentas && (
+            <div className="clientes-otro-tablero">
+              <Icon name="briefcase" size={14} />
+              <span>Los clientes de tus ventas están en el tablero <b>{tableroVentas.nombre}</b>. Acá ves sólo los de este tablero.</span>
+              <button onClick={() => onIrATablero && onIrATablero(tableroVentas.id)}>Ver {tableroVentas.nombre}</button>
+            </div>
+          )}
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'var(--surface-2)' }}>
@@ -973,7 +982,7 @@ const ClientsSection = ({ clients, projects, columns = [], onCreateClient, onUpd
               </div>
               <div>
                 <div className="text-[15px] font-medium mb-1">
-                  {search ? `Sin resultados para "${search}"` : 'Sin clientes aún'}
+                  {search ? `Sin resultados para "${search}"` : tableroVentas ? 'Este tablero no tiene clientes' : 'Sin clientes aún'}
                 </div>
               </div>
               {!search && (

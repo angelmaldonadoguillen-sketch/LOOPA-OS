@@ -211,6 +211,11 @@ const ProjectCardMini = ({ project, onClick, draggable, onDragStart, onDragEnd, 
             {project.title}
           </div>
 
+          {/* Paquete abierto al que pertenece (consultoría…) */}
+          {project.paquete?.nombre && (
+            <div className="mt-1 min-w-0"><span className="paquete-chip" title="Paquete">{project.paquete.nombre}</span></div>
+          )}
+
           {(meta.length > 0 || pf.responsables !== false || origen) && (
             <div className="flex items-center gap-1.5 mt-1 text-[12px] min-w-0" style={{ color: 'var(--text-muted)' }}>
               {origen && (
@@ -1156,6 +1161,11 @@ const WeekCard = ({ project, calendarDate, onClick, draggable, onDragStart, onDr
           <div className="text-[11px] truncate min-w-0" style={{ color: 'var(--text-muted)' }}>{project.client}</div>
         )}
 
+        {/* Paquete abierto al que pertenece (consultoría…) */}
+        {project.paquete?.nombre && (
+          <div className="min-w-0"><span className="paquete-chip" title="Paquete">{project.paquete.nombre}</span></div>
+        )}
+
         {/* Estado */}
         {pf.estado !== false && (
           <div><StatusPill status={project.status} size="sm" /></div>
@@ -1531,6 +1541,7 @@ const GalleryCard = ({ project, onClick, onDelete, onDuplicate, onToggleFavorite
                 {pf.cliente !== false && project.client && (
                   <span className="text-[11px] uppercase tracking-wider truncate">{project.client}</span>
                 )}
+                {project.paquete?.nombre && <span className="paquete-chip" title="Paquete">{project.paquete.nombre}</span>}
                 {origen && (
                   <span className="text-[10px] px-1.5 rounded flex-shrink-0 ml-auto truncate" title={'Esta tarjeta vive en ' + origen}
                     style={{ background: 'var(--surface-3)', color: 'var(--text-dim)', maxWidth: '55%' }}>{origen}</span>

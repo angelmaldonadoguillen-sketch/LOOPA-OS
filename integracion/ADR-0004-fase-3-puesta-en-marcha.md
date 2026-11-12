@@ -1151,3 +1151,21 @@ Se armó un reel completo en el muro (brief, concepto, ideas, guion, referencias
 - **Ordenar.** Un botón acomoda el muro: lo conectado en columnas de izquierda a derecha y lo suelto en filas al final, sin tarjetas encimadas. Se deshace con Ctrl+Z.
 - **Guion.** Una escena nueva queda lista para escribir. El tiempo vacío ya no muestra un valor de ejemplo que parecía cargado.
 - **Paleta.** El código del color se puede escribir o pegar (#RGB o #RRGGBB).
+
+
+## 42. Paquete abierto (consultoría) y paquete en la tarjeta (2026-11-11)
+
+Un paquete puede ser **abierto**: tiene nombre, precio y duración, pero no trae entregables. Sirve para la consultoría, donde el trabajo se decide al día.
+
+- **Modelo.** `ficha.abierto = true`. `normalizarFicha` vacía los entregables y sólo agrega la marca si es verdadera, así las fichas de siempre no cambian. `faltantes` lo da por listo con nombre, precio y duración.
+- **Venta.** La línea guarda su rango (inicio → fin) como cualquier ficha. El planificador no genera tarjetas para un abierto: el evento termina «done» sin tareas. En Nueva venta la línea dice «Tarjetas al día».
+- **Tarjeta.** Campo nuevo `paquete: { id, nombre }` en `frame_projects`, escrito desde el navegador; las reglas ya lo permiten porque no es de procedencia. En la ficha de la tarea, la fila «Paquete» ofrece los abiertos del cliente de la tarjeta (quien vende los recibe del catálogo) y los que ya usan otras tarjetas de ese cliente, para que quien no vende también los vea. No aparece en tarjetas de venta. El tablero y la galería muestran la insignia.
+- **Editor.** En «Qué incluye», un paquete elige «Entregables fijos» o «Abierto · sin entregables». La lista armada se conserva si se vuelve atrás.
+- **Acuerdo especial.** Para un solo cliente se usa el modelo «especial» que ya existía; el servidor rechaza venderlo a otro.
+
+**Hay que redesplegar `functions:loopa`** para vender un paquete abierto: el servidor publicado todavía lo considera incompleto.
+
+
+## 43. Clientes avisa dónde están las fichas de las ventas (2026-11-11)
+
+El servidor crea la ficha del cliente de cada venta en el tablero de Producción (loopa_config/production). Clientes muestra sólo las fichas del tablero activo, así que desde «Mi tablero» parecía que vender no creaba el cliente. Ahora, para quien vende, Clientes avisa en qué tablero están y ofrece un botón para cambiar a ese tablero. No se mueve ninguna ficha.

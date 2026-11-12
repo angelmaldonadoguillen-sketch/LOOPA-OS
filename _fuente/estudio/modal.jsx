@@ -611,7 +611,24 @@ const CoverEditor = ({ cover, onChange, projectId, deliverables = [] }) => {
 };
 
 // ── PROJECT MODAL ───────────────────────────────────────────────
-const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisibility, workspaces = [], activeWorkspaceId, onNavigate, projects = [], currentUserId, team = [], clients = [], onCreateClient, customTypes = [], kanbanColumns = [], onCreateCustomType, onUpdateCustomType, onDeleteCustomType, workspaceKind = 'personal', clientPortalToken = '' }) => {
+// Paquetes que se le pueden poner a una tarjeta: los abiertos del catálogo
+// (`paquetes`: {id, nombre, cliente}) del mismo cliente —o de ninguno—, y los
+// que ya usan otras tarjetas de ese cliente (así quien no vende también los ve).
+const paquetesDeTarjeta = (project, paquetes = [], projects = []) => {
+  const n = (s) => String(s || '').trim().toLowerCase();
+  const cli = n(project?.client);
+  const out = new Map();
+  (paquetes || []).forEach(p => {
+    if (p && p.id && p.nombre && (!cli || !p.cliente || n(p.cliente) === cli)) out.set(p.id, { id: p.id, nombre: p.nombre, cliente: p.cliente || '' });
+  });
+  (projects || []).forEach(t => {
+    const p = t && t.paquete;
+    if (p && p.id && p.nombre && !out.has(p.id) && (!cli || n(t.client) === cli)) out.set(p.id, { id: p.id, nombre: p.nombre, cliente: t.client || '' });
+  });
+  return [...out.values()].sort((a, b) => a.nombre.localeCompare(b.nombre));
+};
+
+const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisibility, workspaces = [], activeWorkspaceId, onNavigate, projects = [], currentUserId, team = [], clients = [], onCreateClient, customTypes = [], kanbanColumns = [], onCreateCustomType, onUpdateCustomType, onDeleteCustomType, workspaceKind = 'personal', clientPortalToken = '', paquetes = [] }) => {
   const collaborationEnabled = workspaceKind === 'team';
   // Lookup que prioriza el equipo real de Firestore sobre los datos seed
   const resolveUser = (id) => team.find(m => m.id === id) || getUser(id);
@@ -759,6 +776,12 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
   // cambió, y sirve para todas las vistas, no sólo para este modal.
   const upd = (patch) => onUpdate({ ...project, ...patch });
   const updField = (key) => (val) => upd({ [key]: val });
+
+  // Paquete abierto (consultoría…): sus tarjetas se crean al día y se marcan
+  // con él. Opciones: los paquetes abiertos del catálogo (sólo quien vende
+  // los ve) del cliente de la tarjeta, más los que ya usan otras tarjetas.
+  const opcionesPaquete = paquetesDeTarjeta(project, paquetes, projects);
+  const elegirPaquete = (p) => upd({ paquete: { id: p.id, nombre: p.nombre }, ...(!project.client && p.cliente ? { client: p.cliente } : {}) });
 
   const toggleAssignee = (uid) => {
     const has = project.assignees.includes(uid);
@@ -1106,6 +1129,32 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
                 />
               )}
             </PropRow>
+
+            {!deVenta && (opcionesPaquete.length > 0 || project.paquete?.nombre) && (
+              <PropRow icon="layers" label="Paquete">
+                <Dropdown
+                  trigger={<button className="text-left -mx-2 px-2 py-1 rounded hover:bg-[var(--surface-2)] w-full min-w-0 truncate text-sm">
+                    {project.paquete?.nombre ? <span className="paquete-chip">{project.paquete.nombre}</span> : <span className="text-[var(--text-dim)]">Sin paquete</span>}
+                  </button>}
+                  width={260}
+                >
+                  {(close) => (
+                    <>
+                      {opcionesPaquete.map(p => (
+                        <MenuItem key={p.id} active={project.paquete?.id === p.id} onClick={() => { elegirPaquete(p); close(); }}>
+                          <span className="truncate">{p.nombre}{p.cliente && !project.client ? ` · ${p.cliente}` : ''}</span>
+                        </MenuItem>
+                      ))}
+                      {project.paquete?.nombre && (
+                        <MenuItem onClick={() => { upd({ paquete: null }); close(); }}>
+                          <span className="text-[var(--text-muted)]">Quitar paquete</span>
+                        </MenuItem>
+                      )}
+                    </>
+                  )}
+                </Dropdown>
+              </PropRow>
+            )}
 
             <PropRow icon="film" label="Tipo">
               <Dropdown

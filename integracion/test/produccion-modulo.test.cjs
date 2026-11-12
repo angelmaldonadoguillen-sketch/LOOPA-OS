@@ -216,3 +216,32 @@ test('ficha del cliente (revisión 2.5): homónimos, archivadas, accesibilidad y
   assert.match(cal, /abrir\(t, origenFicha\.current\)/, 'tarea abierta desde la ficha: el foco vuelve a quien abrió la ficha');
   assert.match(cal, /onAbrirCliente=\{clientes\.some\(c => c\.id === tareaAbierta\.clientId\) \? abrirCliente : null\}/, 'sin ficha conocida no hay botón que no abre nada');
 });
+
+test('paquete abierto: el editor lo ofrece y la tarjeta se marca con él', () => {
+  const raiz = path.join(__dirname, '..', '..', '_fuente');
+  const leer = (p) => fs.readFileSync(path.join(raiz, p), 'utf8');
+  const app = leer('app.jsx'), modal = leer('estudio/modal.jsx'), views = leer('estudio/views.jsx'), estudio = leer('estudio/app.jsx');
+  assert.match(app, /Abierto · sin entregables/, 'el editor de paquetes tiene el modo abierto');
+  assert.match(app, /paquetes: servicios\.filter\(s => s\.activo !== false && s\.ficha && s\.ficha\.abierto === true\)/, 'quien vende recibe los paquetes abiertos');
+  assert.match(estudio, /paquetes=\{comercial\?\.paquetes \|\| \[\]\}/);
+  assert.match(modal, /label="Paquete"/);
+  assert.match(modal, /!deVenta && \(opcionesPaquete\.length > 0/, 'una tarjeta de venta no se marca a mano');
+  assert.match(views, /project\.paquete\?\.nombre && \(/, 'la tarjeta del tablero muestra el paquete');
+  // La función de opciones: del cliente de la tarjeta, o ya usados en otras tarjetas.
+  const src = modal.slice(modal.indexOf('const paquetesDeTarjeta'), modal.indexOf('const ProjectModal'));
+  const paquetesDeTarjeta = new Function(`${src}; return paquetesDeTarjeta;`)();
+  const cat = [{ id: 'SRV-C', nombre: 'Consultoría', cliente: 'KM Motos' }, { id: 'SRV-G', nombre: 'General', cliente: '' }];
+  const usadas = [{ client: 'Otro', paquete: { id: 'SRV-X', nombre: 'Del otro' } }, { client: 'km motos', paquete: { id: 'SRV-V', nombre: 'Viejo' } }];
+  assert.deepEqual(paquetesDeTarjeta({ client: 'KM Motos' }, cat, usadas).map(p => p.id), ['SRV-C', 'SRV-G', 'SRV-V']);
+  assert.deepEqual(paquetesDeTarjeta({ client: 'Otro' }, cat, usadas).map(p => p.id), ['SRV-X', 'SRV-G']);
+  assert.equal(paquetesDeTarjeta({ client: '' }, cat, usadas).length, 4, 'sin cliente: todos');
+});
+
+test('clientes: avisa que las fichas de las ventas están en el tablero de ventas', () => {
+  const raiz = path.join(__dirname, '..', '..', '_fuente', 'estudio');
+  const app = fs.readFileSync(path.join(raiz, 'app.jsx'), 'utf8'), cli = fs.readFileSync(path.join(raiz, 'clients.jsx'), 'utf8');
+  assert.match(app, /collection\('loopa_config'\)\.doc\('production'\)\.get\(\)/, 'lee cuál es el tablero de ventas');
+  assert.match(app, /tableroVentasId !== wsId && state\.workspaces\.find/, 'sólo avisa desde otro tablero, y si el usuario es miembro');
+  assert.match(cli, /className="clientes-otro-tablero"/);
+  assert.match(cli, /onIrATablero\(tableroVentas\.id\)/);
+});

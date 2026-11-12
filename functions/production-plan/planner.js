@@ -109,6 +109,8 @@ function resolveWorkspace(plan, context, path, out) {
 function expandFichaLine(sale, line, lineIndex, context, out, resolved) {
   const path = `sale.lines[${lineIndex}]`;
   const ficha = Ficha.normalizarFicha(line.ficha);
+  // Paquete abierto: no genera tarjetas (se crean al día y se marcan a mano).
+  if (ficha.abierto) return [];
   const workspace = resolveWorkspace({ workspaceId: null }, context, path, out);
   if (!workspace) return [];
   if (!resolved.has(workspace.id)) resolved.set(workspace.id, resolveClient(sale, workspace.id, context, 'sale', out));

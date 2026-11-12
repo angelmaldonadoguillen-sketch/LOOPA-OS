@@ -2195,6 +2195,19 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null, comercial = n
     return () => unsub();
   }, [authUser?.uid, wsId]);
 
+  // ── Tablero de las ventas (loopa_config/production) ─────────
+  // Ahí crea el servidor las fichas de clientes y las tarjetas de cada venta.
+  // Clientes avisa cuando se mira otro tablero. Si no se puede leer, no avisa.
+  const [tableroVentasId, setTableroVentasId] = useState(null);
+  useEffect(() => {
+    if (!authUser || !comercial) return;
+    let vivo = true;
+    window.db.collection('loopa_config').doc('production').get()
+      .then(d => { const id = d.exists && d.data().defaultWorkspaceId; if (vivo && typeof id === 'string') setTableroVentasId(id); })
+      .catch(() => {});
+    return () => { vivo = false; };
+  }, [authUser?.uid, !!comercial]);
+
   // ── Firebase Auth: sesión ───────────────────────────────────
   useEffect(() => {
     const unsub = firebase.auth().onAuthStateChanged((user) => {
@@ -3129,6 +3142,7 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null, comercial = n
       currentUserId={state.currentUserId}
       team={workspaceMembers(tableroDeLaTarea || state.workspaces.find(w => w.id === state.activeWorkspaceId))}
       clients={state.clients}
+      paquetes={comercial?.paquetes || []}
       onCreateClient={handleCreateClient}
       onClose={() => dispatch({ type: 'close_project' })}
       onUpdate={handleUpdateProject}
@@ -3192,6 +3206,11 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null, comercial = n
           projects={state.projects}
           columns={boardCols}
           comercial={comercial}
+          tableroVentas={(() => {
+            const w = tableroVentasId && tableroVentasId !== wsId && state.workspaces.find(x => x.id === tableroVentasId);
+            return w ? { id: w.id, nombre: w.name || 'de ventas' } : null;
+          })()}
+          onIrATablero={(id) => dispatch({ type: 'set_active_workspace', id })}
           onCreateClient={handleCreateClient}
           onUpdateClient={handleUpdateClient}
           onDeleteClient={handleDeleteClient}

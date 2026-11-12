@@ -74,10 +74,14 @@ var LoopaFicha = (function () {
     f = esObj(f) ? f : {};
     var dur = esObj(f.duracion) ? f.duracion : {};
     var unidad = UNIDADES.indexOf(dur.unidad) >= 0 ? dur.unidad : 'meses';
-    return {
+    // Paquete ABIERTO (consultoría…): tiene precio y duración, pero no trae
+    // entregables: las tarjetas se crean al día, a mano, y se marcan con el
+    // paquete. Venderlo no genera tarjetas.
+    var abierto = f.abierto === true;
+    var out = {
       version: 1,
       duracion: { cantidad: ent(dur.cantidad, 1, MAX_DURACION[unidad], 1), unidad: unidad },
-      entregables: (Array.isArray(f.entregables) ? f.entregables : []).slice(0, LIMITES.entregables).filter(esObj).map(function (e, i) {
+      entregables: (abierto ? [] : Array.isArray(f.entregables) ? f.entregables : []).slice(0, LIMITES.entregables).filter(esObj).map(function (e, i) {
         var p = esObj(e.patron) ? e.patron : {};
         var tipo = PATRONES.indexOf(p.tipo) >= 0 ? p.tipo : 'repartido';
         var patron = { tipo: tipo };
@@ -104,6 +108,8 @@ var LoopaFicha = (function () {
         return { id: idOk(c.id) ? c.id : 'c' + (i + 1), concepto: txt(c.concepto), monto: monto(c.monto) };
       }).filter(function (c) { return c.concepto || c.monto; }),
     };
+    if (abierto) out.abierto = true;
+    return out;
   }
 
   // ── Rango y fechas de cada entrega ────────────────────────────────
@@ -190,6 +196,8 @@ var LoopaFicha = (function () {
     var out = [];
     if (!servicio || !txt(servicio.nombre)) out.push('nombre');
     if (!(Number(servicio && servicio.precio) > 0)) out.push('precio');
+    // Abierto: con nombre, precio y duración ya se vende (no hay entregas ni proceso).
+    if (f && f.abierto) return out;
     if (!f || !f.entregables.length) out.push('qué incluye');
     else {
       if (f.entregables.some(function (e) { return !e.nombre; })) out.push('nombre de cada entregable');

@@ -1021,3 +1021,16 @@
   .fp-share-word { display:none; }
   .fp-share-pop { position:fixed; left:12px; right:12px; top:auto; width:auto; }
 }
+
+/* Paquete abierto (consultoría…) al que pertenece una tarjeta del día. */
+.paquete-chip { display:inline-block; max-width:100%; vertical-align:middle; font-size:10.5px; font-weight:600; line-height:1.5; padding:0 7px; border-radius:999px;
+  background:var(--accent-soft); color:var(--accent); border:1px solid var(--accent-border); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* Clientes: aviso de que las fichas de las ventas viven en otro tablero. */
+.clientes-otro-tablero { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:16px; padding:10px 12px; border-radius:10px;
+  background:var(--accent-soft-weak); border:1px solid var(--accent-border); color:var(--text-dim); font-size:13px; }
+.clientes-otro-tablero > svg { color:var(--accent); flex-shrink:0; }
+.clientes-otro-tablero > span { flex:1; min-width:200px; }
+.clientes-otro-tablero b { color:var(--text); font-weight:600; }
+.clientes-otro-tablero button { padding:5px 10px; border-radius:7px; font-size:12px; font-weight:600; background:var(--accent-soft); color:var(--accent); white-space:nowrap; }
+.clientes-otro-tablero button:hover { filter:brightness(1.15); }
