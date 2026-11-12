@@ -574,3 +574,39 @@ test('paquete abierto (consultoría): se vende con su rango y no crea tarjetas; 
     assert.equal(await kindOf(server.createSale(store, U, { draft: d2 }, { now })), 'failed-precondition:service_not_for_client');
   }
 });
+
+test('costos nuevos de un paquete: se aplican a las ventas en curso sólo si se pide; precio, fechas y tarjetas no cambian', async () => {
+  const store = seeded();
+  const ficha = { duracion: { cantidad: 1, unidad: 'meses' }, entregables: [{ id: 'posts', nombre: 'Post', cantidad: 2, costo: 0, patron: { tipo: 'repartido' } }], proceso: [{ texto: 'Hacer' }], costosExtra: [] };
+  const svc = { id: 'SRV-COSTOS', nombre: 'Plan', modelo: 'plan', precio: 16000, ficha };
+  await server.saveService(store, U, { service: svc }, { now });
+  const vender = async (inicio) => {
+    const d = draftOf('plan-mensual'); d.lines = [{ lineId: 'l-c', serviceId: 'SRV-COSTOS', quantity: 1, inicio }];
+    d.commercial = { ...d.commercial, subtotal: 16000, total: 16000 };
+    const r = await server.createSale(store, U, { draft: d }, { now }); await server.onEventCreated(store, r.eventId, { now });
+    return d.id;
+  };
+  const enCurso = await vender('2026-11-01');   // termina el 1/12: en curso el 10/11
+  const terminada = await vender('2026-09-01'); // terminó el 1/10
+  const antes = await store.get(COLLECTIONS.sales, enCurso);
+  const tareasAntes = store.list(COLLECTIONS.tasks).filter(t => t.sourceSaleId === enCurso).map(t => [t.id, t.sessionDate]);
+  const eventosAntes = store.list(COLLECTIONS.events).length;
+  const nuevos = { ...svc, ficha: { ...ficha, entregables: [{ ...ficha.entregables[0], costo: 100 }], costosExtra: [{ concepto: 'Asistente', monto: 1800 }] } };
+  // Sin pedirlo: las ventas no cambian.
+  const r0 = await server.saveService(store, U, { service: nuevos }, { now });
+  assert.equal(r0.ventasActualizadas, undefined);
+  assert.equal((await store.get(COLLECTIONS.sales, enCurso)).lines[0].snapshot.costo, 0);
+  // Pidiéndolo: sólo la venta en curso.
+  const r = await server.saveService(store, U, { service: nuevos, aplicarCostosEnCurso: true }, { now });
+  assert.deepEqual(r.ventasActualizadas, [antes.n]);
+  const despues = await store.get(COLLECTIONS.sales, enCurso);
+  const l = despues.lines[0];
+  assert.deepEqual([l.snapshot.costo, l.snapshot.precio, l.inicio, l.fin], [2 * 100 + 1800, 16000, antes.lines[0].inicio, antes.lines[0].fin]);
+  assert.deepEqual(l.ficha.costosExtra.map(c => c.monto), [1800]);
+  assert.deepEqual([despues.version, despues.revision], [antes.version + 1, antes.revision], 'sube la versión, no la revisión de producción');
+  assert.equal(store.list(COLLECTIONS.events).length, eventosAntes, 'no hay evento de producción');
+  assert.deepEqual(store.list(COLLECTIONS.tasks).filter(t => t.sourceSaleId === enCurso).map(t => [t.id, t.sessionDate]), tareasAntes);
+  assert.equal((await store.get(COLLECTIONS.sales, terminada)).lines[0].snapshot.costo, 0, 'la terminada queda como estaba');
+  // Repetir no vuelve a tocar nada.
+  assert.deepEqual((await server.saveService(store, U, { service: nuevos, aplicarCostosEnCurso: true }, { now })).ventasActualizadas, []);
+});

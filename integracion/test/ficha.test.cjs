@@ -136,3 +136,17 @@ test('ficha: paquete abierto (consultoría) se vende con nombre, precio y duraci
   // Un abierto=false (o ausente) no agrega la marca: las fichas de siempre no cambian.
   assert.equal('abierto' in F.normalizarFicha({ abierto: false }), false);
 });
+
+test('ficha: los costos del catálogo sobre una venta ya hecha (sin tocar fechas ni entregables)', () => {
+  const venta = plan();
+  const catalogo = F.normalizarFicha({ ...venta, entregables: venta.entregables.map(e => (e.id === 'posts' ? { ...e, costo: 150 } : e)).concat([{ id: 'nuevo', nombre: 'Nuevo', costo: 999 }]), costosExtra: [{ concepto: 'Asistente', monto: 1800 }] });
+  const a = F.aplicarCostos(venta, catalogo, '2026-11-16');
+  assert.equal(a.cambio, true);
+  assert.deepEqual(a.ficha.entregables.map(e => e.id), venta.entregables.map(e => e.id), 'un entregable nuevo del catálogo no entra a la venta');
+  assert.equal(a.ficha.entregables.find(e => e.id === 'posts').costo, 150);
+  assert.equal(a.costo, F.costos(venta, '2026-11-16').total + 12 * 50 - 2000 + 1800, 'los extras del catálogo reemplazan a los de la venta');
+  assert.equal(F.aplicarCostos(venta, venta, '2026-11-16').cambio, false);
+  assert.equal(F.enCurso('2026-12-16', '2026-12-16'), true);
+  assert.equal(F.enCurso('2026-12-15', '2026-12-16'), false);
+  assert.equal(F.enCurso('', '2026-12-16'), false);
+});

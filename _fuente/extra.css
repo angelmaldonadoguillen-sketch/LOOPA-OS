@@ -290,3 +290,7 @@ b, strong { font-weight: 500; }
 
 /* Celular: el tamaño grande baja un escalón (sigue siendo uno solo) */
 @media (max-width: 640px) { :root { --fs-l: 24px; } }
+
+/* Editor de producto: costos nuevos y ventas en curso. */
+.costos-en-curso { flex: 1 1 100%; font-size: var(--fs-s, 12px); line-height: 1.5; color: var(--dim); padding: 10px 12px; border-radius: 8px; background: rgba(var(--accent-rgb), .07); border: 1px solid var(--line); }
+.costos-en-curso b { color: var(--text); }

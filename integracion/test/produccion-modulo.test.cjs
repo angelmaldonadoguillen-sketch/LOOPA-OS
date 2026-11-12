@@ -245,3 +245,20 @@ test('clientes: avisa que las fichas de las ventas están en el tablero de venta
   assert.match(cli, /className="clientes-otro-tablero"/);
   assert.match(cli, /onIrATablero\(tableroVentas\.id\)/);
 });
+
+test('editor de producto: costos nuevos → pregunta y aplica a las ventas en curso (misma cuenta que el servidor)', () => {
+  const app = fs.readFileSync(path.join(__dirname, '..', '..', '_fuente', 'app.jsx'), 'utf8');
+  const ini = app.indexOf('const ventasConCostosNuevos');
+  const src = app.slice(ini, app.indexOf('\n};', ini) + 3);
+  const F = require('../../functions/production-plan/ficha.js');
+  const fn = new Function('LoopaFicha', 'esActiva', 'num', `${src}; return ventasConCostosNuevos;`)(F, v => v.estado !== 'cancelado', v => Number(v) || 0);
+  const ficha = F.normalizarFicha({ entregables: [{ id: 'a', nombre: 'A', cantidad: 2, costo: 0 }], costosExtra: [] });
+  const nueva = { ...ficha, costosExtra: [{ concepto: 'Asistente', monto: 1800 }] };
+  const item = (fin) => ({ tipoId: 'SRV-X', ficha, inicio: '2026-11-01', fin, costo: 0, q: 1 });
+  const ventas = [{ id: 'v1', n: 1, version: 3, items: [item('2026-12-01')] }, { id: 'v2', n: 2, items: [item('2026-10-01')] }, { id: 'v3', n: 3, estado: 'cancelado', items: [item('2026-12-01')] }];
+  const r = fn(ventas, { id: 'SRV-X', ficha: nueva }, '2026-11-12');
+  assert.deepEqual(r.map(a => [a.venta.n, a.venta.version, a.venta.items[0].costo]), [[1, 4, 1800]], 'sólo la en curso y no cancelada; versión +1');
+  assert.deepEqual(fn(ventas, { id: 'SRV-X', ficha }, '2026-11-12'), [], 'sin cambio de costos no pregunta');
+  assert.match(app, /Aplicar también \{afectadas\.length === 1 \? 'a esa venta' : 'a esas ventas'\}/);
+  assert.match(app, /operacionServicio\(s, \{ aplicarCostosEnCurso \}\)/);
+});

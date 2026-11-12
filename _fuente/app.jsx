@@ -86,6 +86,28 @@ const pagoEstado = (v) => {
   return 'pendiente';
 };
 const esActiva = (v) => v.estado !== 'cancelado';
+// Ventas en curso (no canceladas, con el rango sin terminar) de un producto con
+// ficha cuyos costos cambiarían con la ficha de `s`. Devuelve cada venta ya
+// con los costos nuevos (misma cuenta que el servidor: LoopaFicha.aplicarCostos).
+const ventasConCostosNuevos = (ventas, s, hoy) => {
+  if (!s || !s.id || !s.ficha || s.clase === 'item') return [];
+  const out = [];
+  (ventas || []).forEach(v => {
+    if (!esActiva(v)) return;
+    let cambio = false;
+    const items = (v.items || []).map(i => {
+      if (i.tipoId !== s.id || !i.ficha || !LoopaFicha.enCurso(i.fin, hoy)) return i;
+      const a = LoopaFicha.aplicarCostos(i.ficha, s.ficha, i.inicio);
+      if (!a.cambio && a.costo === num(i.costo)) return i;
+      cambio = true;
+      return { ...i, ficha: a.ficha, costo: a.costo };
+    });
+    // El servidor sube la versión de la venta: acá también, para que la
+    // próxima edición no choque con un conflicto de versión falso.
+    if (cambio) out.push({ venta: { ...v, items, ...(Number.isInteger(v.version) ? { version: v.version + 1 } : {}) } });
+  });
+  return out;
+};
 // Cómo se identifica una venta en las pantallas: por su id (modelo de la
 // fusión, donde dos ventas migradas pueden compartir el número visible) o,
 // sin id, por su número (LOOPA de siempre).
@@ -1434,7 +1456,7 @@ function VentaModal({ venta: v, config, onClose, onUpdate, onAbono, onDuplicate,
 }
 
 // ═══════════════════════ SERVICIOS (TIPOS) ═══════════════════════
-function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVender, tiposTarjeta }) {
+function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVender, tiposTarjeta, ventas = [] }) {
   const [q, setQ] = useState('');
   const [cat, setCat] = useState('all');
   const [modelo, setModelo] = useState('all');
@@ -1595,16 +1617,16 @@ function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVen
           onRemove={editing.id ? () => remove(editing) : null} />
       )}
       {editing && editing.clase !== 'item' && (
-        <ServicioForm servicio={editing} servicios={servicios} clientes={clientes} categorias={config.categorias} stats={stats} tiposTarjeta={tiposTarjeta}
+        <ServicioForm servicio={editing} servicios={servicios} clientes={clientes} categorias={config.categorias} stats={stats} tiposTarjeta={tiposTarjeta} ventas={ventas}
           onClose={() => setEditing(null)}
-          onSave={(s) => { onSave(s); setEditing(null); }}
+          onSave={(s, opts) => { onSave(s, opts); setEditing(null); }}
           onRemove={editing.id ? () => remove(editing) : null} />
       )}
     </div>
   );
 }
 
-function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClose, onSave, onRemove, tiposTarjeta }) {
+function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClose, onSave, onRemove, tiposTarjeta, ventas = [] }) {
   const isNew = !servicio.id;
   // Paquete: se arma con ítems del catálogo (su proceso viene de cada ítem).
   const esPaquete = servicio.clase === 'paquete';
@@ -1633,10 +1655,19 @@ function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClos
   const iPaso = steps.findIndex(s => s.p === paso);
   const irA = (delta) => setPaso(steps[Math.max(0, Math.min(steps.length - 1, iPaso + delta))].p);
   const puedeAbrir = (n) => n <= paso || (ofertaValida && alcanceValido);
+  // Costos nuevos y ventas en curso: antes de guardar se pregunta si también
+  // van a esas ventas (su utilidad y las gráficas) o sólo a las nuevas.
+  const [costosEnCurso, setCostosEnCurso] = useState(null); // { s, afectadas }
   const save = () => {
     if (!ofertaValida || !alcanceValido) return;
+    const s = armar();
+    const afectadas = isNew ? [] : ventasConCostosNuevos(ventas, s, today());
+    if (afectadas.length) { setCostosEnCurso({ s, afectadas }); return; }
+    onSave(s);
+  };
+  const armar = () => {
     const u = LoopaFicha.utilidad(fichaLimpia, num(d.precio));
-    onSave({
+    return ({
       ...servicio, ...d,
       nombre: d.nombre.trim(), categoria: d.categoria.trim() || 'Otro', precio: num(d.precio), costo: u.costo, descripcion: d.descripcion.trim(),
       // La unidad sale de la duración: un paquete de meses se cobra por mes.
@@ -1651,7 +1682,20 @@ function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClos
   const inicioEjemplo = (() => { const t = today(); const w = LoopaFicha.diaSemana(t); return LoopaFicha.sumarDias(t, w === 1 ? 0 : 8 - w); })();
   return (
     <Modal kicker={isNew ? (esPaquete ? 'Catálogo · nuevo paquete' : 'Catálogo · nuevo producto') : `Catálogo · ${servicio.id}`} title={isNew ? (esPaquete ? 'Nuevo paquete' : 'Nuevo producto') : servicio.nombre} onClose={onClose} width={860}
-      footer={<>
+      footer={costosEnCurso ? (() => {
+        const { s, afectadas } = costosEnCurso;
+        const nums = afectadas.map(a => '#' + a.venta.n).join(', ');
+        const antes = afectadas.reduce((t, a) => t + ventaCosto(ventas.find(v => claveVenta(v) === claveVenta(a.venta)) || a.venta), 0);
+        const despues = afectadas.reduce((t, a) => t + ventaCosto(a.venta), 0);
+        return <>
+          <div className="costos-en-curso">
+            <b>Cambiaron los costos.</b> {afectadas.length === 1 ? `La venta ${nums} está en curso` : `Las ventas ${nums} están en curso`} con este producto: su costo pasaría de {L(antes)} a {L(despues)}. El precio cobrado no cambia.
+          </div>
+          <button className="btn sm ghost" onClick={() => setCostosEnCurso(null)}><Icon name="arrow-l" size={12} /> Volver</button>
+          <button className="btn sm ghost" onClick={() => onSave(s)}>Sólo ventas nuevas</button>
+          <button className="btn sm primary" onClick={() => onSave(s, { aplicarCostosEnCurso: true })}>Aplicar también {afectadas.length === 1 ? 'a esa venta' : 'a esas ventas'}</button>
+        </>;
+      })() : <>
         {onRemove && <button className="btn sm ghost" style={{ color: 'var(--danger)', marginRight: 'auto' }} onClick={onRemove}>
           <Icon name={st.ventas ? 'archive' : 'trash'} size={12} /> {st.ventas ? 'Archivar' : 'Eliminar'}
         </button>}
@@ -3287,10 +3331,17 @@ function App({ onLogout, usuarioFusion = null }) {
     setServicios(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s));
     if (patch.precio != null) showToast(`✓ Precio base actualizado a ${L(patch.precio)}`);
   };
-  const handleSaveServicio = (s) => {
+  const handleSaveServicio = (s, { aplicarCostosEnCurso = false } = {}) => {
     if (s.id) {
-      if (DATOS_FUSION && !encolar(`Servicio «${s.nombre}»`, [LoopaFusion.operacionServicio(s)])) return;
-      setServicios(prev => prev.map(x => x.id === s.id ? s : x)); addCategoria(s.categoria); showToast('✓ Producto guardado');
+      if (DATOS_FUSION && !encolar(`Servicio «${s.nombre}»`, [LoopaFusion.operacionServicio(s, { aplicarCostosEnCurso })])) return;
+      setServicios(prev => prev.map(x => x.id === s.id ? s : x)); addCategoria(s.categoria);
+      // Lo mismo que hace el servidor, en pantalla: utilidad y gráficas al día.
+      const afectadas = aplicarCostosEnCurso ? ventasConCostosNuevos(ventas, s, today()) : [];
+      if (afectadas.length) {
+        const nuevas = new Map(afectadas.map(a => [claveVenta(a.venta), a.venta]));
+        setVentas(prev => prev.map(v => nuevas.get(claveVenta(v)) || v));
+      }
+      showToast(afectadas.length ? `✓ Producto guardado · costos aplicados a ${afectadas.length === 1 ? 'la venta' : 'las ventas'} ${afectadas.map(a => '#' + a.venta.n).join(', ')}` : '✓ Producto guardado');
     }
     else handleCreateServicio(s);
   };
@@ -3572,7 +3623,7 @@ function App({ onLogout, usuarioFusion = null }) {
               onDuplicate={handleDuplicate} focusN={focusN} onFocusConsumed={() => setFocusN(null)} />
           )}
           {route === 'servicios' && (
-            <Servicios servicios={servicios} clientes={clientes} stats={stats} config={config} onSave={handleSaveServicio} tiposTarjeta={tiposTarjeta}
+            <Servicios servicios={servicios} clientes={clientes} stats={stats} config={config} onSave={handleSaveServicio} tiposTarjeta={tiposTarjeta} ventas={ventas}
               onDelete={(id) => {
                 if (!DATOS_FUSION) { setServicios(prev => prev.filter(s => s.id !== id)); return; }
                 // En el catálogo nada se borra (hay ventas que lo usan): se desactiva.

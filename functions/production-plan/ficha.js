@@ -251,6 +251,25 @@ var LoopaFicha = (function () {
   }
   function lista(servicio) { return faltantes(servicio).length === 0; }
 
+  // Costos del catálogo sobre una venta ya hecha: la ficha congelada en la
+  // línea toma el costo de cada entregable (por id) y los costos extra del
+  // producto actual. Fechas, entregables y precio no cambian. Devuelve la
+  // ficha nueva, el costo total y si cambió algo.
+  function aplicarCostos(fichaVenta, fichaCatalogo, inicio) {
+    var fv = normalizarFicha(fichaVenta), fc = normalizarFicha(fichaCatalogo);
+    var costoDe = {};
+    fc.entregables.forEach(function (e) { costoDe[e.id] = e.costo; });
+    var f = Object.assign({}, fv, {
+      costosExtra: fc.costosExtra,
+      entregables: fv.entregables.map(function (e) { return Object.prototype.hasOwnProperty.call(costoDe, e.id) ? Object.assign({}, e, { costo: costoDe[e.id] }) : e; }),
+    });
+    var antes = costos(fv, inicio).total, despues = costos(f, inicio).total;
+    var cambio = antes !== despues || JSON.stringify(fv.costosExtra) !== JSON.stringify(f.costosExtra);
+    return { ficha: f, costo: despues, antes: antes, cambio: cambio };
+  }
+  // Una venta está en curso mientras su rango no terminó (fin >= hoy).
+  function enCurso(fin, hoy) { return esFecha(fin) && esFecha(hoy) && fin >= hoy; }
+
   // Texto corto del patrón («12 repartidas», «L·M·V», «día 3», «al final»).
   function describirPatron(e) {
     var p = e.patron || {};
@@ -267,7 +286,7 @@ var LoopaFicha = (function () {
   return {
     UNIDADES: UNIDADES, PATRONES: PATRONES, DIAS_SEMANA: DIAS_SEMANA, LIMITES: LIMITES, MAX_DURACION: MAX_DURACION,
     normalizarFicha: normalizarFicha, normalizarItem: normalizarItem, fichaDeItem: fichaDeItem, resolverPaquete: resolverPaquete, rango: rango, fechasEntregable: fechasEntregable, calendario: calendario,
-    costos: costos, utilidad: utilidad, faltantes: faltantes, lista: lista,
+    costos: costos, utilidad: utilidad, faltantes: faltantes, lista: lista, aplicarCostos: aplicarCostos, enCurso: enCurso,
     describirPatron: describirPatron, describirDuracion: describirDuracion, tipoSugerido: tipoSugerido,
     sumarDias: sumarDias, sumarMeses: sumarMeses, diaSemana: diaSemana, esFecha: esFecha,
   };

@@ -92,9 +92,14 @@ const addMonths = (ymd, months) => {
 
 const compareYmd = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
-const todayInTimeZone = (now = new Date(), timeZone = DEFAULT_TIME_ZONE) => new Intl.DateTimeFormat('en-CA', {
-  timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
-}).format(now);
+// Armado por partes: con datos de idioma reducidos (el Node del emulador),
+// 'en-CA' cae a 'en' y format() daba «11/11/2026» en vez de YYYY-MM-DD.
+const todayInTimeZone = (now = new Date(), timeZone = DEFAULT_TIME_ZONE) => {
+  const p = {};
+  new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' })
+    .formatToParts(now).forEach(x => { p[x.type] = x.value; });
+  return `${p.year}-${p.month}-${p.day}`;
+};
 
 module.exports = {
   DEFAULT_TIME_ZONE,

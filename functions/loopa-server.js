@@ -334,9 +334,42 @@ const saveService = asCall(async (store, auth, data, { now = () => new Date().to
     // Cambió un ítem: los paquetes que lo usan se actualizan (copia del ítem y
     // costo). Las ventas ya hechas no cambian: congelaron su ficha al venderse.
     if (clase === 'item') r.paquetesActualizados = await refrescarPaquetes(store, s.id, uid);
+    // Quien vende eligió aplicar los costos nuevos a las ventas en curso.
+    if (data.aplicarCostosEnCurso === true && ficha && clase !== 'item') r.ventasActualizadas = await aplicarCostosAVentas(store, s.id, ficha, uid, now());
     return r;
   });
 });
+
+// Costos del catálogo → ventas EN CURSO (rango sin terminar, no canceladas).
+// Sólo cambian los costos de la línea (ficha.costosExtra, el costo de cada
+// entregable y snapshot.costo): precio, fechas y tarjetas quedan igual, así
+// que no hay evento de producción ni cambia la revisión. Sube la versión para
+// que una pantalla con la venta vieja no la pise. Devuelve los números de venta.
+async function aplicarCostosAVentas(store, serviceId, ficha, uid, nowIso) {
+  const hoy = todayInTimeZone(new Date(nowIso));
+  const ventas = [...await store.queryEquals(COLLECTIONS.sales, 'status', 'confirmed'), ...await store.queryEquals(COLLECTIONS.sales, 'status', 'draft')]
+    .filter(v => (v.lines || []).some(l => l.serviceId === serviceId && l.ficha && Ficha.enCurso(l.fin, hoy)));
+  const hechas = [];
+  for (const v of ventas) {
+    const n = await store.transaction(async tx => {
+      const cur = await tx.get(COLLECTIONS.sales, v.id);
+      if (!cur || cur.status === 'cancelled') return null;
+      let cambio = false;
+      const lines = cur.lines.map(l => {
+        if (l.serviceId !== serviceId || !l.ficha || !Ficha.enCurso(l.fin, hoy)) return l;
+        const a = Ficha.aplicarCostos(l.ficha, ficha, l.inicio);
+        if (!a.cambio && a.costo === l.snapshot.costo) return l;
+        cambio = true;
+        return { ...l, ficha: a.ficha, snapshot: { ...l.snapshot, costo: a.costo } };
+      });
+      if (!cambio) return null;
+      tx.update(COLLECTIONS.sales, v.id, { lines, version: cur.version + 1, updatedBy: uid });
+      return cur.n;
+    });
+    if (n !== null) hechas.push(n);
+  }
+  return hechas;
+}
 
 // Los ítems del catálogo que usa una ficha, por id.
 async function itemsDe(store, ficha) {

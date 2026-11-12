@@ -219,9 +219,11 @@ const LoopaFusion = (function () {
   // trabajo de producción queda marcado, no desaparece.
   const operacionEliminar = (venta) => ({ fn: 'loopaUpdateSale', data: { saleId: venta.id, patch: { status: 'cancelled' }, expectedVersion: venta.version } });
 
-  const operacionServicio = (s) => ({
+  // aplicarCostosEnCurso: los costos nuevos también van a las ventas en curso
+  // de ese producto (lo elige quien guarda; ver aplicarCostosAVentas).
+  const operacionServicio = (s, { aplicarCostosEnCurso = false } = {}) => ({
     fn: 'loopaSaveService',
-    data: { service: { id: s.id, nombre: s.nombre, categoria: s.categoria, unidad: s.unidad, modelo: s.modelo, descripcion: s.descripcion || '', precio: num(s.precio), costo: num(s.costo), activo: s.activo !== false, recomendado: s.recomendado === true, ...(s.modelo === 'especial' ? { specialClientId: s.clienteIdEspecial || '' } : {}), ...(s.ficha ? { ficha: s.ficha } : {}), ...(s.clase ? { clase: s.clase } : {}), ...(s.item ? { item: s.item } : {}) } },
+    data: { ...(aplicarCostosEnCurso ? { aplicarCostosEnCurso: true } : {}), service: { id: s.id, nombre: s.nombre, categoria: s.categoria, unidad: s.unidad, modelo: s.modelo, descripcion: s.descripcion || '', precio: num(s.precio), costo: num(s.costo), activo: s.activo !== false, recomendado: s.recomendado === true, ...(s.modelo === 'especial' ? { specialClientId: s.clienteIdEspecial || '' } : {}), ...(s.ficha ? { ficha: s.ficha } : {}), ...(s.clase ? { clase: s.clase } : {}), ...(s.item ? { item: s.item } : {}) } },
   });
 
   const operacionCliente = (c) => ({ fn: 'loopaSaveClient', data: { client: clienteParaServidor(c, c.id) } });

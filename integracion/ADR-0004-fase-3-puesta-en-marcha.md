@@ -1169,3 +1169,14 @@ Un paquete puede ser **abierto**: tiene nombre, precio y duración, pero no trae
 ## 43. Clientes avisa dónde están las fichas de las ventas (2026-11-11)
 
 El servidor crea la ficha del cliente de cada venta en el tablero de Producción (loopa_config/production). Clientes muestra sólo las fichas del tablero activo, así que desde «Mi tablero» parecía que vender no creaba el cliente. Ahora, para quien vende, Clientes avisa en qué tablero están y ofrece un botón para cambiar a ese tablero. No se mueve ninguna ficha.
+
+
+## 44. Costos nuevos de un producto → ventas en curso, si se elige (2026-11-11)
+
+Cada venta congela la ficha y el costo del producto al venderse. Por eso cambiar los costos de un paquete no movía la utilidad ni las gráficas de una venta ya hecha. Ahora, al guardar un producto cuyos costos difieren de los de sus **ventas en curso** (no canceladas, rango sin terminar), el editor pregunta: «Sólo ventas nuevas» o «Aplicar también a esa(s) venta(s)», con el costo antes y después.
+
+- **Cuenta única.** `LoopaFicha.aplicarCostos(fichaVenta, fichaCatalogo, inicio)`: la ficha de la venta toma el costo de cada entregable (por id) y los costos extra del catálogo; fechas, entregables y precio no cambian. `enCurso(fin, hoy)`. La usan el servidor y la pantalla.
+- **Servidor.** `saveService` con `aplicarCostosEnCurso: true` actualiza esas líneas (ficha y `snapshot.costo`), sube la **versión** de la venta (no la revisión) y no crea evento de producción: las tarjetas no se tocan. Devuelve los números de venta actualizados.
+- **Fecha local.** `todayInTimeZone` ahora arma YYYY-MM-DD por partes. Con datos de idioma reducidos (el Node del emulador) `en-CA` caía a `en` y daba «11/11/2026», así que ninguna venta parecía en curso.
+
+Hay que redesplegar `functions:loopa`.
