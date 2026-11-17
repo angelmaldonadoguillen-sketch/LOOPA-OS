@@ -1857,7 +1857,7 @@ function ServicioForm({ servicio, servicios, clientes, categorias, stats, onClos
 }
 
 // ═══════════════════════ CLIENTES ═══════════════════════
-function Clientes({ clientes, ventas, config, onSave, onDelete, onNuevaVenta, onOpenVenta }) {
+function Clientes({ clientes, ventas, config, onSave, onDelete, onNuevaVenta, onOpenVenta, onResultados }) {
   const [q, setQ] = useState('');
   const [soloSaldo, setSoloSaldo] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -1961,13 +1961,14 @@ function Clientes({ clientes, ventas, config, onSave, onDelete, onNuevaVenta, on
           onSave={(c) => { onSave(c); if (!editing.id) setEditing(null); }}
           onDelete={() => { onDelete(editing.id); setEditing(null); }}
           onNuevaVenta={() => { setEditing(null); onNuevaVenta(editing); }}
+          onResultados={onResultados ? () => { setEditing(null); onResultados(editing); } : null}
           onOpenVenta={(n) => { setEditing(null); onOpenVenta(n); }} />
       )}
     </div>
   );
 }
 
-function ClienteModal({ cliente, ventas, config, clientes, onClose, onSave, onDelete, onNuevaVenta, onOpenVenta }) {
+function ClienteModal({ cliente, ventas, config, clientes, onClose, onSave, onDelete, onNuevaVenta, onOpenVenta, onResultados }) {
   const isNew = !cliente.id;
   const [d, setD] = useState(() => ({ nombre: '', empresa: '', telefono: '', email: '', canal: config.canales[0] || '', notas: '', ...cliente }));
   const [dirty, setDirty] = useState(false);
@@ -1992,6 +1993,7 @@ function ClienteModal({ cliente, ventas, config, clientes, onClose, onSave, onDe
     <Modal kicker={isNew ? 'Nuevo cliente' : `Cliente desde ${fmtFechaLarga(cliente.creado)}`} title={isNew ? 'Nuevo cliente' : cliente.nombre} onClose={onClose} width={760}
       footer={<>
         {!isNew && <button className="btn sm ghost" style={{ color: 'var(--danger)', marginRight: 'auto' }} onClick={del}><Icon name="trash" size={12} /> Eliminar</button>}
+        {!isNew && onResultados && <button className="btn sm" onClick={onResultados}><Icon name="trend" size={12} /> Resultados</button>}
         {!isNew && <button className="btn sm" onClick={onNuevaVenta}><Icon name="plus" size={12} /> Nueva venta</button>}
         <button className="btn sm primary" onClick={() => { if (dirty || isNew) save(); if (!isNew) onClose(); }} disabled={!d.nombre.trim()}>{isNew ? 'Crear cliente' : dirty ? 'Guardar y cerrar' : 'Listo'}</button>
       </>}>
@@ -3376,6 +3378,9 @@ function App({ onLogout, usuarioFusion = null }) {
     else { setClientes(prev => [{ ...c, id: uid('CL'), creado: today() }, ...prev]); showToast('✓ Cliente creado'); }
   };
   const goNueva = (pf) => { setPrefill(pf || null); setVentaKey(k => k + 1); setRoute('nueva'); };
+  // Resultados de un cliente: se entra desde su ficha.
+  const [resultadosDe, setResultadosDe] = useState('');
+  const abrirResultados = (id) => { setResultadosDe(id || ''); setRoute('resultados'); };
   const clientePrefill = (c) => ({ id: c.id, nombre: c.nombre || '', empresa: c.empresa || '', telefono: c.telefono || '', email: c.email || '', canal: c.canal || config.canales[0] });
   const handleDuplicate = (v) => {
     const c = clientes.find(x => x.id === v.clienteId) || { id: v.clienteId, nombre: v.cliente, empresa: v.empresa, telefono: v.telefono, email: v.email, canal: v.canal };
@@ -3414,13 +3419,14 @@ function App({ onLogout, usuarioFusion = null }) {
     { id: 'ventas',    label: 'Ventas',        icon: 'list' },
     { id: 'servicios', label: 'Servicios',     icon: 'tag' },
     { id: 'clientes',  label: 'Clientes',      icon: 'user' },
-    { id: 'resultados', label: 'Resultados',   icon: 'trend' },
     ...modProduccion,
     { id: 'metricas',  label: 'Métricas',      icon: 'chart' },
     { id: 'gastos',    label: 'Gastos',        icon: 'money' },
     { id: 'config',    label: 'Configuración', icon: 'settings' },
   ];
-  const current = modules.find(m => m.id === route) || modules[0];
+  // Resultados se abre desde la ficha de un cliente: en el menú se marca Clientes.
+  const rutaMenu = route === 'resultados' ? 'clientes' : route;
+  const current = route === 'resultados' ? { id: 'resultados', label: 'Resultados' } : (modules.find(m => m.id === route) || modules[0]);
   // Qué sección de Producción se ve ahora (null: ninguna).
   const seccionEstudio = PROD_ON !== 'estudio' ? null
     : RUTAS_ESTUDIO[route] || SECCION_ESTUDIO[route] || (route === 'clientes' ? 'clients' : null);
@@ -3458,6 +3464,7 @@ function App({ onLogout, usuarioFusion = null }) {
         goNueva({ cliente: c ? clientePrefill(c) : { id, nombre: nombre || '', empresa: '', telefono: '', email: '', canal: config.canales[0] } });
       },
       onAbrirVenta: (clave) => openVenta(clave),
+      onResultados: (id) => abrirResultados(id),
       // Empresa y canal: se guardan como siempre (servidor). Si la ficha nació en
       // Producción y LOOPA todavía no la cargó, se actualiza igual por su id.
       onGuardar: (id, patch, nombre) => {
@@ -3555,10 +3562,10 @@ function App({ onLogout, usuarioFusion = null }) {
           )}
         </div>}
 
-        {PROD_ON && !soloProduccion ? <NavAgrupada modules={modules} route={route} onGo={(id) => (id === 'nueva' && route === 'nueva' ? goNueva(null) : setRoute(id))} /> : (
+        {PROD_ON && !soloProduccion ? <NavAgrupada modules={modules} route={rutaMenu} onGo={(id) => (id === 'nueva' && route === 'nueva' ? goNueva(null) : setRoute(id))} /> : (
         <nav className="nav" style={{ marginTop: 8 }}>
           {modules.map(m => (
-            <button key={m.id} className={`nav-item ${route === m.id ? 'active' : ''}`} onClick={() => m.id === 'nueva' && route === 'nueva' ? goNueva(null) : setRoute(m.id)} title={m.label}>
+            <button key={m.id} className={`nav-item ${rutaMenu === m.id ? 'active' : ''}`} onClick={() => m.id === 'nueva' && route === 'nueva' ? goNueva(null) : setRoute(m.id)} title={m.label}>
               <Icon name={m.icon} size={15} />
               <span>{m.label}</span>
               <span className="nav-mobile-label">{m.label.split(' ')[0]}</span>
@@ -3663,12 +3670,12 @@ function App({ onLogout, usuarioFusion = null }) {
                 if (!DATOS_FUSION) { setClientes(prev => prev.filter(c => c.id !== id)); return; }
                 showToast('Con la ficha única los clientes no se borran desde LOOPA', 'err');
               }}
-              onNuevaVenta={(c) => goNueva({ cliente: clientePrefill(c) })} onOpenVenta={openVenta} />
+              onNuevaVenta={(c) => goNueva({ cliente: clientePrefill(c) })} onOpenVenta={openVenta} onResultados={(c) => abrirResultados(c.id)} />
           )}
           {route === 'produccion' && PROD_ON && PROD_ON !== 'estudio' && <ProduccionModulo modo={PROD_FLAG} onAbrirVenta={openVenta} conexion={conexionProduccion} />}
           {route === 'metricas' && (!seccionEstudio || juntas) && <Metricas ventas={ventas} gastos={gastos} config={config} />}
           {route === 'gastos' && <Gastos gastos={gastos} setGastos={setGastos} config={config} setConfig={setConfig} />}
-          {route === 'resultados' && <ResultadosRedes clientes={clientes} />}
+          {route === 'resultados' && <ResultadosRedes clientes={clientes} clienteInicial={resultadosDe} onVolver={() => setRoute('clientes')} />}
           {route === 'config' && (!seccionEstudio || juntas) && (
             <Configuracion config={config} setConfig={setConfig} showToast={showToast} onImport={handleImport}
               allData={{ ventas, clientes, servicios, config, gastos }} />

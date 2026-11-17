@@ -43,7 +43,7 @@ test('sin Producción (ni bandera ni FRAME), no aparece ni deja una pantalla vac
 
 test('sin Producción, el menú es el original (la navegación agrupada sólo con Producción)', () => {
   const app = read('_fuente/app.jsx');
-  assert.match(app, /\{PROD_ON && !soloProduccion \? <NavAgrupada modules=\{modules\} route=\{route\}/);
+  assert.match(app, /\{PROD_ON && !soloProduccion \? <NavAgrupada modules=\{modules\} route=\{rutaMenu\}/);
   assert.match(app, /<nav className="nav" style=\{\{ marginTop: 8 \}\}>\s*\{modules\.map\(m => \(/, 'el menú original sigue intacto en la otra rama');
   const nav = read('_fuente/shell/navegacion.jsx');
   ['nueva', 'ventas', 'servicios', 'clientes', 'produccion', 'metricas', 'gastos', 'config'].forEach(id => assert.match(nav, new RegExp(`'${id}'`), id));
@@ -279,13 +279,17 @@ test('Nueva venta: un cliente nuevo con nombre o empresa de otra ficha avisa (no
   assert.match(cli, /client\.commercial\?\.empresa/, 'la tarjeta muestra la empresa');
 });
 
-test('resultados del cliente: módulo en el menú comercial, pantalla y colección propia', () => {
+test('resultados del cliente: se entra desde la ficha del cliente, no desde el menú', () => {
   const app = read('_fuente/app.jsx');
   const nav = read('_fuente/shell/navegacion.jsx');
   const ui = read('_fuente/resultados/resultados.jsx');
-  assert.match(app, /\{ id: 'resultados', label: 'Resultados', +icon: 'trend' \}/);
-  assert.match(app, /route === 'resultados' && <ResultadosRedes clientes=\{clientes\} \/>/);
-  assert.match(nav, /ids: \['nueva', 'ventas', 'servicios', 'clientes', 'resultados'\]/);
+  const fichas = read('_fuente/estudio/clients.jsx');
+  assert.doesNotMatch(app, /\{ id: 'resultados', label: 'Resultados', +icon:/, 'no está en el menú');
+  assert.match(nav, /ids: \['nueva', 'ventas', 'servicios', 'clientes'\] \}/);
+  assert.match(app, /const rutaMenu = route === 'resultados' \? 'clientes' : route/, 'en Resultados el menú marca Clientes');
+  assert.match(app, /onResultados: \(id\) => abrirResultados\(id\)/, 'la ficha de Producción lo abre');
+  assert.match(fichas, /comercial\.onResultados\(client\.id\)/);
+  assert.match(app, /<ResultadosRedes clientes=\{clientes\} clienteInicial=\{resultadosDe\} onVolver=/);
   assert.match(ui, /collection\('loopa_results'\)\.where\('clientId', '==', clienteId\)/, 'lee sólo los meses del cliente');
-  assert.match(ui, /LoopaResultados\.leerCsvMetaAds|R\.leerCsvMetaAds/, 'importa el CSV de Meta');
+  assert.match(ui, /R\.leerCsvMetaAds/, 'importa el CSV de Meta');
 });

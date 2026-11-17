@@ -8,7 +8,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 const NAV_GRUPOS = [
-  { id: 'comercial', label: 'Comercial', ids: ['nueva', 'ventas', 'servicios', 'clientes', 'resultados'] },
+  { id: 'comercial', label: 'Comercial', ids: ['nueva', 'ventas', 'servicios', 'clientes'] },
   { id: 'produccion', label: 'Producción', ids: ['produccion', 'mis-tareas', 'equipo', 'papelera'] },
   { id: 'sistema', label: 'Sistema', ids: ['metricas', 'gastos', 'config'] },
 ];

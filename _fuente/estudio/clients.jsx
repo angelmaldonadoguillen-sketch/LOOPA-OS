@@ -230,6 +230,16 @@ const ComercialFicha = ({ client, comercial, onClose }) => {
     <section className="surf p-4">
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2 font-semibold text-[13px]"><Icon name="briefcase" size={14} /> Comercial</div>
+        <div className="flex items-center gap-2">
+        {comercial.onResultados && (
+          <button
+            onClick={() => { onClose && onClose(); comercial.onResultados(client.id); }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold border border-[var(--line)] hover:bg-[var(--surface-2)] transition"
+            data-test="ficha-resultados"
+          >
+            <Icon name="megaphone" size={12} /> Resultados
+          </button>
+        )}
         <button
           onClick={() => { onClose && onClose(); comercial.onNuevaVenta(client.id, client.name); }}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold hover:brightness-110 transition"
@@ -237,6 +247,7 @@ const ComercialFicha = ({ client, comercial, onClose }) => {
         >
           <Icon name="plus" size={12} strokeWidth={2.4} /> Nueva venta
         </button>
+        </div>
       </div>
       <div className="grid grid-cols-4 gap-2 mb-4">
         {[

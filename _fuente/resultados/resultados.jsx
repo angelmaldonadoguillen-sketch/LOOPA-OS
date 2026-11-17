@@ -67,9 +67,12 @@ function Delta({ valor, alReves = false }) {
   return <div className="delta" style={{ color }}>{valor > 0 ? '▲' : valor < 0 ? '▼' : '■'} {Math.abs(valor)} % vs mes anterior</div>;
 }
 
-function ResultadosRedes({ clientes }) {
+// Se entra desde la ficha del cliente (pedido de Ángel, 2026-11-17): `clienteInicial`
+// es ese cliente y `onVolver` regresa a Clientes. El selector queda para cambiar.
+function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
   const lista = useMemo(() => [...(clientes || [])].sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es')), [clientes]);
-  const [clienteId, setClienteId] = useState(() => { try { return localStorage.getItem('loopa-resultados-cliente') || ''; } catch (e) { return ''; } });
+  const [clienteId, setClienteId] = useState(() => { if (clienteInicial) return clienteInicial; try { return localStorage.getItem('loopa-resultados-cliente') || ''; } catch (e) { return ''; } });
+  useEffect(() => { if (clienteInicial) setClienteId(clienteInicial); }, [clienteInicial]);
   useEffect(() => {
     if (!lista.length) return;
     if (!lista.some(c => c.id === clienteId)) setClienteId(lista[0].id);
@@ -176,8 +179,10 @@ function ResultadosRedes({ clientes }) {
     <div className="resultados">
       <div className="page-head">
         <div>
-          <div className="page-kicker">Clientes</div>
-          <div className="page-title">Resultados</div>
+          {onVolver
+            ? <button className="resultados-volver" onClick={onVolver}><Icon name="arrow-l" size={11} /> Clientes</button>
+            : <div className="page-kicker">Clientes</div>}
+          <div className="page-title">Resultados{cliente ? <span className="resultados-titulo-cliente"> · {cliente.nombre}</span> : null}</div>
           <div className="page-desc">Datos netos de cada mes calendario (del 1 al último día), aparte del plan vendido. Se cargan a mano o con el CSV de Meta Ads.</div>
         </div>
         <div className="resultados-controles">

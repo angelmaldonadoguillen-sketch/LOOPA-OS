@@ -1,4 +1,11 @@
 /* Resultados del cliente en redes (2026-11-17). */
+.resultados-volver {
+  display: inline-flex; align-items: center; gap: 6px; margin-bottom: 6px; padding: 0;
+  border: 0; background: transparent; color: var(--muted); cursor: pointer;
+  font-family: var(--font-mono); font-size: var(--fs-s); letter-spacing: .14em; text-transform: uppercase;
+}
+.resultados-volver:hover { color: var(--text); }
+.resultados-titulo-cliente { color: var(--muted); }
 .resultados-controles { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .resultados-controles .select { min-width: 200px; }
 .resultados-mes { display: inline-flex; align-items: center; gap: 8px; }
