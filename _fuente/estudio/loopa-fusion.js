@@ -33,6 +33,23 @@
 
   const isFromSale = (p) => !!p && p.sourceSystem === 'loopa';
 
+  // El paquete de una tarjeta (2026-11-17). Las que se marcan a mano traen
+  // `paquete`; las que generó una venta de un PAQUETE no, pero lo dicen igual:
+  // sus unidades salen de la ficha (`templateId` «f-…», y no «f-item», que es
+  // un ítem vendido suelto) y la etiqueta que no es «loopa» es el nombre del
+  // paquete. Así todas las tarjetas del plan muestran el mismo chip.
+  function packageOf(p) {
+    if (!p) return null;
+    if (p.paquete && p.paquete.nombre) return { id: p.paquete.id || '', nombre: p.paquete.nombre };
+    if (!isFromSale(p)) return null;
+    const items = Array.isArray(p.sourceWorkItems) ? p.sourceWorkItems : [];
+    if (!items.length || !items.every(w => typeof w.templateId === 'string' && w.templateId.startsWith('f-') && w.templateId !== 'f-item')) return null;
+    const ids = [...new Set(items.map(w => w.serviceId).filter(Boolean))];
+    const names = (Array.isArray(p.tags) ? p.tags : []).filter(t => typeof t === 'string' && t && t !== 'loopa');
+    if (ids.length !== 1 || names.length !== 1) return null;
+    return { id: ids[0], nombre: names[0] };
+  }
+
   // Lo que cambia al llevar una tarjeta a otro día de trabajo. En una tarjeta
   // de venta generada día por día, entrega y trabajo son la misma fecha: se
   // mueven juntas (la regla sólo acepta eso). En lo demás la entrega es un
@@ -110,5 +127,5 @@
     return Object.keys(prev || {}).filter(k => k !== 'id' && !CLIENT_SERVER_KEYS.includes(k) && !Object.prototype.hasOwnProperty.call(next || {}, k));
   }
 
-  return { PROVENANCE_KEYS, CLIENT_SERVER_KEYS, isFromSale, workDatePatch, withoutProvenance, duplicateOf, restorableFromTrash, clientHasSales, clientUpdatePatch, clientRemovedKeys };
+  return { PROVENANCE_KEYS, CLIENT_SERVER_KEYS, isFromSale, packageOf, workDatePatch, withoutProvenance, duplicateOf, restorableFromTrash, clientHasSales, clientUpdatePatch, clientRemovedKeys };
 });

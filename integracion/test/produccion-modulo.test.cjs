@@ -226,7 +226,7 @@ test('paquete abierto: el editor lo ofrece y la tarjeta se marca con él', () =>
   assert.match(estudio, /paquetes=\{comercial\?\.paquetes \|\| \[\]\}/);
   assert.match(modal, /label="Paquete"/);
   assert.match(modal, /!deVenta && \(opcionesPaquete\.length > 0/, 'una tarjeta de venta no se marca a mano');
-  assert.match(views, /project\.paquete\?\.nombre && \(/, 'la tarjeta del tablero muestra el paquete');
+  assert.match(views, /window\.FrameLoopa\?\.packageOf\(project\) && \(/, 'la tarjeta del tablero muestra el paquete (también las de una venta de paquete)');
   // La función de opciones: del cliente de la tarjeta, o ya usados en otras tarjetas.
   const src = modal.slice(modal.indexOf('const paquetesDeTarjeta'), modal.indexOf('const ProjectModal'));
   const paquetesDeTarjeta = new Function(`${src}; return paquetesDeTarjeta;`)();

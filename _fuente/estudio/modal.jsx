@@ -1130,6 +1130,11 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
               )}
             </PropRow>
 
+            {deVenta && window.FrameLoopa?.packageOf(project) && (
+              <PropRow icon="layers" label="Paquete">
+                <span className="paquete-chip" title="Lo define la venta">{window.FrameLoopa.packageOf(project).nombre}</span>
+              </PropRow>
+            )}
             {!deVenta && (opcionesPaquete.length > 0 || project.paquete?.nombre) && (
               <PropRow icon="layers" label="Paquete">
                 <Dropdown

@@ -95,3 +95,12 @@ assert.match(rules, /match \/loopa_config\/\{doc\}/);
 // Fase 4: FRAME ya no existe como programa; Producción es parte de LOOPA.
 
 console.log('loopa-fusion: ok');
+
+// Paquete de la tarjeta (2026-11-17): a mano, o deducido de una venta de paquete.
+const ventaPaquete = { sourceSystem: 'loopa', tags: ['loopa', 'Plan mensual ID Motos'], sourceWorkItems: [{ serviceId: 'SRV-PLAN-IDMOTOS', templateId: 'f-historias' }] };
+assert.deepEqual(L.packageOf(ventaPaquete), { id: 'SRV-PLAN-IDMOTOS', nombre: 'Plan mensual ID Motos' }, 'tarjeta de venta de paquete');
+assert.deepEqual(L.packageOf({ paquete: { id: 'SRV-X', nombre: 'Consultoría' } }), { id: 'SRV-X', nombre: 'Consultoría' }, 'marcada a mano');
+assert.equal(L.packageOf({ ...ventaPaquete, sourceWorkItems: [{ serviceId: 'SRV-ITEM-REEL', templateId: 'f-item' }], tags: ['loopa', 'Reel'] }), null, 'un ítem vendido suelto no es paquete');
+assert.equal(L.packageOf({ ...ventaPaquete, sourceWorkItems: [{ serviceId: 'SRV-A', templateId: 'tpl-1' }] }), null, 'plantilla vieja (sin ficha)');
+assert.equal(L.packageOf({ ...ventaPaquete, tags: ['loopa', 'A', 'B'] }), null, 'dos nombres: no se adivina');
+assert.equal(L.packageOf({ title: 'manual' }), null);

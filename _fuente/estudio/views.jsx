@@ -212,8 +212,8 @@ const ProjectCardMini = ({ project, onClick, draggable, onDragStart, onDragEnd, 
           </div>
 
           {/* Paquete abierto al que pertenece (consultoría…) */}
-          {project.paquete?.nombre && (
-            <div className="mt-1 min-w-0"><span className="paquete-chip" title="Paquete">{project.paquete.nombre}</span></div>
+          {window.FrameLoopa?.packageOf(project) && (
+            <div className="mt-1 min-w-0"><span className="paquete-chip" title="Paquete">{window.FrameLoopa.packageOf(project).nombre}</span></div>
           )}
 
           {(meta.length > 0 || pf.responsables !== false || origen) && (
@@ -1162,8 +1162,8 @@ const WeekCard = ({ project, calendarDate, onClick, draggable, onDragStart, onDr
         )}
 
         {/* Paquete abierto al que pertenece (consultoría…) */}
-        {project.paquete?.nombre && (
-          <div className="min-w-0"><span className="paquete-chip" title="Paquete">{project.paquete.nombre}</span></div>
+        {window.FrameLoopa?.packageOf(project) && (
+          <div className="min-w-0"><span className="paquete-chip" title="Paquete">{window.FrameLoopa.packageOf(project).nombre}</span></div>
         )}
 
         {/* Estado */}
@@ -1541,7 +1541,7 @@ const GalleryCard = ({ project, onClick, onDelete, onDuplicate, onToggleFavorite
                 {pf.cliente !== false && project.client && (
                   <span className="text-[11px] uppercase tracking-wider truncate">{project.client}</span>
                 )}
-                {project.paquete?.nombre && <span className="paquete-chip" title="Paquete">{project.paquete.nombre}</span>}
+                {window.FrameLoopa?.packageOf(project) && <span className="paquete-chip" title="Paquete">{window.FrameLoopa.packageOf(project).nombre}</span>}
                 {origen && (
                   <span className="text-[10px] px-1.5 rounded flex-shrink-0 ml-auto truncate" title={'Esta tarjeta vive en ' + origen}
                     style={{ background: 'var(--surface-3)', color: 'var(--text-dim)', maxWidth: '55%' }}>{origen}</span>
