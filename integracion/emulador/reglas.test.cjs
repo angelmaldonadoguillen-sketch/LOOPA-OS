@@ -431,6 +431,8 @@ test('resultados del cliente en redes: sólo el equipo comercial, un mes calenda
   await no(fsMod.setDoc(r('u1'), doc('u1', { redes: { otra_red: {} } })), 'red desconocida');
   await no(fsMod.setDoc(r('u1'), doc('u1', { extra: 1 })), 'campos extra');
   await no(fsMod.setDoc(r('u1'), doc('u2')), 'firma como otro');
+  await ok(fsMod.setDoc(r('u1'), doc('u1', { corte: '2026-10-15', avance: [{ fecha: '2026-10-15', resultados: 30 }] })), 'mes en curso: corte y avance');
+  await no(fsMod.setDoc(r('u1'), doc('u1', { corte: '15/10/2026' })), 'corte con otra forma');
   await ok(fsMod.deleteDoc(r('u1')), 'el comercial lo borra');
 });
 

@@ -45,7 +45,7 @@ test('alertas: sólo lo urgente', () => {
   const nov = { redes: { meta_ads: { inversion: 300, moneda: 'USD', mensajes: 30 } } };
   const textos = R.alertas(nov, oct).map(a => a.texto);
   assert.ok(textos.some(t => /costo por resultado subió 100/.test(t)));
-  assert.ok(textos.some(t => /cayeron 50/.test(t)));
+  assert.ok(textos.some(t => /50 % abajo contra el mes anterior/.test(t)));
   assert.deepEqual(R.alertas(nov, oct, { cerrado: false }), [], 'un mes en curso no se compara');
   const sinNada = R.alertas({ redes: { meta_ads: { inversion: 200, moneda: 'USD', mensajes: 0, leads: 0 } } }, null);
   assert.equal(sinNada.length, 1);
@@ -65,11 +65,43 @@ test('CSV de Meta Ads en español: totales, moneda, mensajes y aviso de rango', 
   assert.ok(!r.avisos.some(a => /tiene que ir del 1/.test(a)), 'el mes completo no avisa');
 });
 
-test('CSV en inglés con punto y coma y rango incompleto avisa', () => {
+test('CSV en inglés con punto y coma: del 1 a mitad de mes es el mes en curso con corte', () => {
   const csv = 'Ad name;Reporting starts;Reporting ends;Amount spent (HNL);Reach;Impressions;Results;Result indicator\n'
     + 'Promo;2026-11-01;2026-11-17;5000;10000;20000;80;messaging_conversation_started\n';
   const r = R.leerCsvMetaAds(csv);
   assert.equal(r.moneda, 'HNL');
   assert.equal(r.totales.mensajes, 80);
-  assert.ok(r.avisos.some(a => /tiene que ir del 1 al 30/.test(a)));
+  assert.equal(r.corte, '2026-11-17');
+  assert.ok(!r.avisos.some(a => /empezar el 1/.test(a)), 'del 1 al 17 no es un error');
+  const mal = R.leerCsvMetaAds(csv.replace('2026-11-01', '2026-11-05'));
+  assert.ok(mal.avisos.some(a => /empezar el 1/.test(a)), 'empezar el 5 sí avisa');
+});
+
+test('CSV por campaña sin alcance ni impresiones: esas métricas quedan vacías, no en 0', () => {
+  const csv = 'Nombre de la campaña,Inicio del informe,Fin del informe,Importe gastado (HNL),Resultados,Indicador de resultado\n'
+    + 'Choluteca,2026-11-01,2026-11-16,1576.65,298,actions:onsite_conversion.messaging_conversation_started_7d\n'
+    + 'Navidad,2026-11-01,2026-11-16,2212.36,1,actions:lead\n'
+    + 'Feria,2026-11-01,2026-11-16,1197.27,983,actions:link_click\n';
+  const r = R.leerCsvMetaAds(csv);
+  assert.deepEqual(r.totales, { inversion: 4986.28, clics: 983, mensajes: 298, leads: 1, anuncios: 3 });
+  assert.equal(r.corte, '2026-11-16');
+  assert.equal(r.avisos.length, 0);
+});
+
+test('mes en curso: corte, proyección al cierre y ritmo contra los mismos días del mes anterior', () => {
+  const oct = { mes: '2026-10', redes: { meta_ads: { inversion: 310, moneda: 'USD', mensajes: 93 } } };
+  const nov = { mes: '2026-11', corte: '2026-11-15', redes: { meta_ads: { inversion: 150, moneda: 'USD', mensajes: 30 } } };
+  assert.equal(R.diasCubiertos('2026-11', '2026-11-15'), 15);
+  assert.equal(R.diasCubiertos('2026-10', null), 31, 'mes cerrado sin corte: completo');
+  const pr = R.proyeccion(nov, '2026-11', '2026-11-15');
+  assert.equal(pr.resultados, 60);
+  assert.deepEqual(pr.inversion, { USD: 300 });
+  assert.equal(R.proyeccion(oct, '2026-10', null), null, 'un mes completo no se proyecta');
+  const r = R.ritmo(nov, '2026-11', '2026-11-15', oct);
+  assert.equal(r.inversion, 0, 'invierte al mismo ritmo (310 × 15/31 = 150)');
+  assert.equal(r.resultados, -33.3, '30 contra 45 a esta altura de octubre');
+  const al = R.alertas(nov, oct, { cerrado: false }).map(a => a.texto);
+  assert.ok(al.some(t => /mismos días del mes anterior/.test(t)));
+  assert.deepEqual(R.alertas({ ...nov, corte: '2026-11-04' }, oct, { cerrado: false }), [], 'con menos de una semana no alerta por ritmo');
+  assert.deepEqual(R.puntoDeAvance(nov, '2026-11-15'), { fecha: '2026-11-15', inversion: 150, moneda: 'USD', resultados: 30, alcance: null, seguidoresNuevos: null });
 });

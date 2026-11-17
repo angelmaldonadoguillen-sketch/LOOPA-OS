@@ -1210,3 +1210,15 @@ Sólo las tarjetas marcadas a mano traían `paquete`; las que genera una venta d
 - **Automatizar después:** la API de Meta (gratis; acceso de socio al Business Manager del cliente) escribiría el mismo documento con `fuentes[].tipo = 'api'`.
 
 Hay que publicar las reglas: `firebase deploy --only firestore:rules --config servidor-produccion/firebase.json --project frame-studio-3a18f`.
+
+## 46b. Resultados durante el mes (2026-11-17)
+
+- **Pedido:** no esperar a fin de mes para ver resultados.
+- Cada carga guarda `corte` (hasta qué día llegan los datos) y suma un punto a `avance[]` (acumulado a esa fecha).
+- **Ritmo:** el mes en curso contra el anterior llevado a los mismos días (anterior × días cubiertos ÷ días del anterior); el costo por resultado se compara directo. **Proyección al cierre:** valor × días del mes ÷ días cubiertos (no para el alcance).
+- Alertas del mes en curso: contra el ritmo, y sólo con 7 días o más de datos.
+- Pantalla: «en curso · día N de M», campo «Datos del 1 al», cambio contra los mismos días, proyección y la tabla «Avance del mes».
+- Arreglo: al llegar una actualización de la base el formulario no pisa lo que se está escribiendo ni borra el mensaje de guardado (antes un error de permiso no se veía).
+- Reglas: `corte` (AAAA-MM-DD) y `avance` (hasta 62). Hay que publicarlas.
+- CSV del 1 a una fecha del mismo mes = mes en curso: el importador toma esa fecha como `corte` y ya no avisa «tiene que ir del 1 al 30» (sí avisa si empieza otro día, se pasa de mes, o si el mes ya cerró). Las columnas que el informe no trae quedan vacías, no en 0; un resultado «clics en el enlace» cuenta como clics.
+- Primera carga real: ID Motos, Meta Ads del 1 al 16 de noviembre por campaña (sin los impulsos de Marketplace de bienes raíces de la misma cuenta). El CSV queda en `cargas-resultados/`, fuera del repositorio.

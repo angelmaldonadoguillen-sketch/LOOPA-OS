@@ -60,12 +60,15 @@ const fmtInversion = (inv) => {
 };
 
 // Cambio contra el mes anterior. `alReves`: subir es malo (costo por resultado).
-function Delta({ valor, alReves = false }) {
+function Delta({ valor, alReves = false, contra = 'vs mes anterior' }) {
   if (valor === null || valor === undefined) return null;
   const bueno = alReves ? valor < 0 : valor > 0;
   const color = valor === 0 ? 'var(--muted)' : bueno ? 'var(--ok)' : 'var(--danger)';
-  return <div className="delta" style={{ color }}>{valor > 0 ? '▲' : valor < 0 ? '▼' : '■'} {Math.abs(valor)} % vs mes anterior</div>;
+  return <div className="delta" style={{ color }}>{valor > 0 ? '▲' : valor < 0 ? '▼' : '■'} {Math.abs(valor)} % {contra}</div>;
 }
+
+// Mes en curso: a cuánto llegaría el mes si sigue igual.
+const Proyeccion = ({ texto }) => (texto ? <div className="resultados-proy">→ {texto} al cierre</div> : null);
 
 // Se entra desde la ficha del cliente (pedido de Ángel, 2026-11-17): `clienteInicial`
 // es ese cliente y `onVolver` regresa a Clientes. El selector queda para cambiar.
@@ -86,7 +89,9 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
   const R = LoopaResultados;
 
   // Borrador del mes elegido: lo que se edita antes de guardar.
-  const vacio = () => ({ redes: {}, ventas: {}, notas: '', anuncios: [], fuentes: [] });
+  // Hasta qué día llegan los datos: hoy en el mes en curso; un mes cerrado, completo.
+  const corteDefecto = (m) => (LoopaResultados.enCurso(m, hoy) ? hoy : null);
+  const vacio = () => ({ redes: {}, ventas: {}, notas: '', anuncios: [], fuentes: [], corte: corteDefecto(mes), avance: [] });
   const [borrador, setBorrador] = useState(vacio());
   const [red, setRed] = useState('meta_ads');
   const [avisos, setAvisos] = useState([]);
@@ -98,9 +103,14 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
   // Un CSV de otro mes: se aplica cuando ese mes ya está en pantalla (si no,
   // el cambio de mes lo borraba al limpiar el formulario).
   const csvPendiente = useRef(null);
+  // Al cambiar de mes o de cliente: el formulario arranca de lo guardado.
+  // Cuando llega una actualización de la base (por ejemplo, la propia
+  // carga recién guardada) se recarga sólo si no hay cambios sin guardar, y
+  // el mensaje de lo que pasó al guardar no se borra.
+  const docMes = docs[mes];
+  const baseDe = (d) => (d ? { redes: JSON.parse(JSON.stringify(d.redes || {})), ventas: { ...(d.ventas || {}) }, notas: d.notas || '', anuncios: d.anuncios || [], fuentes: d.fuentes || [], corte: d.corte || corteDefecto(mes), avance: d.avance || [] } : vacio());
   useEffect(() => {
-    const d = docs[mes];
-    const base = d ? { redes: JSON.parse(JSON.stringify(d.redes || {})), ventas: { ...(d.ventas || {}) }, notas: d.notas || '', anuncios: d.anuncios || [], fuentes: d.fuentes || [] } : vacio();
+    const base = baseDe(docs[mes]);
     const p = csvPendiente.current;
     if (p && p.mes === mes) {
       csvPendiente.current = null;
@@ -110,7 +120,11 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
     }
     setBorrador(base);
     setAvisos([]); setMensaje(''); cambiado.current = false; aMano.current = false;
-  }, [mes, clienteId, docs[mes]]);
+  }, [mes, clienteId]);
+  useEffect(() => {
+    if (cambiado.current) return;
+    setBorrador(baseDe(docMes));
+  }, [docMes]);
 
   const actual = docs[mes];
   const anterior = docs[R.mesAnterior(mes)];
@@ -118,7 +132,15 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
   const vista = cambiado.current ? borrador : (actual || borrador);
   const s = R.resumen(vista);
   const c = R.comparar(vista, anterior);
-  const alertas = R.alertas(vista, anterior, { cerrado });
+  const alertas = R.alertas({ ...vista, mes }, anterior, { cerrado });
+  // En curso: contra los mismos días del mes anterior, y la proyección al cierre.
+  const corteVista = vista.corte || corteDefecto(mes);
+  const diasVista = R.diasCubiertos(mes, corteVista);
+  const rit = cerrado ? {} : R.ritmo({ ...vista, mes }, mes, corteVista, anterior);
+  const proy = cerrado ? null : R.proyeccion({ ...vista, mes }, mes, corteVista);
+  const contraTxt = cerrado ? 'vs mes anterior' : 'vs mismos días del mes anterior';
+  const d = (k) => (cerrado ? c[k] : rit[k]);
+  const proyInversion = proy && Object.keys(proy.inversion).length ? fmtInversion(proy.inversion) : null;
   const historial = Array.from({ length: 6 }, (_, i) => R.sumarMeses(mes, -i));
 
   const setCampo = (redId, campo, valor) => {
@@ -136,19 +158,24 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
       redes: { ...b.redes, meta_ads: { ...(b.redes.meta_ads || {}), ...r.totales, ...(r.moneda ? { moneda: r.moneda } : {}) } },
       anuncios: r.anuncios,
       fuentes: [...(b.fuentes || []), { red: 'meta_ads', tipo: 'csv', archivo: file.name.slice(0, 120), at: new Date().toISOString() }],
+      // El informe llega hasta una fecha: los datos son «del 1 al» esa fecha.
+      ...(r.corte ? { corte: r.corte } : {}),
     });
-    const mensajeCsv = `CSV leído: ${r.anuncios.length} anuncios. Revisá y guardá.`;
+    const avisosCsv = r.corte && r.mes && !R.enCurso(r.mes, hoy)
+      ? [...r.avisos, `El informe llega al ${Number(r.corte.slice(8, 10))} y ${R.nombreMes(r.mes)} ya cerró: faltan días. Exportalo del 1 al ${R.ultimoDia(r.mes)}.`]
+      : r.avisos;
+    const mensajeCsv = `CSV leído: ${r.anuncios.length} anuncios${r.corte ? `, datos al ${Number(r.corte.slice(8, 10))}` : ''}. Revisá y guardá.`;
     if (r.mes && r.mes !== mes) {
       const ok = await uiConfirm({ title: 'El informe es de otro mes', message: `El CSV es de ${R.nombreMes(r.mes)}. ¿Lo cargo en ${R.nombreMes(r.mes)}?`, confirmLabel: `Ir a ${R.nombreMes(r.mes)}` });
       if (!ok) return;
-      csvPendiente.current = { mes: r.mes, aplicar, avisos: r.avisos, mensaje: mensajeCsv };
+      csvPendiente.current = { mes: r.mes, aplicar, avisos: avisosCsv, mensaje: mensajeCsv };
       setMes(r.mes);
       return;
     }
     cambiado.current = true;
     setBorrador(aplicar);
     setRed('meta_ads');
-    setAvisos(r.avisos);
+    setAvisos(avisosCsv);
     setMensaje(mensajeCsv);
   };
 
@@ -159,8 +186,13 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
     if (aMano.current || !fuentes.length) fuentes.push({ tipo: 'manual', at: new Date().toISOString() });
     setGuardando(true);
     try {
-      await guardar({ id: n.id, clientId: clienteId, mes, redes: n.redes, ventas: n.ventas, notas: n.notas, anuncios: n.anuncios, fuentes: fuentes.slice(-50) });
+      const corte = R.enCurso(mes, hoy) ? (R.esFecha(borrador.corte) ? borrador.corte : hoy) : null;
+      const punto = R.puntoDeAvance(n, corte || `${mes}-${String(R.ultimoDia(mes)).padStart(2, '0')}`);
+      const avance = [...(borrador.avance || []).filter(a => a.fecha !== punto.fecha), punto].sort((a, b) => a.fecha.localeCompare(b.fecha)).slice(-62);
+      await guardar({ id: n.id, clientId: clienteId, mes, redes: n.redes, ventas: n.ventas, notas: n.notas, anuncios: n.anuncios, fuentes: fuentes.slice(-50), avance, ...(corte ? { corte } : {}) });
       cambiado.current = false; aMano.current = false;
+      // Lo guardado queda en el formulario (el avance con esta carga incluida).
+      setBorrador(x => ({ ...x, avance, ...(corte ? { corte } : {}) }));
       setMensaje(`✓ Guardado ${R.nombreMes(mes)}`);
     } catch (e) {
       setMensaje(e && e.code === 'permission-denied' ? 'No tenés permiso para guardar resultados.' : 'No se pudo guardar. Revisá la conexión.');
@@ -191,7 +223,7 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
           </select>
           <div className="resultados-mes" role="group" aria-label="Mes">
             <button className="btn sm" onClick={() => setMes(R.mesAnterior(mes))} aria-label="Mes anterior"><Icon name="arrow-l" size={12} /></button>
-            <span className="resultados-mes__nombre">{R.nombreMes(mes)}{!cerrado && <span className="resultados-curso">en curso</span>}</span>
+            <span className="resultados-mes__nombre">{R.nombreMes(mes)}{!cerrado && <span className="resultados-curso">en curso · día {diasVista} de {R.ultimoDia(mes)}</span>}</span>
             <button className="btn sm" onClick={() => setMes(R.sumarMeses(mes, 1))} disabled={mes >= R.mesActual(hoy)} aria-label="Mes siguiente"><Icon name="arrow-r" size={12} /></button>
           </div>
         </div>
@@ -207,12 +239,12 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
       )}
 
       <div className="kpi-grid resultados-kpis">
-        <div className="kpi"><div className="label">Inversión en pauta</div><div className="value">{fmtInversion(s.inversion)}</div>{cerrado && <Delta valor={c.inversion} alReves />}</div>
-        <div className="kpi accent"><div className="label">Mensajes + leads</div><div className="value">{fmtN(s.resultados)}</div>{cerrado && <Delta valor={c.resultados} />}</div>
-        <div className="kpi"><div className="label">Costo por resultado</div><div className="value">{s.costoPorResultado !== null ? fmtPlata(s.moneda, s.costoPorResultado) : '—'}</div>{cerrado && <Delta valor={c.costoPorResultado} alReves />}</div>
-        <div className="kpi"><div className="label">Alcance (sumado)</div><div className="value">{fmtN(s.alcance)}</div>{cerrado && <Delta valor={c.alcance} />}</div>
-        <div className="kpi"><div className="label">Seguidores nuevos</div><div className="value">{fmtN(s.seguidoresNuevos)}</div>{cerrado && <Delta valor={c.seguidoresNuevos} />}</div>
-        <div className="kpi"><div className="label">Ventas reportadas</div><div className="value">{fmtN(s.ventas)}</div>{cerrado && <Delta valor={c.ventas} />}</div>
+        <div className="kpi"><div className="label">Inversión en pauta</div><div className="value">{fmtInversion(s.inversion)}</div><Delta valor={d('inversion')} alReves contra={contraTxt} /><Proyeccion texto={proyInversion} /></div>
+        <div className="kpi accent"><div className="label">Mensajes + leads</div><div className="value">{fmtN(s.resultados)}</div><Delta valor={d('resultados')} contra={contraTxt} /><Proyeccion texto={proy && proy.resultados !== null ? fmtN(proy.resultados) : null} /></div>
+        <div className="kpi"><div className="label">Costo por resultado</div><div className="value">{s.costoPorResultado !== null ? fmtPlata(s.moneda, s.costoPorResultado) : '—'}</div><Delta valor={d('costoPorResultado')} alReves contra={contraTxt} /></div>
+        <div className="kpi"><div className="label">Alcance (sumado)</div><div className="value">{fmtN(s.alcance)}</div><Delta valor={d('alcance')} contra={contraTxt} /></div>
+        <div className="kpi"><div className="label">Seguidores nuevos</div><div className="value">{fmtN(s.seguidoresNuevos)}</div><Delta valor={d('seguidoresNuevos')} contra={contraTxt} /><Proyeccion texto={proy && proy.seguidoresNuevos !== null ? fmtN(proy.seguidoresNuevos) : null} /></div>
+        <div className="kpi"><div className="label">Ventas reportadas</div><div className="value">{fmtN(s.ventas)}</div><Delta valor={d('ventas')} contra={contraTxt} /><Proyeccion texto={proy && proy.ventas !== null ? fmtN(proy.ventas) : null} /></div>
       </div>
 
       <div className="metrics-grid-2">
@@ -225,6 +257,13 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
             </label>
           </div>
           <div className="panel-body">
+            {!cerrado && (
+              <label className="field resultados-corte" title="Hasta qué día llegan los datos que cargás (el informe de Meta del 1 a esa fecha)">
+                <span>Datos del 1 al</span>
+                <input className="input mono" type="date" min={`${mes}-01`} max={hoy} value={borrador.corte || hoy} style={{ colorScheme: 'dark' }}
+                  onChange={e => { cambiado.current = true; setBorrador(b => ({ ...b, corte: e.target.value || hoy })); }} />
+              </label>
+            )}
             <div className="segmented resultados-redes" role="tablist" aria-label="Red">
               {R.REDES.map(x => (
                 <button key={x.id} role="tab" aria-selected={red === x.id} className={red === x.id ? 'on' : ''} onClick={() => setRed(x.id)}>
@@ -275,7 +314,7 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
                   const r = R.resumen(docs[m] || {});
                   return (
                     <tr key={m} className={m === mes ? 'is-actual' : ''} onClick={() => setMes(m)} style={{ cursor: 'pointer' }}>
-                      <td>{R.nombreMes(m)}{R.enCurso(m, hoy) && <span className="resultados-curso">en curso</span>}</td>
+                      <td>{R.nombreMes(m)}{R.enCurso(m, hoy) && <span className="resultados-curso">{docs[m] && docs[m].corte ? `al ${Number(docs[m].corte.slice(8, 10))}` : 'en curso'}</span>}</td>
                       <td className="mono">{docs[m] ? fmtInversion(r.inversion) : <span className="dim">sin datos</span>}</td>
                       <td className="mono">{docs[m] ? fmtN(r.resultados) : ''}</td>
                       <td className="mono">{docs[m] && r.costoPorResultado !== null ? fmtPlata(r.moneda, r.costoPorResultado) : ''}</td>
@@ -289,6 +328,28 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
           </div>
         </div>
       </div>
+
+      {!cerrado && (vista.avance || []).length > 0 && (
+        <div className="panel crop" style={{ marginTop: 20 }}>
+          <div className="panel-head"><div className="panel-title">AVANCE DEL MES · <span className="dim">cada carga, acumulado a su fecha</span></div></div>
+          <div className="panel-body" style={{ overflowX: 'auto' }}>
+            <table className="resultados-tabla">
+              <thead><tr><th>Datos al</th><th>Inversión</th><th>Mensajes + leads</th><th>Alcance</th><th>Seguidores nuevos</th></tr></thead>
+              <tbody>
+                {[...vista.avance].reverse().map(a => (
+                  <tr key={a.fecha}>
+                    <td className="mono">{a.fecha.slice(8, 10)}/{a.fecha.slice(5, 7)}</td>
+                    <td className="mono">{a.inversion !== null && a.inversion !== undefined ? fmtPlata(a.moneda || 'USD', a.inversion) : '—'}</td>
+                    <td className="mono">{fmtN(a.resultados)}</td>
+                    <td className="mono">{fmtN(a.alcance)}</td>
+                    <td className="mono">{fmtN(a.seguidoresNuevos)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {(vista.anuncios || []).length > 0 && (
         <div className="panel crop" style={{ marginTop: 20 }}>

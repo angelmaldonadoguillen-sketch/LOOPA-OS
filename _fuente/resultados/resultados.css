@@ -49,3 +49,7 @@
 .resultados-tabla td:first-child { text-transform: capitalize; }
 .resultados-tabla tbody tr:hover td { background: rgba(255, 255, 255, .03); }
 .resultados-tabla tr.is-actual td { background: rgba(255, 255, 255, .05); }
+
+/* Mes en curso: proyección al cierre y fecha de corte. */
+.resultados-proy { margin-top: 6px; color: var(--muted); font-family: var(--font-mono); font-size: var(--fs-s); letter-spacing: .04em; }
+.resultados-corte { max-width: 220px; margin-bottom: 14px; }

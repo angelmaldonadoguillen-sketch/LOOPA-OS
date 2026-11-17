@@ -91,6 +91,67 @@ const LoopaResultados = (function () {
       notas: typeof d.notas === 'string' ? d.notas.slice(0, 2000) : '',
       anuncios: Array.isArray(d.anuncios) ? d.anuncios.slice(0, 300) : [],
       fuentes: Array.isArray(d.fuentes) ? d.fuentes.slice(-50) : [],
+      corte: esFecha(d.corte) ? d.corte : null,
+      avance: Array.isArray(d.avance) ? d.avance.filter(a => a && esFecha(a.fecha)).slice(-62) : [],
+    };
+  }
+
+  // ── Mes en curso: corte, ritmo y proyección (2026-11-17) ─────────
+  // No hay que esperar a fin de mes. Cada carga dice hasta qué día llegan
+  // los datos (`corte`). Con eso se ve el RITMO: lo que lleva el mes contra
+  // los mismos días del mes anterior, y una PROYECCIÓN al cierre si sigue así.
+  function esFecha(f) { return typeof f === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(f); }
+
+  // Días que cubren los datos: hasta el corte (si es de ese mes) o el mes entero.
+  function diasCubiertos(mes, corte) {
+    if (!esMes(mes)) return 0;
+    if (esFecha(corte) && mesDe(corte) === mes) return Math.min(Number(corte.slice(8, 10)), ultimoDia(mes));
+    return ultimoDia(mes);
+  }
+
+  // Lo que se suma día a día y se puede proyectar (el alcance no: una
+  // persona cuenta una vez en el mes).
+  const PROYECTABLES = ['resultados', 'mensajes', 'leads', 'impresiones', 'interacciones', 'reproducciones', 'seguidoresNuevos', 'publicaciones', 'ventas', 'ventasMonto'];
+
+  function proyeccion(doc, mes, corte) {
+    const s = resumen(doc);
+    const dias = diasCubiertos(mes, corte), total = ultimoDia(mes);
+    if (dias >= total) return null; // mes completo: no hay nada que proyectar
+    const f = total / Math.max(dias, 1);
+    const out = { dias, total };
+    PROYECTABLES.forEach(k => { out[k] = typeof s[k] === 'number' ? Math.round(s[k] * f) : null; });
+    out.inversion = {};
+    Object.keys(s.inversion).forEach(m => { out.inversion[m] = Math.round(s.inversion[m] * f * 100) / 100; });
+    return out;
+  }
+
+  // Ritmo: el mes en curso contra el anterior LLEVADO A LOS MISMOS DÍAS
+  // (anterior × días cubiertos ÷ días del anterior). El costo por resultado
+  // es un cociente: se compara directo.
+  function ritmo(actual, mes, corte, anterior) {
+    if (!anterior) return {};
+    const a = resumen(actual), b = resumen(anterior);
+    const prev = mesAnterior(mes);
+    const factor = diasCubiertos(mes, corte) / diasCubiertos(prev, anterior.corte);
+    const out = {};
+    PROYECTABLES.concat(['alcance']).forEach(k => {
+      out[k] = typeof b[k] === 'number' ? cambio(a[k], k === 'alcance' ? b[k] : b[k] * factor) : null;
+    });
+    out.costoPorResultado = cambio(a.costoPorResultado, b.costoPorResultado);
+    out.inversion = a.moneda && a.moneda === b.moneda ? cambio(a.inversion[a.moneda], b.inversion[b.moneda] * factor) : null;
+    return out;
+  }
+
+  // Lo que se guarda en `avance` en cada carga: el acumulado a esa fecha.
+  function puntoDeAvance(doc, fecha) {
+    const s = resumen(doc);
+    return {
+      fecha,
+      inversion: s.moneda ? s.inversion[s.moneda] : null,
+      moneda: s.moneda,
+      resultados: s.resultados,
+      alcance: s.alcance,
+      seguidoresNuevos: s.seguidoresNuevos,
     };
   }
 
@@ -163,13 +224,20 @@ const LoopaResultados = (function () {
     if (inv && inv > 0 && a.resultados === 0) {
       out.push({ tono: 'danger', texto: `Se invirtieron ${a.moneda} ${inv.toLocaleString('es-HN')} y no hubo mensajes ni leads.` });
     }
-    if (!anterior || !cerrado) return out;
-    const c = comparar(actual, anterior);
+    if (!anterior) return out;
+    // En curso: contra los mismos días del mes anterior, y sólo con al menos
+    // una semana de datos (los primeros días no dicen nada).
+    if (!cerrado) {
+      const d = normalizar(actual);
+      if (diasCubiertos(d.mes, d.corte) < 7) return out;
+    }
+    const c = cerrado ? comparar(actual, anterior) : ritmo(actual, normalizar(actual).mes, normalizar(actual).corte, anterior);
+    const contra = cerrado ? 'contra el mes anterior' : 'contra los mismos días del mes anterior';
     if (c.costoPorResultado !== null && c.costoPorResultado >= 30) {
-      out.push({ tono: 'danger', texto: `El costo por resultado subió ${c.costoPorResultado} % contra el mes anterior.` });
+      out.push({ tono: 'danger', texto: `El costo por resultado subió ${c.costoPorResultado} % ${contra}.` });
     }
     if (c.resultados !== null && c.resultados <= -40) {
-      out.push({ tono: 'danger', texto: `Los mensajes y leads cayeron ${Math.abs(c.resultados)} % contra el mes anterior.` });
+      out.push({ tono: 'danger', texto: `Los mensajes y leads van ${Math.abs(c.resultados)} % abajo ${contra}.` });
     }
     return out;
   }
@@ -225,8 +293,9 @@ const LoopaResultados = (function () {
   }
   const esMensaje = (ind) => /messag|mensaj|conversation|conversaci/.test(ind);
   const esLead = (ind) => /lead|cliente potencial|clientes potenciales/.test(ind);
+  const esClic = (ind) => /link_click|clic|click/.test(ind);
 
-  // → { mes, moneda, totales: {inversion, alcance, impresiones, clics, mensajes, leads, anuncios}, anuncios[], avisos[] }
+  // → { mes, corte (fecha si el informe llega a mitad de mes), moneda, totales: {inversion, alcance, impresiones, clics, mensajes, leads, anuncios} (sólo las columnas que trae), anuncios[], avisos[] }
   function leerCsvMetaAds(texto) {
     const filas = partirCsv(texto);
     const avisos = [];
@@ -250,13 +319,14 @@ const LoopaResultados = (function () {
       const res = numero(leer(f, 'resultados')) || 0;
       const msjCol = numero(leer(f, 'mensajes'));
       const leadCol = numero(leer(f, 'leads'));
+      const clicCol = numero(leer(f, 'clics'));
       const ad = {
         id: `a${i + 1}`,
         nombre: nombre.slice(0, 200),
         inversion: numero(leer(f, 'inversion')) || 0,
         alcance: numero(leer(f, 'alcance')) || 0,
         impresiones: numero(leer(f, 'impresiones')) || 0,
-        clics: numero(leer(f, 'clics')) || 0,
+        clics: clicCol !== null ? clicCol : (esClic(ind) ? res : 0),
         mensajes: msjCol !== null ? msjCol : (esMensaje(ind) ? res : 0),
         leads: leadCol !== null ? leadCol : (esLead(ind) ? res : 0),
       };
@@ -267,30 +337,29 @@ const LoopaResultados = (function () {
     });
     const sum = (k) => Math.round(anuncios.reduce((s, a) => s + (a[k] || 0), 0) * 100) / 100;
     const mes = mesDe(inicio);
-    if (mes && (inicio !== `${mes}-01` || mesDe(fin) !== mes || fin !== `${mes}-${pad(ultimoDia(mes))}`)) {
-      avisos.push(`El informe va del ${inicio} al ${fin}: para un mes neto tiene que ir del 1 al ${ultimoDia(mes)} del mismo mes.`);
+    // Del 1 a una fecha del mismo mes vale: es el mes en curso cargado a esa
+    // fecha (corte). Lo que no vale es empezar otro día o pasarse de mes.
+    if (mes && (inicio !== `${mes}-01` || mesDe(fin) !== mes)) {
+      avisos.push(`El informe va del ${inicio} al ${fin}: para un mes neto tiene que empezar el 1 y no pasarse de ${nombreMes(mes)}.`);
     }
+    const corte = mes && mesDe(fin) === mes && fin < `${mes}-${pad(ultimoDia(mes))}` ? fin : null;
+    // Sólo las columnas que trae el informe: una que falta queda vacía, no en 0.
+    const hay = (k) => col[k] >= 0;
+    const totales = {};
+    if (hay('inversion')) totales.inversion = sum('inversion');
+    if (hay('alcance')) totales.alcance = sum('alcance');
+    if (hay('impresiones')) totales.impresiones = sum('impresiones');
+    if (hay('clics') || anuncios.some(a => a.clics > 0)) totales.clics = sum('clics');
+    if (hay('mensajes') || hay('resultados')) totales.mensajes = sum('mensajes');
+    if (hay('leads') || hay('resultados')) totales.leads = sum('leads');
+    totales.anuncios = anuncios.filter(a => a.inversion > 0 || a.impresiones > 0).length;
     if (!mes) avisos.push('No encontré las fechas del informe («Inicio del informe»).');
     // El alcance de cada anuncio no se puede sumar (una persona ve varios): se
     // guarda la suma como tope y se avisa.
-    if (anuncios.length > 1) avisos.push('El alcance total es la suma de los anuncios (puede contar dos veces a la misma persona). Si querés el exacto, exportá también a nivel de cuenta.');
-    return {
-      mes,
-      moneda,
-      totales: {
-        inversion: sum('inversion'),
-        alcance: sum('alcance'),
-        impresiones: sum('impresiones'),
-        clics: sum('clics'),
-        mensajes: sum('mensajes'),
-        leads: sum('leads'),
-        anuncios: anuncios.filter(a => a.inversion > 0 || a.impresiones > 0).length,
-      },
-      anuncios,
-      avisos,
-    };
+    if (anuncios.length > 1 && hay('alcance')) avisos.push('El alcance total es la suma de los anuncios (puede contar dos veces a la misma persona). Si querés el exacto, exportá también a nivel de cuenta.');
+    return { mes, corte, moneda, totales, anuncios, avisos };
   }
 
-  return { REDES, METRICAS, MONEDAS, esMes, mesDe, mesActual, sumarMeses, mesAnterior, ultimoDia, nombreMes, docId, enCurso, numero, normalizar, resumen, cambio, comparar, alertas, partirCsv, leerCsvMetaAds };
+  return { esFecha, diasCubiertos, proyeccion, ritmo, puntoDeAvance, REDES, METRICAS, MONEDAS, esMes, mesDe, mesActual, sumarMeses, mesAnterior, ultimoDia, nombreMes, docId, enCurso, numero, normalizar, resumen, cambio, comparar, alertas, partirCsv, leerCsvMetaAds };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = LoopaResultados;
