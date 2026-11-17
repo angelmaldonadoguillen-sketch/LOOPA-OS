@@ -582,6 +582,32 @@ service cloud.firestore {
       allow create, update: if isCommercial() && validExpense(expenseId);
     }
 
+    // ── LOOPA: resultados del cliente en redes (2026-11-17) ─────
+    // Un documento por cliente y MES CALENDARIO ({clienteId}_{AAAA-MM}),
+    // aparte del plan vendido. Sólo el equipo comercial (hay montos de pauta).
+    // Se cargan a mano o con el CSV del Administrador de anuncios de Meta.
+    match /loopa_results/{resultId} {
+      function validResult() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['id', 'clientId', 'mes', 'redes', 'ventas', 'notas', 'anuncios', 'fuentes', 'updatedAt', 'updatedBy'])
+               && d.keys().hasAll(['id', 'clientId', 'mes', 'redes', 'updatedAt', 'updatedBy'])
+               && d.id == resultId
+               && shortText(d.clientId, 128) && d.clientId.size() > 0
+               && d.mes is string && d.mes.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
+               && resultId == d.clientId + '_' + d.mes
+               && d.redes is map
+               && d.redes.keys().hasOnly(['meta_ads', 'facebook', 'instagram', 'tiktok', 'tiktok_ads'])
+               && (!d.keys().hasAny(['ventas']) || d.ventas is map)
+               && shortText(d.get('notas', ''), 2000)
+               && d.get('anuncios', []) is list && d.get('anuncios', []).size() <= 300
+               && d.get('fuentes', []) is list && d.get('fuentes', []).size() <= 50
+               && d.updatedAt == request.time
+               && d.updatedBy == myUid();
+      }
+      allow read, delete: if isCommercial();
+      allow create, update: if isCommercial() && validResult();
+    }
+
     // Outbox, correlativo y corridas de migración: sólo el servidor.
     match /loopa_integration_events/{doc} {
       allow read, create, update, delete: if false;

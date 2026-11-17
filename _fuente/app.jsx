@@ -417,6 +417,7 @@ function Icon({ name, size = 16 }) {
     case 'x':        return <svg {...c}><path d="M6 6l12 12M18 6L6 18"/></svg>;
     case 'list':     return <svg {...c}><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>;
     case 'chart':    return <svg {...c}><path d="M3 3v18h18M7 14v4M12 9v9M17 5v13"/></svg>;
+    case 'trend':    return <svg {...c}><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg>;
     case 'search':   return <svg {...c}><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5"/></svg>;
     case 'edit':     return <svg {...c}><path d="M11 4H4v16h16v-7M18 3l3 3-11 11H7v-3L18 3z"/></svg>;
     case 'dl':       return <svg {...c}><path d="M12 3v14M6 11l6 6 6-6M4 21h16"/></svg>;
@@ -3413,6 +3414,7 @@ function App({ onLogout, usuarioFusion = null }) {
     { id: 'ventas',    label: 'Ventas',        icon: 'list' },
     { id: 'servicios', label: 'Servicios',     icon: 'tag' },
     { id: 'clientes',  label: 'Clientes',      icon: 'user' },
+    { id: 'resultados', label: 'Resultados',   icon: 'trend' },
     ...modProduccion,
     { id: 'metricas',  label: 'Métricas',      icon: 'chart' },
     { id: 'gastos',    label: 'Gastos',        icon: 'money' },
@@ -3666,6 +3668,7 @@ function App({ onLogout, usuarioFusion = null }) {
           {route === 'produccion' && PROD_ON && PROD_ON !== 'estudio' && <ProduccionModulo modo={PROD_FLAG} onAbrirVenta={openVenta} conexion={conexionProduccion} />}
           {route === 'metricas' && (!seccionEstudio || juntas) && <Metricas ventas={ventas} gastos={gastos} config={config} />}
           {route === 'gastos' && <Gastos gastos={gastos} setGastos={setGastos} config={config} setConfig={setConfig} />}
+          {route === 'resultados' && <ResultadosRedes clientes={clientes} />}
           {route === 'config' && (!seccionEstudio || juntas) && (
             <Configuracion config={config} setConfig={setConfig} showToast={showToast} onImport={handleImport}
               allData={{ ventas, clientes, servicios, config, gastos }} />

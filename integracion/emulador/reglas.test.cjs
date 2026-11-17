@@ -419,6 +419,21 @@ test('FRAME 3.6 (revisión): ficha con los campos que agrega stampWs, portal, fa
   await ok(b.commit(), 'restaurar con su ficha y vaciar la papelera, juntos');
 });
 
+test('resultados del cliente en redes: sólo el equipo comercial, un mes calendario por documento', { skip }, async () => {
+  const r = (uid, id = 'c1_2026-10') => ref(as(uid), 'loopa_results', id);
+  const doc = (uid, extra = {}) => ({ id: 'c1_2026-10', clientId: 'c1', mes: '2026-10', redes: { meta_ads: { inversion: 300, moneda: 'USD', mensajes: 60 } }, ventas: {}, notas: '', anuncios: [], fuentes: [{ tipo: 'manual' }], updatedAt: fsMod.serverTimestamp(), updatedBy: uid, ...extra });
+  await ok(fsMod.setDoc(r('u1'), doc('u1')), 'el comercial carga un mes');
+  await ok(fsMod.getDoc(r('u1')), 'y lo lee');
+  await no(fsMod.getDoc(r('u2')), 'quien no es comercial no lo ve');
+  await no(fsMod.setDoc(r('u2'), doc('u2')), 'ni lo escribe');
+  await no(fsMod.setDoc(r('u1', 'c1_2026-13'), doc('u1', { id: 'c1_2026-13', mes: '2026-13' })), 'mes inválido');
+  await no(fsMod.setDoc(r('u1', 'c1_2026-11'), doc('u1', { id: 'c1_2026-11' })), 'el id no coincide con cliente y mes');
+  await no(fsMod.setDoc(r('u1'), doc('u1', { redes: { otra_red: {} } })), 'red desconocida');
+  await no(fsMod.setDoc(r('u1'), doc('u1', { extra: 1 })), 'campos extra');
+  await no(fsMod.setDoc(r('u1'), doc('u2')), 'firma como otro');
+  await ok(fsMod.deleteDoc(r('u1')), 'el comercial lo borra');
+});
+
 test('tanda 3.8: gastos y configuración comercial, sólo el equipo comercial', { skip }, async () => {
   const g = (uid, id = 'GV-1') => ref(as(uid), 'loopa_expenses', id);
   const cfg = (uid) => ref(as(uid), 'loopa_config', 'main');

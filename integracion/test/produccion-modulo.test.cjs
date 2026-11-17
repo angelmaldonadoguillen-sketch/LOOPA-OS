@@ -18,8 +18,8 @@ test('el build incluye los módulos de Producción antes de app.jsx', () => {
   const build = read('_fuente/build.js');
   // Tanda 3.3: los módulos de datos de la fusión van primero.
   // Etapa «experiencia»: la ficha del producto (la misma lógica que el servidor) va primero.
-  assert.match(build, /const MODULES = \['\.\.\/functions\/production-plan\/ficha\.js', 'datos\/fusion\.js', 'datos\/fuente\.js', 'produccion\/nucleo\.js', 'produccion\/datos-reales\.js', 'produccion\/calendario\.jsx', 'produccion\/tablero\.jsx', 'produccion\/resumen\.jsx', 'produccion\/cliente\.jsx', 'shell\/navegacion\.jsx', 'catalogo\/ficha\.jsx'\]/);
-  assert.match(build, /const MODULE_CSS = \['produccion\/produccion\.css', 'shell\/navegacion\.css', 'catalogo\/ficha\.css'\]/);
+  assert.match(build, /const MODULES = \['\.\.\/functions\/production-plan\/ficha\.js', 'datos\/fusion\.js', 'datos\/fuente\.js', 'produccion\/nucleo\.js', 'produccion\/datos-reales\.js', 'produccion\/calendario\.jsx', 'produccion\/tablero\.jsx', 'produccion\/resumen\.jsx', 'produccion\/cliente\.jsx', 'shell\/navegacion\.jsx', 'catalogo\/ficha\.jsx', 'datos\/resultados\.js', 'resultados\/resultados\.jsx'\]/);
+  assert.match(build, /const MODULE_CSS = \['produccion\/produccion\.css', 'shell\/navegacion\.css', 'catalogo\/ficha\.css', 'resultados\/resultados\.css'\]/);
   const html = read('index.html');
   // index.html lleva el JS ya compilado (fase 4.6): se busca sin depender de espacios.
   const iNucleo = html.search(/const LoopaProduccion\s*=\s*\(?function/);
@@ -277,4 +277,15 @@ test('Nueva venta: un cliente nuevo con nombre o empresa de otra ficha avisa (no
   assert.match(app, /className="cliente-repetido"/);
   const cli = fs.readFileSync(path.join(__dirname, '..', '..', '_fuente', 'estudio', 'clients.jsx'), 'utf8');
   assert.match(cli, /client\.commercial\?\.empresa/, 'la tarjeta muestra la empresa');
+});
+
+test('resultados del cliente: módulo en el menú comercial, pantalla y colección propia', () => {
+  const app = read('_fuente/app.jsx');
+  const nav = read('_fuente/shell/navegacion.jsx');
+  const ui = read('_fuente/resultados/resultados.jsx');
+  assert.match(app, /\{ id: 'resultados', label: 'Resultados', +icon: 'trend' \}/);
+  assert.match(app, /route === 'resultados' && <ResultadosRedes clientes=\{clientes\} \/>/);
+  assert.match(nav, /ids: \['nueva', 'ventas', 'servicios', 'clientes', 'resultados'\]/);
+  assert.match(ui, /collection\('loopa_results'\)\.where\('clientId', '==', clienteId\)/, 'lee sólo los meses del cliente');
+  assert.match(ui, /LoopaResultados\.leerCsvMetaAds|R\.leerCsvMetaAds/, 'importa el CSV de Meta');
 });

@@ -1194,3 +1194,19 @@ Auditoría pedida por el usuario: al vender la Consultoría se creó la ficha «
 - **Pruebas.** Reglas en el emulador 25/25 (ficha creada en LOOPA sin ventas se borra; con ventas, no). Sin red: 315. En el emulador: crear un cliente con `loopaSaveClient` y borrarlo desde Clientes funcionó; el aviso de duplicado aparece y «Usar» elige la ficha.
 
 Hay que publicar las reglas: `firebase deploy --only firestore:rules --config servidor-produccion/firebase.json --project frame-studio-3a18f`.
+
+
+## 45b. Paquete en las tarjetas de una venta (2026-11-17)
+
+Sólo las tarjetas marcadas a mano traían `paquete`; las que genera una venta de un paquete no, aunque son del mismo plan. `FrameLoopa.packageOf` lo deduce: unidades de ficha (`templateId` «f-…», no «f-item») de un solo servicio y la etiqueta que no es «loopa». Kanban, calendario y galería pintan el chip con eso; el detalle lo muestra sólo lectura. Sin cambios de servidor ni de datos (commit 9bf38d1).
+
+## 46. Resultados del cliente en redes (2026-11-17)
+
+- **Pedido:** dar seguimiento a los resultados de cada cliente en redes y leads, con datos que carga Claude (copiando de Meta Business Suite / TikTok Studio o descargando el CSV).
+- **Raíz: el mes calendario, del 1 al último día,** aparte del plan vendido (decisión de Ángel): datos netos y comparables. Un anuncio que corre varios meses aporta a cada mes sólo lo de sus días. No es por tarjeta: un mismo contenido corre en varios anuncios.
+- **Datos:** `loopa_results/{clienteId}_{AAAA-MM}` con `redes.{meta_ads|facebook|instagram|tiktok|tiktok_ads}`, `ventas` (reportadas), `notas`, `anuncios[]` (detalle del mes, del CSV) y `fuentes[]` (de dónde salió cada carga). Reglas: sólo el equipo comercial; forma validada; `updatedBy` = quien escribe.
+- **Cálculos:** `_fuente/datos/resultados.js` (`LoopaResultados`), puro y probado: resumen (inversión por moneda, mensajes + leads, costo por resultado, alcance sumado), comparación contra el mes anterior, alertas sólo urgentes (inversión sin resultados, costo por resultado +30 %, resultados −40 %; el mes en curso no se compara) y lectura del CSV del Administrador de anuncios (español o inglés, coma o punto y coma; avisa si el rango no es el mes completo).
+- **Pantalla:** Comercial › Resultados: cliente y mes, seis números con su cambio, carga red por red, importar CSV de Meta, ventas reportadas, notas, los últimos seis meses y los anuncios del mes.
+- **Automatizar después:** la API de Meta (gratis; acceso de socio al Business Manager del cliente) escribiría el mismo documento con `fuentes[].tipo = 'api'`.
+
+Hay que publicar las reglas: `firebase deploy --only firestore:rules --config servidor-produccion/firebase.json --project frame-studio-3a18f`.

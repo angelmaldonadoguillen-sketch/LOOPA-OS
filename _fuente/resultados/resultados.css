@@ -1,0 +1,44 @@
+/* Resultados del cliente en redes (2026-11-17). */
+.resultados-controles { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.resultados-controles .select { min-width: 200px; }
+.resultados-mes { display: inline-flex; align-items: center; gap: 8px; }
+.resultados-mes__nombre { display: inline-flex; align-items: center; gap: 8px; min-width: 170px; justify-content: center; text-transform: capitalize; font-weight: 500; }
+.resultados-curso {
+  margin-left: 6px; padding: 2px 8px; border-radius: 999px;
+  background: rgba(232, 181, 71, .12); color: var(--warn);
+  font-family: var(--font-mono); font-size: var(--fs-s); text-transform: none; letter-spacing: .04em;
+}
+.resultados-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.resultados-kpis .value { font-size: var(--fs-m, 22px); }
+@media (max-width: 1100px) { .resultados-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .resultados-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.resultados-alertas { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.resultados-alerta {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--r-md);
+  background: rgba(230, 57, 70, .08); color: var(--text); font-size: 14px;
+}
+.resultados-punto { width: 8px; height: 8px; flex: none; border-radius: 999px; background: var(--danger); }
+
+.resultados-redes { flex-wrap: wrap; margin-bottom: 16px; }
+.resultados-campos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.resultados .field > span {
+  font-family: var(--font-mono); font-size: var(--fs-s); letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted);
+}
+.resultados-avisos {
+  margin-top: 14px; padding: 10px 12px; border-radius: var(--r-md);
+  background: rgba(232, 181, 71, .08); color: var(--warn); font-size: 13px; line-height: 1.5;
+}
+.resultados-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 18px; }
+
+.resultados-tabla { width: 100%; border-collapse: collapse; font-size: 14px; }
+.resultados-tabla th {
+  padding: 8px 10px; text-align: left; font-family: var(--font-mono); font-size: var(--fs-s);
+  font-weight: 400; letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+  border-bottom: 1px solid var(--line); white-space: nowrap;
+}
+.resultados-tabla td { padding: 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.resultados-tabla td:first-child { text-transform: capitalize; }
+.resultados-tabla tbody tr:hover td { background: rgba(255, 255, 255, .03); }
+.resultados-tabla tr.is-actual td { background: rgba(255, 255, 255, .05); }
