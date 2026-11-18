@@ -205,6 +205,10 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
   const proyInversion = proy && Object.keys(proy.inversion).length ? fmtInversion(proy.inversion) : null;
   const historial = Array.from({ length: 6 }, (_, i) => R.sumarMeses(mes, -i));
   const maxLeadsHist = Math.max(1, ...historial.map(m => (docs[m] ? R.resumen(docs[m]).resultados || 0 : 0)));
+  // Columnas que se ven sólo si algún mes las tiene.
+  const resHist = historial.map(m => (docs[m] ? R.resumen(docs[m]) : null)).filter(Boolean);
+  const hayAlcance = resHist.some(r => typeof r.alcance === 'number' && r.alcance > 0);
+  const haySeguidores = resHist.some(r => typeof r.seguidoresNuevos === 'number');
 
   // Lo visual: curva del mes, campañas con semáforo y dónde va la pauta.
   const camp = R.campanas(vista);
@@ -228,7 +232,6 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
     cambiado.current = true; aMano.current = true;
     setBorrador(b => ({ ...b, redes: { ...b.redes, [redId]: { ...(b.redes[redId] || {}), [campo]: valor } } }));
   };
-  const setVentas = (campo, valor) => { cambiado.current = true; aMano.current = true; setBorrador(b => ({ ...b, ventas: { ...b.ventas, [campo]: valor } })); };
 
   const importarCsv = async (file) => {
     if (!file) return;
@@ -335,6 +338,11 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
                   <div className="rh-num rh-num--m">{s.costoPorResultado !== null ? fmtPlata(s.moneda, s.costoPorResultado) : '—'}</div>
                   <Delta valor={d('costoPorResultado')} alReves contra={contraTxt} />
                 </div>
+                <div className="rh-bloque">
+                  <div className="rh-etq">Inversión</div>
+                  <div className="rh-num rh-num--m">{fmtInversion(s.inversion)}</div>
+                  <Delta valor={d('inversion')} alReves contra={contraTxt} />
+                </div>
                 {!cerrado && (
                   <div className="rh-bloque rh-bloque--mes">
                     <div className="rh-etq">Día {diasVista} de {ultimoDiaMes}</div>
@@ -367,14 +375,18 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
         </div>
       )}
 
-      <div className="kpi-grid resultados-kpis">
-        <div className="kpi"><div className="label">Inversión en pauta</div><div className="value">{fmtInversion(s.inversion)}</div><Delta valor={d('inversion')} alReves contra={contraTxt} /><Proyeccion texto={proyInversion} /></div>
-        {typeof s.resultados !== 'number' && <div className="kpi accent"><div className="label">Leads</div><div className="value">{fmtN(s.resultados)}</div></div>}
-        {typeof s.resultados !== 'number' && <div className="kpi"><div className="label">Costo por lead</div><div className="value">—</div></div>}
-        <div className="kpi"><div className="label">Alcance (sumado)</div><div className="value">{fmtN(s.alcance)}</div><Delta valor={d('alcance')} contra={contraTxt} /></div>
-        <div className="kpi"><div className="label">Seguidores nuevos</div><div className="value">{fmtN(s.seguidoresNuevos)}</div><Delta valor={d('seguidoresNuevos')} contra={contraTxt} /><Proyeccion texto={proy && proy.seguidoresNuevos !== null ? fmtN(proy.seguidoresNuevos) : null} /></div>
-        <div className="kpi"><div className="label">Ventas reportadas</div><div className="value">{fmtN(s.ventas)}</div><Delta valor={d('ventas')} contra={contraTxt} /><Proyeccion texto={proy && proy.ventas !== null ? fmtN(proy.ventas) : null} /></div>
-      </div>
+      {/* Sólo lo que tiene datos (pedido de Ángel): una tarjeta en «—» no dice
+          nada, y las ventas reportadas no se siguen (el cliente no las comparte).
+          Con datos, leads, costo e inversión van en el panel de arriba. */}
+      {(typeof s.resultados !== 'number' || (typeof s.alcance === 'number' && s.alcance > 0) || typeof s.seguidoresNuevos === 'number') && (
+        <div className="kpi-grid resultados-kpis">
+          {typeof s.resultados !== 'number' && <div className="kpi"><div className="label">Inversión en pauta</div><div className="value">{fmtInversion(s.inversion)}</div></div>}
+          {typeof s.resultados !== 'number' && <div className="kpi accent"><div className="label">Leads</div><div className="value">—</div></div>}
+          {typeof s.resultados !== 'number' && <div className="kpi"><div className="label">Costo por lead</div><div className="value">—</div></div>}
+          {typeof s.alcance === 'number' && s.alcance > 0 && <div className="kpi"><div className="label">Alcance (sumado)</div><div className="value">{fmtN(s.alcance)}</div><Delta valor={d('alcance')} contra={contraTxt} /></div>}
+          {typeof s.seguidoresNuevos === 'number' && <div className="kpi"><div className="label">Seguidores nuevos</div><div className="value">{fmtN(s.seguidoresNuevos)}</div><Delta valor={d('seguidoresNuevos')} contra={contraTxt} /><Proyeccion texto={proy && proy.seguidoresNuevos !== null ? fmtN(proy.seguidoresNuevos) : null} /></div>}
+        </div>
+      )}
 
       {camp.filas.length > 0 && (
         <div className="panel crop" style={{ marginBottom: 20 }}>
@@ -464,12 +476,6 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
                 </label>
               ))}
             </div>
-            <div className="resultados-campos" style={{ marginTop: 14 }}>
-              <label className="field" title="Lo que el cliente reporta que vendió en el mes"><span>Ventas reportadas (cantidad)</span>
-                <input className="input mono" inputMode="decimal" placeholder="—" value={borrador.ventas.cantidad ?? ''} onChange={e => setVentas('cantidad', e.target.value)} /></label>
-              <label className="field"><span>Ventas reportadas (monto L)</span>
-                <input className="input mono" inputMode="decimal" placeholder="—" value={borrador.ventas.monto ?? ''} onChange={e => setVentas('monto', e.target.value)} /></label>
-            </div>
             <label className="field" style={{ marginTop: 14 }}><span>Notas del mes</span>
               <textarea className="textarea" rows="2" value={borrador.notas} placeholder="Qué pasó este mes: campaña especial, feriado, cambio de oferta…" onChange={e => { cambiado.current = true; aMano.current = true; setBorrador(b => ({ ...b, notas: e.target.value })); }} /></label>
             {avisos.length > 0 && <div className="resultados-avisos">{avisos.map((a, i) => <div key={i}>· {a}</div>)}</div>}
@@ -486,7 +492,7 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
           <div className="panel-head"><div className="panel-title">ÚLTIMOS 6 MESES · <span className="dim">{cliente ? cliente.nombre.toUpperCase() : ''}</span></div></div>
           <div className="panel-body" style={{ overflowX: 'auto' }}>
             <table className="resultados-tabla">
-              <thead><tr><th>Mes</th><th>Inversión</th><th>Leads</th><th>Costo / lead</th><th>Alcance</th><th>Seguidores</th></tr></thead>
+              <thead><tr><th>Mes</th><th>Inversión</th><th>Leads</th><th>Costo / lead</th>{hayAlcance && <th>Alcance</th>}{haySeguidores && <th>Seguidores</th>}</tr></thead>
               <tbody>
                 {historial.map(m => {
                   const r = R.resumen(docs[m] || {});
@@ -498,8 +504,8 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
                         <span className="rt-barra-celda"><span className="rt-barra" style={{ width: `${Math.max(3, Math.round((r.resultados / maxLeadsHist) * 64))}px` }} />{fmtN(r.resultados)}</span>
                       ) : (docs[m] ? '—' : '')}</td>
                       <td className="mono">{docs[m] && r.costoPorResultado !== null ? fmtPlata(r.moneda, r.costoPorResultado) : ''}</td>
-                      <td className="mono">{docs[m] ? fmtN(r.alcance) : ''}</td>
-                      <td className="mono">{docs[m] ? fmtN(r.seguidoresNuevos) : ''}</td>
+                      {hayAlcance && <td className="mono">{docs[m] ? fmtN(r.alcance) : ''}</td>}
+                      {haySeguidores && <td className="mono">{docs[m] ? fmtN(r.seguidoresNuevos) : ''}</td>}
                     </tr>
                   );
                 })}
@@ -514,15 +520,15 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
           <div className="panel-head"><div className="panel-title">AVANCE DEL MES · <span className="dim">cada carga, acumulado a su fecha</span></div></div>
           <div className="panel-body" style={{ overflowX: 'auto' }}>
             <table className="resultados-tabla">
-              <thead><tr><th>Datos al</th><th>Inversión</th><th>Leads</th><th>Alcance</th><th>Seguidores nuevos</th></tr></thead>
+              <thead><tr><th>Datos al</th><th>Inversión</th><th>Leads</th>{hayAlcance && <th>Alcance</th>}{haySeguidores && <th>Seguidores nuevos</th>}</tr></thead>
               <tbody>
                 {[...vista.avance].reverse().map(a => (
                   <tr key={a.fecha}>
                     <td className="mono">{a.fecha.slice(8, 10)}/{a.fecha.slice(5, 7)}</td>
                     <td className="mono">{a.inversion !== null && a.inversion !== undefined ? fmtPlata(a.moneda || 'USD', a.inversion) : '—'}</td>
                     <td className="mono">{fmtN(a.resultados)}</td>
-                    <td className="mono">{fmtN(a.alcance)}</td>
-                    <td className="mono">{fmtN(a.seguidoresNuevos)}</td>
+                    {hayAlcance && <td className="mono">{fmtN(a.alcance)}</td>}
+                    {haySeguidores && <td className="mono">{fmtN(a.seguidoresNuevos)}</td>}
                   </tr>
                 ))}
               </tbody>

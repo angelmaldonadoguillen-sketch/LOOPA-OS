@@ -1231,3 +1231,5 @@ Hay que publicar las reglas: `firebase deploy --only firestore:rules --config se
 - Alerta urgente nueva: una campaña con 10 % o más de la pauta que no trae leads, o cuyo lead cuesta 3 veces el promedio o más.
 - El formulario de carga queda plegado cuando el mes ya tiene datos («Editar a mano»).
 - Ojo con el build: purga clases CSS que no aparecen literales en el código; los colores que dependen de un estado van en línea.
+- Sin tarjetas vacías: Alcance y Seguidores (tarjetas y columnas) se ven sólo si hay datos; Ventas reportadas sale de la pantalla y del formulario (el cliente no las comparte; el campo sigue permitido en la base). Inversión pasa al panel de Leads.
+- Selectores de toda la app: flecha propia a 20 px del borde (la nativa quedaba pegada).
