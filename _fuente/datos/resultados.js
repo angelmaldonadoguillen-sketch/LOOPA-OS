@@ -39,7 +39,8 @@ const LoopaResultados = (function () {
     leads: { label: 'Leads por formulario', ayuda: 'Formularios de contacto completados.' },
     anuncios: { label: 'Anuncios activos', ayuda: 'Anuncios que corrieron en el mes, aunque hayan empezado antes.' },
     interacciones: { label: 'Interacciones', ayuda: 'Me gusta, comentarios, compartidos y guardados.' },
-    reproducciones: { label: 'Reproducciones', ayuda: 'Reproducciones de video y reels.' },
+    // Meta las llama «Visualizaciones» (panel profesional); TikTok, reproducciones.
+    reproducciones: { label: 'Visualizaciones', ayuda: 'Veces que se vio el contenido: «Visualizaciones» en el panel de Meta, reproducciones en TikTok.' },
     seguidores_nuevos: { label: 'Seguidores nuevos', ayuda: 'Seguidores ganados en el mes (netos).' },
     seguidores: { label: 'Seguidores al cierre', ayuda: 'Total de seguidores el último día del mes.' },
     publicaciones: { label: 'Publicaciones', ayuda: 'Publicaciones del mes.' },

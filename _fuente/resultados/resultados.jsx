@@ -378,11 +378,13 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
       {/* Sólo lo que tiene datos (pedido de Ángel): una tarjeta en «—» no dice
           nada, y las ventas reportadas no se siguen (el cliente no las comparte).
           Con datos, leads, costo e inversión van en el panel de arriba. */}
-      {(typeof s.resultados !== 'number' || (typeof s.alcance === 'number' && s.alcance > 0) || typeof s.seguidoresNuevos === 'number') && (
+      {(typeof s.resultados !== 'number' || (typeof s.alcance === 'number' && s.alcance > 0) || typeof s.seguidoresNuevos === 'number' || typeof s.reproducciones === 'number' || typeof s.interacciones === 'number') && (
         <div className="kpi-grid resultados-kpis">
           {typeof s.resultados !== 'number' && <div className="kpi"><div className="label">Inversión en pauta</div><div className="value">{fmtInversion(s.inversion)}</div></div>}
           {typeof s.resultados !== 'number' && <div className="kpi accent"><div className="label">Leads</div><div className="value">—</div></div>}
           {typeof s.resultados !== 'number' && <div className="kpi"><div className="label">Costo por lead</div><div className="value">—</div></div>}
+          {typeof s.reproducciones === 'number' && <div className="kpi"><div className="label">Visualizaciones</div><div className="value">{fmtN(s.reproducciones)}</div><Delta valor={d('reproducciones')} contra={contraTxt} /><Proyeccion texto={proy && proy.reproducciones !== null ? fmtN(proy.reproducciones) : null} /></div>}
+          {typeof s.interacciones === 'number' && <div className="kpi"><div className="label">Interacciones</div><div className="value">{fmtN(s.interacciones)}</div><Delta valor={d('interacciones')} contra={contraTxt} /><Proyeccion texto={proy && proy.interacciones !== null ? fmtN(proy.interacciones) : null} /></div>}
           {typeof s.alcance === 'number' && s.alcance > 0 && <div className="kpi"><div className="label">Alcance (sumado)</div><div className="value">{fmtN(s.alcance)}</div><Delta valor={d('alcance')} contra={contraTxt} /></div>}
           {typeof s.seguidoresNuevos === 'number' && <div className="kpi"><div className="label">Seguidores nuevos</div><div className="value">{fmtN(s.seguidoresNuevos)}</div><Delta valor={d('seguidoresNuevos')} contra={contraTxt} /><Proyeccion texto={proy && proy.seguidoresNuevos !== null ? fmtN(proy.seguidoresNuevos) : null} /></div>}
         </div>

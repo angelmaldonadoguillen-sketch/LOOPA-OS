@@ -1233,3 +1233,4 @@ Hay que publicar las reglas: `firebase deploy --only firestore:rules --config se
 - Ojo con el build: purga clases CSS que no aparecen literales en el código; los colores que dependen de un estado van en línea.
 - Sin tarjetas vacías: Alcance y Seguidores (tarjetas y columnas) se ven sólo si hay datos; Ventas reportadas sale de la pantalla y del formulario (el cliente no las comparte; el campo sigue permitido en la base). Inversión pasa al panel de Leads.
 - Selectores de toda la app: flecha propia a 20 px del borde (la nativa quedaba pegada).
+- Orgánico: el campo `reproducciones` se muestra como «Visualizaciones» (así lo llama el panel profesional de Meta) y hay tarjetas de Visualizaciones e Interacciones cuando hay datos. Primera carga: ID Motos Honduras 1–16 nov — Facebook 409.565 visualizaciones, 14.198 interacciones, +79 seguidores (5.867); Instagram 19.298 visualizaciones, 122 interacciones, 17 seguidores.
