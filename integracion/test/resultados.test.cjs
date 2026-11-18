@@ -44,7 +44,7 @@ test('alertas: sólo lo urgente', () => {
   const oct = { redes: { meta_ads: { inversion: 300, moneda: 'USD', mensajes: 60 } } };
   const nov = { redes: { meta_ads: { inversion: 300, moneda: 'USD', mensajes: 30 } } };
   const textos = R.alertas(nov, oct).map(a => a.texto);
-  assert.ok(textos.some(t => /costo por resultado subió 100/.test(t)));
+  assert.ok(textos.some(t => /costo por lead subió 100/.test(t)));
   assert.ok(textos.some(t => /50 % abajo contra el mes anterior/.test(t)));
   assert.deepEqual(R.alertas(nov, oct, { cerrado: false }), [], 'un mes en curso no se compara');
   const sinNada = R.alertas({ redes: { meta_ads: { inversion: 200, moneda: 'USD', mensajes: 0, leads: 0 } } }, null);
@@ -104,4 +104,34 @@ test('mes en curso: corte, proyección al cierre y ritmo contra los mismos días
   assert.ok(al.some(t => /mismos días del mes anterior/.test(t)));
   assert.deepEqual(R.alertas({ ...nov, corte: '2026-11-04' }, oct, { cerrado: false }), [], 'con menos de una semana no alerta por ritmo');
   assert.deepEqual(R.puntoDeAvance(nov, '2026-11-15'), { fecha: '2026-11-15', inversion: 150, moneda: 'USD', resultados: 30, alcance: null, seguidoresNuevos: null });
+});
+
+test('campañas: un mensaje es un lead, semáforo contra el promedio y alerta de la que no rinde', () => {
+  const doc = { mes: '2026-11', corte: '2026-11-16', redes: { meta_ads: { inversion: 6000, moneda: 'HNL', mensajes: 499, leads: 1 } }, anuncios: [
+    { id: 'a1', nombre: 'Navidad', inversion: 2212.36, leads: 1 },
+    { id: 'a2', nombre: 'Terminal', inversion: 1514.32, mensajes: 489 },
+    { id: 'a3', nombre: 'Gracias', inversion: 185.1, mensajes: 10 },
+    { id: 'a4', nombre: 'Feria clics', inversion: 1197.27, clics: 983 },
+    { id: 'a5', nombre: 'Sin nada', inversion: 50 },
+  ] };
+  const r = R.campanas(doc);
+  assert.equal(r.leads, 500);
+  assert.equal(r.promedio, 7.82, '(2212.36 + 1514.32 + 185.1) ÷ 500');
+  const por = Object.fromEntries(r.filas.map(f => [f.nombre, f]));
+  assert.equal(por.Navidad.estado, 'mal');
+  assert.equal(por.Terminal.estado, 'bien');
+  assert.equal(por.Gracias.estado, 'mal', '18.51 es más de 1,5 veces el promedio');
+  assert.equal(por['Feria clics'].estado, 'otro', 'buscaba clics: no se mide por leads');
+  assert.equal(por['Sin nada'].estado, 'sin-leads');
+  assert.equal(r.filas[0].nombre, 'Navidad', 'ordenadas por inversión');
+  const al = R.alertas(doc, null, { cerrado: false }).map(a => a.texto);
+  assert.ok(al.some(t => /«Navidad» se llevó 42\.9 % de la pauta y trajo 1 lead \(L 2,212\.36 por lead; el promedio de las campañas es L 7\.82\)/.test(t)));
+  assert.ok(!al.some(t => /Gracias|Sin nada/.test(t)), 'las chicas no alertan');
+  assert.equal(R.METRICAS.mensajes.label, 'Leads por mensaje');
+});
+
+test('serie del mes: arranca en 0 y sigue las cargas guardadas', () => {
+  const doc = { mes: '2026-11', avance: [{ fecha: '2026-11-16', resultados: 1922, inversion: 16958.78 }, { fecha: '2026-11-09', resultados: 900, inversion: 8000 }, { fecha: '2026-10-31', resultados: 5 }] };
+  assert.deepEqual(R.serieDelMes(doc).map(p => [p.dia, p.resultados]), [[0, 0], [9, 900], [16, 1922]]);
+  assert.deepEqual(R.serieDelMes({ mes: '2026-11' }), []);
 });

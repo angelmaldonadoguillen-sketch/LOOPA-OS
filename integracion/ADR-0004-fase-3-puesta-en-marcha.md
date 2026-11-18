@@ -1222,3 +1222,12 @@ Hay que publicar las reglas: `firebase deploy --only firestore:rules --config se
 - Reglas: `corte` (AAAA-MM-DD) y `avance` (hasta 62). Hay que publicarlas.
 - CSV del 1 a una fecha del mismo mes = mes en curso: el importador toma esa fecha como `corte` y ya no avisa «tiene que ir del 1 al 30» (sí avisa si empieza otro día, se pasa de mes, o si el mes ya cerró). Las columnas que el informe no trae quedan vacías, no en 0; un resultado «clics en el enlace» cuenta como clics.
 - Primera carga real: ID Motos, Meta Ads del 1 al 16 de noviembre por campaña (sin los impulsos de Marketplace de bienes raíces de la misma cuenta). El CSV queda en `cargas-resultados/`, fuera del repositorio.
+
+## 46c. Resultados visual: un mensaje es un lead (2026-11-17)
+- Criterio de Ángel: el trabajo es conseguir mensajes, así que **un mensaje es un lead**. La pantalla habla de «Leads» y «Costo por lead»; mensajes y formularios se siguen guardando aparte (Leads por mensaje / por formulario) sólo para saber de dónde vino cada uno.
+- Panel «Leads»: total, desglose, costo por lead, barra del mes (día N de M) y curva de leads acumulados con la proyección punteada al cierre y, de fondo, el ritmo del mes anterior.
+- «Dónde va la pauta»: reparto de la inversión por semáforo, la campaña con el lead más barato y la más cara, y el promedio.
+- «Campañas»: cada una con barra de inversión, % de la pauta, leads y costo por lead coloreado contra el promedio de las campañas de leads (bien ≤ 1×, ojo ≤ 1,5×, mal > 1,5×, sin leads; las de clics van aparte). Lógica en `LoopaResultados.campanas` y `serieDelMes`, probada.
+- Alerta urgente nueva: una campaña con 10 % o más de la pauta que no trae leads, o cuyo lead cuesta 3 veces el promedio o más.
+- El formulario de carga queda plegado cuando el mes ya tiene datos («Editar a mano»).
+- Ojo con el build: purga clases CSS que no aparecen literales en el código; los colores que dependen de un estado van en línea.

@@ -33,8 +33,10 @@ const LoopaResultados = (function () {
     alcance: { label: 'Alcance', ayuda: 'Personas distintas que lo vieron en el mes.' },
     impresiones: { label: 'Impresiones', ayuda: 'Veces que se mostró.' },
     clics: { label: 'Clics', ayuda: 'Clics en el enlace.' },
-    mensajes: { label: 'Mensajes', ayuda: 'Conversaciones iniciadas (WhatsApp, Messenger, Instagram Direct).' },
-    leads: { label: 'Leads', ayuda: 'Formularios de contacto completados.' },
+    // Un mensaje ES un lead (criterio de Ángel, 2026-11-17): el trabajo es
+    // conseguir conversaciones. Se guardan aparte sólo para saber de dónde vino.
+    mensajes: { label: 'Leads por mensaje', ayuda: 'Conversaciones iniciadas (WhatsApp, Messenger, Instagram Direct). Cada una es un lead.' },
+    leads: { label: 'Leads por formulario', ayuda: 'Formularios de contacto completados.' },
     anuncios: { label: 'Anuncios activos', ayuda: 'Anuncios que corrieron en el mes, aunque hayan empezado antes.' },
     interacciones: { label: 'Interacciones', ayuda: 'Me gusta, comentarios, compartidos y guardados.' },
     reproducciones: { label: 'Reproducciones', ayuda: 'Reproducciones de video y reels.' },
@@ -222,8 +224,16 @@ const LoopaResultados = (function () {
     const out = [];
     const inv = a.moneda ? a.inversion[a.moneda] : null;
     if (inv && inv > 0 && a.resultados === 0) {
-      out.push({ tono: 'danger', texto: `Se invirtieron ${a.moneda} ${inv.toLocaleString('es-HN')} y no hubo mensajes ni leads.` });
+      out.push({ tono: 'danger', texto: `Se invirtieron ${a.moneda} ${inv.toLocaleString('es-HN')} y no hubo ningún lead.` });
     }
+    // Una campaña que se lleva plata de verdad (10 % o más) y no rinde.
+    const cp = campanas(actual);
+    const plata = (n) => `${a.moneda === 'HNL' ? 'L' : '$'} ${n.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    cp.filas.forEach(f => {
+      if (f.participacion < 10) return;
+      if (f.estado === 'sin-leads') out.push({ tono: 'danger', texto: `«${f.nombre}» se llevó ${f.participacion} % de la pauta y no trajo ningún lead.` });
+      else if (f.estado === 'mal' && f.veces >= 3) out.push({ tono: 'danger', texto: `«${f.nombre}» se llevó ${f.participacion} % de la pauta y trajo ${f.leads === 1 ? '1 lead' : `${f.leads} leads`} (${plata(f.costoPorLead)} por lead; el promedio de las campañas es ${plata(cp.promedio)}).` });
+    });
     if (!anterior) return out;
     // En curso: contra los mismos días del mes anterior, y sólo con al menos
     // una semana de datos (los primeros días no dicen nada).
@@ -234,12 +244,50 @@ const LoopaResultados = (function () {
     const c = cerrado ? comparar(actual, anterior) : ritmo(actual, normalizar(actual).mes, normalizar(actual).corte, anterior);
     const contra = cerrado ? 'contra el mes anterior' : 'contra los mismos días del mes anterior';
     if (c.costoPorResultado !== null && c.costoPorResultado >= 30) {
-      out.push({ tono: 'danger', texto: `El costo por resultado subió ${c.costoPorResultado} % ${contra}.` });
+      out.push({ tono: 'danger', texto: `El costo por lead subió ${c.costoPorResultado} % ${contra}.` });
     }
     if (c.resultados !== null && c.resultados <= -40) {
-      out.push({ tono: 'danger', texto: `Los mensajes y leads van ${Math.abs(c.resultados)} % abajo ${contra}.` });
+      out.push({ tono: 'danger', texto: `Los leads van ${Math.abs(c.resultados)} % abajo ${contra}.` });
     }
     return out;
+  }
+
+  // ── Campañas del mes: semáforo del costo por lead ─────────────────
+  // El promedio es el de las campañas que buscan leads (las de clics u otro
+  // objetivo no entran). bien: hasta el promedio; ojo: hasta 1,5 veces;
+  // mal: más; sin-leads: gastó y no trajo ninguno; otro: buscaba clics.
+  function campanas(doc) {
+    const anuncios = (doc && Array.isArray(doc.anuncios)) ? doc.anuncios : [];
+    const filas = anuncios.map(a => {
+      const inv = numero(a.inversion) || 0;
+      const leads = (numero(a.mensajes) || 0) + (numero(a.leads) || 0);
+      const clics = numero(a.clics) || 0;
+      return { id: a.id, nombre: String(a.nombre || ''), inversion: inv, leads, mensajes: numero(a.mensajes) || 0, formularios: numero(a.leads) || 0, clics, costoPorLead: leads > 0 ? Math.round((inv / leads) * 100) / 100 : null };
+    }).filter(f => f.inversion > 0 || f.leads > 0);
+    const total = filas.reduce((s, f) => s + f.inversion, 0);
+    const conLeads = filas.filter(f => f.leads > 0);
+    const invLeads = conLeads.reduce((s, f) => s + f.inversion, 0);
+    const leadsTot = conLeads.reduce((s, f) => s + f.leads, 0);
+    const promedio = leadsTot > 0 ? Math.round((invLeads / leadsTot) * 100) / 100 : null;
+    filas.forEach(f => {
+      f.participacion = total > 0 ? Math.round((f.inversion / total) * 1000) / 10 : 0;
+      if (f.leads === 0) { f.estado = f.clics > 0 ? 'otro' : (f.inversion > 0 ? 'sin-leads' : 'otro'); f.veces = null; return; }
+      f.veces = promedio ? Math.round((f.costoPorLead / promedio) * 10) / 10 : null;
+      f.estado = f.veces === null || f.veces <= 1 ? 'bien' : f.veces <= 1.5 ? 'ojo' : 'mal';
+    });
+    filas.sort((a, b) => b.inversion - a.inversion);
+    return { filas, promedio, total: Math.round(total * 100) / 100, leads: leadsTot };
+  }
+
+  // Curva del mes para el gráfico: (día, leads e inversión acumulados) de cada
+  // carga guardada, empezando en el día 0 con 0.
+  function serieDelMes(doc) {
+    const d = normalizar(doc || {});
+    const puntos = (d.avance || []).filter(a => esFecha(a.fecha) && mesDe(a.fecha) === d.mes)
+      .map(a => ({ dia: Number(a.fecha.slice(8, 10)), resultados: typeof a.resultados === 'number' ? a.resultados : null, inversion: typeof a.inversion === 'number' ? a.inversion : null }))
+      .filter(p => p.resultados !== null)
+      .sort((a, b) => a.dia - b.dia);
+    return puntos.length ? [{ dia: 0, resultados: 0, inversion: 0 }, ...puntos] : [];
   }
 
   // ── CSV del Administrador de anuncios de Meta ────────────────────
@@ -360,6 +408,6 @@ const LoopaResultados = (function () {
     return { mes, corte, moneda, totales, anuncios, avisos };
   }
 
-  return { esFecha, diasCubiertos, proyeccion, ritmo, puntoDeAvance, REDES, METRICAS, MONEDAS, esMes, mesDe, mesActual, sumarMeses, mesAnterior, ultimoDia, nombreMes, docId, enCurso, numero, normalizar, resumen, cambio, comparar, alertas, partirCsv, leerCsvMetaAds };
+  return { campanas, serieDelMes, esFecha, diasCubiertos, proyeccion, ritmo, puntoDeAvance, REDES, METRICAS, MONEDAS, esMes, mesDe, mesActual, sumarMeses, mesAnterior, ultimoDia, nombreMes, docId, enCurso, numero, normalizar, resumen, cambio, comparar, alertas, partirCsv, leerCsvMetaAds };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = LoopaResultados;
