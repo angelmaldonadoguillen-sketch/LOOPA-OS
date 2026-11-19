@@ -16,3 +16,13 @@
 /* Rutina en la barra de arriba: sin el anillo que late (afuera de la esquina
    parecía un marco mal dibujado); lo pendiente se ve en el contador 2/5. */
 .routine-btn.en-barra { animation: none !important; }
+
+/* Tarjetas del calendario (Semana/Día): las etiquetas de tipo y «Urgente» no
+   se cortan — bajan de línea si no entran — y los botones de favorito,
+   duplicar y eliminar flotan sobre la esquina al pasar el mouse en vez de
+   quitarles ancho. El favorito marcado y la confirmación de borrar siguen a la vista. */
+.frame-card-head { position: relative; }
+.frame-card-badges { flex-wrap: wrap; overflow: visible; row-gap: 4px; }
+.frame-card-badges > * { flex-shrink: 0; }
+.frame-card-actions { position: absolute; top: -4px; right: -4px; padding: 2px; border-radius: 8px; background: var(--surface-2); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35); opacity: 0; transition: opacity .15s ease; }
+.frame-fluid-card:hover .frame-card-actions, .frame-card-actions:focus-within, .frame-card-actions:has(.opacity-100), .frame-card-actions:has(span) { opacity: 1; }

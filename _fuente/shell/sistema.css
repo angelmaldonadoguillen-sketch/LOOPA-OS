@@ -114,3 +114,16 @@ button:focus-visible, .btn:focus-visible, a:focus-visible, [role="button"]:focus
 /* Los menús de LOOPA aparecen con un leve deslizamiento (los de Producción ya lo hacen). */
 @keyframes loopa-aparece { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
 .dropdown { animation: loopa-aparece .16s ease-out; transform-origin: top center; }
+
+/* ── 12. Barras de desplazamiento como en macOS ────────────────── */
+/* Finas, sin flechas y casi invisibles hasta que pasás el mouse por la zona
+   que se desplaza. (Con scrollbar-width/scrollbar-color, Chrome en Windows
+   dibujaba la barra clásica con flechas; en auto usa las reglas de abajo.) */
+* { scrollbar-width: auto; scrollbar-color: auto; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: transparent; border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
+*:hover::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.16); }
+*::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.3); }
+*::-webkit-scrollbar-corner { background: transparent; }

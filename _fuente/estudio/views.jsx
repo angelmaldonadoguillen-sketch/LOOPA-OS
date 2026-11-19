@@ -1301,10 +1301,11 @@ const WeekView = ({ refDate, projectsByDate, onOpenProject, onDeleteProject, onD
     setDragging(null); setDragOverDate(null); lastOverRef.current = null;
   };
   return (
-    // overflow-x-auto: scroll horizontal cuando las 7 columnas no caben
-    // Cada columna tiene min-width 190px para que las tarjetas no se aplasten
-    <div className="flex-1 overflow-x-auto overflow-y-hidden" ref={weekGridRef}>
-      <div className="flex h-full" style={{ minWidth: 'calc(7 * 160px)' }}>
+    // Un solo desplazamiento para toda la semana (como el Calendario de Apple):
+    // antes cada día tenía su propia barra. Horizontal sólo si las 7 columnas
+    // no caben (cada una tiene 160 px como mínimo).
+    <div className="flex-1 overflow-auto cal-semana" ref={weekGridRef}>
+      <div className="flex" style={{ minWidth: 'calc(7 * 160px)', minHeight: '100%' }}>
         {days.map((dt, i) => {
           const iso        = localISO(dt);
           const items      = projectsByDate[iso] || [];
@@ -1315,7 +1316,7 @@ const WeekView = ({ refDate, projectsByDate, onOpenProject, onDeleteProject, onD
           return (
             <div
               key={i}
-              className="border-r border-app overflow-y-auto transition-colors flex-shrink-0"
+              className="border-r border-app transition-colors flex-shrink-0"
               style={{
                 width: 'calc(100% / 7)',
                 minWidth: 160,
@@ -1327,7 +1328,7 @@ const WeekView = ({ refDate, projectsByDate, onOpenProject, onDeleteProject, onD
               onDrop={(e)      => handleDrop(e, iso)}
             >
               {/* Day header */}
-              <div className="sticky top-0 px-3 py-2 border-b border-app flex items-baseline gap-2 select-none" style={{ background: 'var(--surface)' }}>
+              <div className="sticky top-0 px-3 py-2 border-b border-app flex items-baseline gap-2 select-none" style={{ background: 'var(--surface)', zIndex: 2 }}>
                 <span className="text-[10px] tracking-[0.18em] uppercase text-[var(--text-muted)]">
                   {dt.toLocaleDateString('es-ES', { weekday: 'short' })}
                 </span>
