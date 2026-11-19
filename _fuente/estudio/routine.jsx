@@ -265,7 +265,7 @@ const RoutineWidget = ({ workspaceId, enBarra = false }) => {
 
   // ── Render ────────────────────────────────────────────────────
   return (
-    <div ref={panelRef} style={enBarra ? { position: 'relative', zIndex: 300 } : { position: 'fixed', bottom: 28, right: 28, zIndex: 200 }}>
+    <div ref={panelRef} style={enBarra ? { position: 'relative' } : { position: 'fixed', bottom: 28, right: 28, zIndex: 200 }}>
 
       {/* ─── Panel ─── */}
       {open && (
@@ -273,7 +273,7 @@ const RoutineWidget = ({ workspaceId, enBarra = false }) => {
           className="anim-scale-in"
           style={{
             // En la barra: fijo a la pantalla (la barra recorta lo que se sale de ella).
-            ...(enBarra ? { position: 'fixed', top: 64, right: 24 } : { position: 'absolute', bottom: 'calc(100% + 12px)', right: 0 }),
+            ...(enBarra ? { position: 'fixed', top: 64, right: 24, zIndex: 45 } : { position: 'absolute', bottom: 'calc(100% + 12px)', right: 0 }),
             width: 340,
             maxHeight: 560,
             overflowY: 'auto',

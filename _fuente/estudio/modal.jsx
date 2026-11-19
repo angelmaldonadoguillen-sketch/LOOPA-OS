@@ -652,6 +652,7 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
   const [editingDvData, setEditingDvData] = useState({});
   const [confirmDvId, setConfirmDvId]     = useState(null); // recurso a punto de borrarse
   const [muroAbierto, setMuroAbierto]     = useState(false);
+  const [recursosAbierto, setRecursosAbierto] = useState(false);
   const muro = useMuro(project?.id);
   const editDvNameRef = useRef(null);
   const [confirmDel, setConfirmDel]       = useState(false);
@@ -948,698 +949,510 @@ const ProjectModal = ({ project, onClose, onUpdate, onDelete, onSetWorkspaceVisi
   const fechaTrabajo = project.sessionDate || project.startDate || project.deadline || '';
   const realizados = project.checklist.filter(c => c.done).length;
 
+  // ── Ficha de la tarea (rediseño 2026-11-18, estilo Apple) ──────
+  // Ángel: «la tarjeta me parece mal estructurada… quita lo que no usamos».
+  // Medido en las 39 tareas del tablero: presupuesto, timeline interno,
+  // portada, prioridad y tags (que repetían el paquete) no se usaban; las
+  // fechas de trabajo y entrega eran siempre iguales. Se quitaron de la ficha
+  // (los datos siguen guardados). Queda: estado en pasos, checklist con su
+  // avance, muro, recursos (si hay) y comentarios; al costado, lo que define
+  // la tarea: tipo, responsables y fecha.
+  const cambiarEstado = (sId) => {
+    if (sId === project.status) return;
+    // Sin el checklist completo el cambio se rechaza: no se avisa.
+    const rechazado = requiresChecklistForStatus(sId) && project.checklist?.length > 0 && progress < 100;
+    if (collaborationEnabled && !rechazado && window.pushNotif) {
+      const changer = resolveUser(currentUserId);
+      const newSt   = getStatus(sId);
+      project.assignees.forEach(uid => {
+        if (uid !== currentUserId) {
+          window.pushNotif(uid, {
+            type: 'status',
+            body: `${changer?.name || 'Alguien'} cambió "${project.title}" → ${newSt?.label || sId}`,
+            projectId: project.id,
+            projectTitle: project.title,
+            workspaceId: activeWorkspaceId || project.workspaceId,
+          });
+        }
+      });
+    }
+    upd({ status: sId });
+  };
+  const paqueteNombre = window.FrameLoopa?.packageOf(project)?.nombre || project.paquete?.nombre || '';
+  const vencida = !!project.deadline && days < 0 && !isClosed(project);
+  const entregaDistinta = !!project.deadline && project.deadline !== fechaTrabajo;
+  const avisoFecha = isClosed(project) ? null
+    : vencida ? { txt: `Venció hace ${Math.abs(days)} ${Math.abs(days) === 1 ? 'día' : 'días'}`, cls: 'tf-fecha-aviso tarde' }
+    : days === 0 ? { txt: 'Vence hoy', cls: 'tf-fecha-aviso pronto' }
+    : urgente ? { txt: `Vence en ${days} ${days === 1 ? 'día' : 'días'}`, cls: 'tf-fecha-aviso pronto' }
+    : null;
+  const conRecursos = project.deliverables.length > 0 || recursosAbierto;
+
   return (
     <div className="fixed inset-0 z-50 backdrop flex items-stretch justify-end anim-fade-in" onClick={onClose}>
       <div
-        className="w-full max-w-[1200px] h-full surface border-l border-app overflow-hidden flex flex-col anim-slide-right"
+        className="tf w-full max-w-[1100px] h-full border-l border-app overflow-hidden flex flex-col anim-slide-right"
         onClick={(e) => e.stopPropagation()}
         style={{ background: 'var(--surface)' }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-app">
-          <div className="flex items-center gap-2 text-[12px] text-[var(--text-muted)]">
+        {/* ── Barra: dónde estoy, anterior/siguiente, más, cerrar ── */}
+        <div className="tf-barra">
+          <div className="tf-ruta">
             <Icon name="folder" size={13} />
-            {project.client && <><span>{project.client}</span><span>›</span></>}
-            <span className="text-[var(--text-dim)]">Tarea</span>
-            {/* Navegación posicional */}
+            <span className="truncate">{project.client || 'Sin cliente'}</span>
+            {paqueteNombre && <><span className="tf-sep">›</span><span className="truncate">{paqueteNombre}</span></>}
+          </div>
+          <div className="tf-barra-der">
             {navLabel && onNavigate && (
-              <div className="flex items-center gap-0.5 ml-2">
-                <button
-                  onClick={() => prevId && onNavigate(prevId)}
-                  disabled={!prevId}
-                  className="p-1 rounded hover:bg-[var(--surface-2)] disabled:opacity-25 transition-colors"
-                  title="Tarea anterior (←)"
-                >
-                  <Icon name="chevronLeft" size={13} />
+              <div className="tf-nav">
+                <button onClick={() => prevId && onNavigate(prevId)} disabled={!prevId} title="Tarea anterior (←)" aria-label="Tarea anterior">
+                  <Icon name="chevronLeft" size={14} />
                 </button>
-                <span className="text-[11px] font-mono px-1 select-none">{navLabel}</span>
-                <button
-                  onClick={() => nextId && onNavigate(nextId)}
-                  disabled={!nextId}
-                  className="p-1 rounded hover:bg-[var(--surface-2)] disabled:opacity-25 transition-colors"
-                  title="Tarea siguiente (→)"
-                >
-                  <Icon name="chevronRight" size={13} />
+                <span className="tnum">{navLabel}</span>
+                <button onClick={() => nextId && onNavigate(nextId)} disabled={!nextId} title="Tarea siguiente (→)" aria-label="Tarea siguiente">
+                  <Icon name="chevronRight" size={14} />
                 </button>
               </div>
             )}
-          </div>
-          <div className="flex items-center gap-1">
-            {urgente && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded-md mr-2"
-                style={{ background: 'var(--danger-soft-2)', color: 'var(--danger)' }}>
-                <Icon name="alert" size={11} /> URGENTE
-              </span>
-            )}
-            {onSetWorkspaceVisibility && availableWorkspaces.length > 1 && (
-              <div className="relative">
-                <button
-                  className="flex items-center gap-1.5 px-2.5 py-2 rounded-md hover:bg-[var(--surface-2)] text-[var(--text-dim)] hover:text-[var(--text)] transition-colors"
-                  title="Elegir en qué tableros aparece"
-                  aria-label="Mostrar en tableros"
-                  onClick={() => setVisibilityOpen(v => !v)}
-                  disabled={savingVisibility}
-                >
-                  <Icon name="layers" size={15} />
-                  <span className="hidden sm:inline text-[12px] font-medium">Tableros</span>
-                </button>
-                {visibilityOpen && (
-                  <div className="absolute right-0 top-full mt-1 surf-float p-1.5 min-w-[270px] z-50 anim-scale-in">
-                    <div className="px-2 py-1.5 text-[10px] uppercase tracking-[0.14em]" style={{ color: 'var(--text-muted)' }}>
-                      Mostrar esta tarea en
-                    </div>
-                    {availableWorkspaces.map(w => {
-                      const selected = selectedWorkspaceIds.includes(w.id);
-                      const principal = w.id === project.workspaceId;
-                      return (
-                      <button
-                        key={w.id}
-                        onClick={() => toggleWorkspaceVisibility(w.id)}
-                        disabled={savingVisibility || principal}
-                        className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-left hover:bg-[var(--surface-3)] disabled:opacity-50"
-                      >
-                        <span
-                          className="w-4 h-4 rounded flex items-center justify-center border"
-                          style={{ background: selected ? 'var(--accent)' : 'transparent', borderColor: selected ? 'var(--accent)' : 'var(--border-2)', color: 'var(--accent-on)' }}
-                        >
-                          {selected && <Icon name="check" size={10} />}
-                        </span>
-                        <span className="flex-1 text-[12px] font-medium truncate">{w.name}</span>
-                        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{principal ? 'Principal' : (w.kind === 'team' ? 'Equipo' : 'Personal')}</span>
-                      </button>
-                    );})}
-                    <button
-                      onClick={saveWorkspaceVisibility}
-                      disabled={savingVisibility}
-                      className="w-full mt-1 px-3 py-2 rounded-md text-[12px] font-semibold disabled:opacity-50"
-                      style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
-                    >
-                      {savingVisibility ? 'Guardando…' : 'Guardar tableros'}
-                    </button>
-                  </div>
-                )}
+            {confirmDel ? (
+              <div className="tf-confirmar">
+                <span>¿Eliminar la tarea?</span>
+                <button className="tf-btn peligro" onClick={() => { onDelete(project.id); onClose(); }}>Eliminar</button>
+                <button className="tf-btn" onClick={() => setConfirmDel(false)}>Cancelar</button>
               </div>
-            )}
-            {/* Delete button — two-step confirm */}
-            {onDelete && (
-              confirmDel ? (
-                <div className="flex items-center gap-1 mr-1">
-                  <span className="text-[12px] font-medium" style={{ color: 'var(--danger)' }}>¿Eliminar?</span>
-                  <button
-                    onClick={() => { onDelete(project.id); onClose(); }}
-                    className="px-2.5 py-1 rounded-md text-[12px] font-semibold"
-                    style={{ background: 'var(--danger-soft-2)', color: 'var(--danger)' }}
-                  >
-                    Sí
-                  </button>
-                  <button
-                    onClick={() => setConfirmDel(false)}
-                    className="px-2.5 py-1 rounded-md text-[12px]"
-                    style={{ background: 'var(--surface-2)', color: 'var(--text-muted)' }}
-                  >
-                    No
-                  </button>
-                </div>
-              ) : (
-                <button
-                  className="p-2 rounded-md hover:bg-[var(--danger-soft)] text-[var(--text-dim)] hover:text-[var(--danger)] transition-colors"
-                  title="Eliminar tarea"
-                  onClick={() => setConfirmDel(true)}
-                >
-                  <Icon name="trash" size={15} />
-                </button>
-              )
-            )}
-            <button aria-label="Cerrar" className="p-2 rounded-md hover:bg-[var(--surface-2)] text-[var(--text-dim)]" onClick={onClose}>
-              <Icon name="x" size={16} />
-            </button>
-          </div>
-        </div>
-
-        {/* Cover */}
-        <div className="relative">
-          <Cover cover={project.cover} height={180} />
-          <CoverEditor cover={project.cover} onChange={(cover) => upd({ cover })} projectId={project.id} deliverables={project.deliverables} />
-          <div className="absolute bottom-4 left-6 right-6">
-            <div className="flex items-center gap-2 mb-2">
-              <TypePill type={project.type} size="md" solid />
-              <StatusPill status={project.status} size="md" solid />
-              <PriorityBadge priority={project.priority} solid />
-            </div>
-            <h1
-              className="font-display text-3xl md:text-4xl font-bold balance"
-              style={{
-                letterSpacing: '-0.02em',
-                color: coverTextColor(project.cover),
-                textShadow: project.cover?.type === 'image' ? '0 1px 3px rgba(0,0,0,.72)' : 'none',
-              }}
-            >
-              <InlineEdit value={project.title} onChange={(v) => updField('title')(v.trim())} required placeholder="Sin título" className="!px-0 !py-0 hover:!bg-transparent" />
-            </h1>
-          </div>
-        </div>
-
-        {/* Body — dos columnas en escritorio, una sola que baja en el
-            teléfono. La columna de propiedades medía 420px fijos: en una
-            pantalla de 375 se salía entera, y con ella todo lo de adentro.
-            Acá el que scrollea es el contenedor, no cada columna. */}
-        <div className="flex-1 overflow-y-auto md:overflow-hidden md:grid md:grid-cols-[420px_1fr]">
-          {/* Left: properties
-              En el teléfono las propiedades fluyen: se acomodan de a dos por
-              renglón y la que no entra baja sola. Una lista de siete filas de
-              ancho completo desperdiciaba media pantalla en blanco a la
-              derecha de "Reel" o "Alta". En escritorio sigue siendo una lista
-              vertical, que con 420px de ancho se lee mejor así. */}
-          <div className="border-b md:border-b-0 md:border-r border-app md:overflow-y-auto p-5
-                          flex flex-wrap gap-x-5 gap-y-3 content-start
-                          md:block md:space-y-1">
-            <div className="ui-section-label basis-full mb-3">Propiedades</div>
-
-            <PropRow icon="briefcase" label="Cliente">
-              {/* El portal agrupa las tareas por el nombre del cliente: cambiarlo
-                  en una tarjeta de venta la mandaría al portal de otro. */}
-              {deVenta ? (
-                <div className="text-sm truncate px-2 py-1 -mx-2" title="El cliente lo fija la venta en LOOPA">{project.client || 'Sin cliente'}</div>
-              ) : (
-                <ClientAutocomplete
-                  value={project.client}
-                  onChange={updField('client')}
-                  clients={clients}
-                  onCreateClient={onCreateClient}
-                />
-              )}
-            </PropRow>
-
-            {deVenta && window.FrameLoopa?.packageOf(project) && (
-              <PropRow icon="layers" label="Paquete">
-                <span className="paquete-chip" title="Lo define la venta">{window.FrameLoopa.packageOf(project).nombre}</span>
-              </PropRow>
-            )}
-            {!deVenta && (opcionesPaquete.length > 0 || project.paquete?.nombre) && (
-              <PropRow icon="layers" label="Paquete">
-                <Dropdown
-                  trigger={<button className="text-left -mx-2 px-2 py-1 rounded hover:bg-[var(--surface-2)] w-full min-w-0 truncate text-sm">
-                    {project.paquete?.nombre ? <span className="paquete-chip">{project.paquete.nombre}</span> : <span className="text-[var(--text-dim)]">Sin paquete</span>}
-                  </button>}
-                  width={260}
-                >
-                  {(close) => (
-                    <>
-                      {opcionesPaquete.map(p => (
-                        <MenuItem key={p.id} active={project.paquete?.id === p.id} onClick={() => { elegirPaquete(p); close(); }}>
-                          <span className="truncate">{p.nombre}{p.cliente && !project.client ? ` · ${p.cliente}` : ''}</span>
-                        </MenuItem>
-                      ))}
-                      {project.paquete?.nombre && (
-                        <MenuItem onClick={() => { upd({ paquete: null }); close(); }}>
-                          <span className="text-[var(--text-muted)]">Quitar paquete</span>
-                        </MenuItem>
-                      )}
-                    </>
-                  )}
-                </Dropdown>
-              </PropRow>
-            )}
-
-            <PropRow icon="film" label="Tipo">
+            ) : (onDelete || (onSetWorkspaceVisibility && availableWorkspaces.length > 1)) && (
               <Dropdown
-                trigger={<button className="text-left -mx-2 px-2 py-1 rounded hover:bg-[var(--surface-2)] w-full"><TypePill type={project.type} /></button>}
-                width={260}
+                align="right"
+                width={230}
+                trigger={<button className="tf-icono" title="Más opciones" aria-label="Más opciones"><Icon name="more" size={16} /></button>}
               >
                 {(close) => (
-                  <TypeDropdownContent
-                    allTypes={allTypes}
-                    currentType={project.type}
-                    onSelect={(id) => { upd({ type: id }); close(); }}
-                    onCreateCustomType={onCreateCustomType}
-                    onUpdateCustomType={onUpdateCustomType}
-                    onDeleteCustomType={onDeleteCustomType}
-                  />
+                  <>
+                    {onSetWorkspaceVisibility && availableWorkspaces.length > 1 && (
+                      <MenuItem onClick={() => { setVisibilityOpen(true); close(); }}>
+                        <Icon name="layers" size={13} /><span>Mostrar en otros tableros…</span>
+                      </MenuItem>
+                    )}
+                    {onDelete && (
+                      <MenuItem onClick={() => { setConfirmDel(true); close(); }}>
+                        <Icon name="trash" size={13} style={{ color: 'var(--danger)' }} /><span style={{ color: 'var(--danger)' }}>Eliminar tarea</span>
+                      </MenuItem>
+                    )}
+                  </>
                 )}
               </Dropdown>
-            </PropRow>
-
-            <PropRow icon="dot" label="Estado">
-              <Dropdown trigger={<button className="text-left -mx-2 px-2 py-1 rounded hover:bg-[var(--surface-2)] w-full"><StatusPill status={project.status} /></button>}>
-                {(close) => allStatuses.map(s => (
-                  <MenuItem key={s.id} onClick={() => {
-                    // Sin el checklist completo el cambio se rechaza: no se avisa.
-                    const rechazado = requiresChecklistForStatus(s.id) && project.checklist?.length > 0 && progress < 100;
-                    if (collaborationEnabled && s.id !== project.status && !rechazado && window.pushNotif) {
-                      const changer = resolveUser(currentUserId);
-                      const newSt   = getStatus(s.id);
-                      project.assignees.forEach(uid => {
-                        if (uid !== currentUserId) {
-                          window.pushNotif(uid, {
-                            type: 'status',
-                            body: `${changer?.name || 'Alguien'} cambió "${project.title}" → ${newSt?.label || s.id}`,
-                            projectId: project.id,
-                            projectTitle: project.title,
-                            workspaceId: activeWorkspaceId || project.workspaceId,
-                          });
-                        }
-                      });
-                    }
-                    upd({ status: s.id });
-                    close();
-                  }} active={project.status === s.id}>
-                    <span className="w-2 h-2 rounded-full" style={{ background: resolveThemeColor(s.color) }}></span>
-                    <span>{s.label}</span>
-                  </MenuItem>
-                ))}
-              </Dropdown>
-            </PropRow>
-
-            <PropRow icon="flag" label="Prioridad">
-              <Dropdown trigger={<button className="text-left -mx-2 px-2 py-1 rounded hover:bg-[var(--surface-2)] w-full"><PriorityBadge priority={project.priority} /></button>}>
-                {(close) => PRIORITIES.map(p => (
-                  <MenuItem key={p.id} onClick={() => { upd({ priority: p.id }); close(); }} active={project.priority === p.id}>
-                    <Icon name="flag" size={11} style={{ color: p.color }} />
-                    <span>{p.label}</span>
-                  </MenuItem>
-                ))}
-              </Dropdown>
-            </PropRow>
-
-            {collaborationEnabled && <PropRow icon="users" label="Responsables">
-              <Dropdown trigger={
-                <button className="-mx-2 px-2 py-1 rounded hover:bg-[var(--surface-2)] w-full text-left">
-                  {project.assignees.length > 0 ? (
-                    <div className="flex items-center gap-2">
-                      <AvatarStack ids={project.assignees} size={22} />
-                      <span className="text-[12px] text-[var(--text-dim)]">
-                        {project.assignees.map(id => resolveUser(id)?.name.split(' ')[0]).join(', ')}
-                      </span>
-                    </div>
-                  ) : <span className="text-[var(--text-muted)] text-sm">Sin asignar</span>}
-                </button>
-              } width={240}>
-                {team.length === 0 ? (
-                  <div className="px-3 py-4 text-center text-[12px] text-[var(--text-muted)]">
-                    Sin integrantes registrados
-                  </div>
-                ) : team.map(u => (
-                  <MenuItem key={u.id} onClick={() => toggleAssignee(u.id)} active={project.assignees.includes(u.id)}>
-                    <Avatar user={u} size={20} />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[12px] truncate">{u.name}</div>
-                      <div className="text-[10px] text-[var(--text-muted)]">{u.role}</div>
-                    </div>
-                    {project.assignees.includes(u.id) && <Icon name="check" size={13} style={{ color: 'var(--accent)' }} />}
-                  </MenuItem>
-                ))}
-              </Dropdown>
-            </PropRow>}
-
-
-
-            {/* La que ubica la tarjeta en el calendario. Siempre tiene un valor:
-                una tarea no se queda sin día. */}
-            <PropRow icon="calendar" label="Fecha de trabajo">
-              <div className="flex items-center gap-2">
-                <input
-                  type="date"
-                  value={fechaTrabajo}
-                  onChange={(e) => { if (e.target.value) upd(window.FrameLoopa.workDatePatch(project, e.target.value)); }}
-                  title="El día en que la tarjeta aparece en el calendario"
-                  className="text-sm hover:bg-[var(--surface-2)] rounded px-2 py-1 -mx-2 cursor-pointer"
-                  style={{ colorScheme: 'var(--color-scheme)' }}
-                />
-                {project.deadline && fechaTrabajo > project.deadline && !isClosed(project) && <span className="text-[10px] font-semibold" style={{ color: 'var(--warn)' }}>después de la entrega</span>}
+            )}
+            <button aria-label="Cerrar" className="tf-icono" onClick={onClose}><Icon name="x" size={16} /></button>
+          </div>
+          {visibilityOpen && (
+            <div className="tf-tableros surf-float anim-scale-in">
+              <div className="tf-tableros-t">Mostrar esta tarea en</div>
+              {availableWorkspaces.map(w => {
+                const selected = selectedWorkspaceIds.includes(w.id);
+                const principal = w.id === project.workspaceId;
+                return (
+                  <button key={w.id} onClick={() => toggleWorkspaceVisibility(w.id)} disabled={savingVisibility || principal}
+                    className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-left hover:bg-[var(--surface-3)] disabled:opacity-50">
+                    <span className="w-4 h-4 rounded flex items-center justify-center border"
+                      style={{ background: selected ? 'var(--accent)' : 'transparent', borderColor: selected ? 'var(--accent)' : 'var(--border-2)', color: 'var(--accent-on)' }}>
+                      {selected && <Icon name="check" size={10} />}
+                    </span>
+                    <span className="flex-1 text-[12px] font-medium truncate">{w.name}</span>
+                    <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{principal ? 'Principal' : (w.kind === 'team' ? 'Equipo' : 'Personal')}</span>
+                  </button>
+                );
+              })}
+              <div className="flex gap-2 mt-1">
+                <button onClick={() => setVisibilityOpen(false)} className="tf-btn flex-1">Cancelar</button>
+                <button onClick={saveWorkspaceVisibility} disabled={savingVisibility} className="tf-btn primario flex-1">{savingVisibility ? 'Guardando…' : 'Guardar'}</button>
               </div>
-            </PropRow>
+            </div>
+          )}
+        </div>
 
-            <PropRow icon="calendar" label="Fecha de entrega">
-              <div className="flex items-center gap-2">
-                <input
-                  type="date"
-                  value={project.deadline}
-                  // Opcional: conserva el compromiso aunque la sesión cambie.
-                  onChange={(e) => updField('deadline')(e.target.value)}
-                  // Tarea de una venta de LOOPA: la entrega la fija la venta.
-                  disabled={deVenta}
-                  title={deVenta ? 'La fija la venta en LOOPA; se mueve junto con la fecha de trabajo' : undefined}
-                  className="text-sm hover:bg-[var(--surface-2)] rounded px-2 py-1 -mx-2 cursor-pointer"
-                  style={{ colorScheme: 'var(--color-scheme)' }}
-                />
-                {urgente && <span className="text-[10px] font-semibold" style={{ color: 'var(--danger)' }}>en {days}d</span>}
-                {project.deadline && days < 0 && !isClosed(project) && <span className="text-[10px] font-semibold" style={{ color: 'var(--danger)' }}>Atrasada {Math.abs(days)}d</span>}
-              </div>
-            </PropRow>
-
-            {collaborationEnabled && <PropRow icon="zap" label="Presupuesto">
-              <div className="flex items-center gap-1 text-sm">
-                <span className="text-[var(--text-muted)]">{currencyLabel(project.currency)}</span>
-                <InlineEdit
-                  value={String(project.budget)}
-                  // Math.max(0, …) porque un presupuesto negativo no significa
-                  // nada y además ensuciaba los totales de Analytics.
-                  onChange={(v) => updField('budget')(Math.max(0, parseInt(v, 10) || 0))}
-                  className="font-mono tnum"
-                />
-              </div>
-            </PropRow>}
-
-            <PropRow icon="hash" label="Tags">
-              <div className="flex flex-wrap gap-1.5 -mx-1">
-                {project.tags.map(t => (
-                  <span key={t} className="group flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] bg-[var(--surface-2)] text-[var(--text-dim)]">
-                    #{t}
-                    <button className="opacity-0 group-hover:opacity-100" onClick={() => removeTag(t)}>
-                      <Icon name="x" size={10} />
-                    </button>
-                  </span>
-                ))}
-                <TagAdd onAdd={addTags} />
-              </div>
-            </PropRow>
-
-            {/* Progress mini */}
-            {/* basis-full: el progreso no es una propiedad, es una sección
-                aparte. Sin esto entraba en el flujo y se acomodaba al lado de
-                Tags, partiendo la barra por la mitad del panel. */}
-            <div className="basis-full mt-6 pt-4 border-t border-app">
-              <div className="flex items-center justify-between mb-2">
-                <div className="ui-section-label">Progreso</div>
-                <div className="text-xs font-mono" style={{ color: 'var(--accent)' }}>{progress}%</div>
-              </div>
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--surface-3)' }}>
-                <div className="h-full transition duration-500" style={{ width: progress + '%', background: 'var(--accent)' }}></div>
-              </div>
-              <div className="text-[11px] text-[var(--text-muted)] mt-2">
-                {project.checklist.length ? `${realizados} de ${project.checklist.length} ítems completados` : 'Sin ítems en el checklist'}
-              </div>
+        <div className="tf-scroll">
+          {/* ── Título y estado en pasos ── */}
+          <div className="tf-cabeza">
+            <h1 className="tf-titulo">
+              <InlineEdit value={project.title} onChange={(v) => updField('title')(v.trim())} required placeholder="Sin título" className="!px-0 !py-0 hover:!bg-transparent" />
+            </h1>
+            <div className="tf-pasos" role="radiogroup" aria-label="Estado">
+              {allStatuses.map(s => {
+                const on = project.status === s.id;
+                return (
+                  <button key={s.id} role="radio" aria-checked={on} onClick={() => cambiarEstado(s.id)}
+                    className={on ? 'tf-paso on' : 'tf-paso'} style={{ '--tono': resolveThemeColor(s.color) }}>
+                    <span className="tf-paso-punto" />{s.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Right: content */}
-          <div className="md:overflow-y-auto min-w-0">
-            {/* Tabs */}
-            <div className="sticky top-0 z-10 surface border-b border-app px-6 flex items-center gap-1" style={{ background: 'var(--surface)' }}>
-              {[
-                {id:'overview',label:'Visión general',icon:'list'},
-                ...(clientPortalToken
-                  ? [{id:'comments',label:'Comentarios',icon:'message'}]
-                  : collaborationEnabled
-                    ? [{id:'comments',label:'Comentarios',icon:'message'}]
-                    : []),
-              ].map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  className={`px-3 py-3 text-[13px] flex items-center gap-2 border-b-2 -mb-px transition-colors ${tab === t.id ? 'border-[var(--accent)] text-white' : 'border-transparent text-[var(--text-dim)] hover:text-white'}`}
-                >
-                  <Icon name={t.icon} size={13} />
-                  {t.label}
-                </button>
-              ))}
-            </div>
+          <div className="tf-cuerpo">
+            {/* ── Columna principal ── */}
+            <div className="tf-principal">
+              <div className="tf-tabs" role="tablist">
+                {[
+                  { id: 'overview', label: 'Tarea' },
+                  ...((clientPortalToken || collaborationEnabled) ? [{ id: 'comments', label: `Comentarios${comments.length ? ' · ' + comments.length : ''}` }] : []),
+                ].map(t => (
+                  <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} className={tab === t.id ? 'tf-tab on' : 'tf-tab'}>{t.label}</button>
+                ))}
+              </div>
 
-            {tab === 'overview' && (
-              <div className="p-6 space-y-8">
-                {/* El muro reemplaza al brief: ahí se piensa la tarea. */}
-                <button type="button" className="muro-cta" onClick={() => setMuroAbierto(true)}>
-                  <MuroMiniatura nodos={muro.nodos} conexiones={muro.conexiones} indice={muro.indice} />
-                  <span className="muro-cta-txt">
-                    <span className="muro-cta-t">Ir al muro de esta tarea</span>
-                    <span className="muro-cta-s">{window.MuroModelo.resumen(muro) || 'Conectá ideas, guiones, imágenes y enlaces'}</span>
-                  </span>
-                  <span className="muro-cta-ir"><Icon name="chevronRight" size={18} /></span>
-                </button>
-
-                <div className="ficha-grupo">
-                {/* Checklist */}
-                <section>
-                  <SectionTitle icon="check" right={`${realizados}/${project.checklist.length}`}>
-                    Checklist
-                  </SectionTitle>
-                  <div className="space-y-1">
-                    {project.checklist.map(c => {
-                      const isDragging = dragCheckId === c.id;
-                      const isDragOver = dragOverCheckId === c.id && dragCheckId && dragCheckId !== c.id;
-                      return (
-                      <div
-                        key={c.id}
-                        onDragOver={(e) => { if (dragCheckId) { e.preventDefault(); setDragOverCheckId(c.id); } }}
-                        onDrop={(e) => { e.preventDefault(); reorderCheck(dragCheckId, c.id); setDragCheckId(null); setDragOverCheckId(null); }}
-                        className={`group flex items-center gap-1.5 py-1 px-2 -mx-2 rounded hover:bg-[var(--surface-2)] transition ${isDragging ? 'opacity-40' : ''}`}
-                        style={isDragOver ? { boxShadow: 'inset 0 2px 0 var(--accent)' } : undefined}
-                      >
-                        {/* Handle de arrastre */}
-                        <span
-                          draggable
-                          onDragStart={(e) => { setDragCheckId(c.id); e.dataTransfer.effectAllowed = 'move'; }}
-                          onDragEnd={() => { setDragCheckId(null); setDragOverCheckId(null); }}
-                          className="flex-shrink-0 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-[var(--text-dim)] transition-opacity -ml-1"
-                          title="Arrastrar para reordenar"
-                        >
-                          <Icon name="drag" size={13} />
-                        </span>
-                        <span className={`check flex-shrink-0 ${c.done ? 'on' : ''}`} onClick={() => toggleCheck(c.id)}>
-                          {c.done && <Icon name="check" size={11} strokeWidth={3} />}
-                        </span>
-                        {editingCheckId === c.id ? (
-                          <input
-                            ref={editCheckRef}
-                            value={editingCheckText}
-                            onChange={(e) => setEditingCheckText(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') { e.preventDefault(); saveEditCheck(); }
-                              if (e.key === 'Escape') cancelEditCheck();
-                            }}
-                            onBlur={saveEditCheck}
-                            className="flex-1 text-[13px] bg-transparent outline-none border-b"
-                            style={{ borderColor: 'var(--accent)', color: 'var(--text)' }}
-                          />
-                        ) : (
-                          <span
-                            onClick={() => startEditCheck(c)}
-                            className={`flex-1 text-[13px] cursor-text ${c.done ? 'line-through text-[var(--text-muted)]' : ''}`}
-                            title="Clic para editar"
+              {tab === 'overview' && (
+                <>
+                  {/* Checklist con su avance */}
+                  <section className="tf-bloque">
+                    <div className="tf-bloque-cab">
+                      <span className="tf-bloque-t">Checklist</span>
+                      <span className="tf-bloque-n tnum">{project.checklist.length ? `${realizados} de ${project.checklist.length}` : ''}</span>
+                    </div>
+                    {project.checklist.length > 0 && (
+                      <div className="tf-avance"><span style={{ width: progress + '%' }} /></div>
+                    )}
+                    <div className="tf-checklist">
+                      {project.checklist.map(c => {
+                        const isDragging = dragCheckId === c.id;
+                        const isDragOver = dragOverCheckId === c.id && dragCheckId && dragCheckId !== c.id;
+                        return (
+                          <div
+                            key={c.id}
+                            onDragOver={(e) => { if (dragCheckId) { e.preventDefault(); setDragOverCheckId(c.id); } }}
+                            onDrop={(e) => { e.preventDefault(); reorderCheck(dragCheckId, c.id); setDragCheckId(null); setDragOverCheckId(null); }}
+                            className={isDragging ? 'group tf-item arrastrando' : 'group tf-item'}
+                            style={isDragOver ? { boxShadow: 'inset 0 2px 0 var(--accent)' } : undefined}
                           >
-                            {c.text}
-                          </span>
-                        )}
-                        <button onClick={() => removeCheck(c.id)} className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-[var(--danger)] flex-shrink-0">
-                          <Icon name="trash" size={13} />
-                        </button>
-                      </div>
-                      );
-                    })}
-                    <ChecklistAdd onAdd={addCheck} />
-                  </div>
-                </section>
-
-                {/* Recursos */}
-                <section>
-                  <SectionTitle icon="upload" right={project.deliverables.length ? `${project.deliverables.length}` : ''}>Recursos</SectionTitle>
-                  <div className="space-y-1.5">
-                    {project.deliverables.map(dv => (
-                      <div key={dv.id} className="group field border-app surface-2 overflow-hidden">
-                        {editingDvId === dv.id ? (
-                          /* ── Modo edición ── */
-                          <div className="p-2.5 space-y-2">
-                            {/* Fila 1: nombre + tipo */}
-                            <div className="flex items-center gap-2">
-                              <Icon name={editingDvData.kind === 'video' ? 'film' : editingDvData.kind === 'photos' ? 'camera' : editingDvData.kind === 'file' ? 'paperclip' : 'mic'} size={13} style={{ color: 'var(--text-dim)', flexShrink: 0 }} />
+                            <span
+                              draggable
+                              onDragStart={(e) => { setDragCheckId(c.id); e.dataTransfer.effectAllowed = 'move'; }}
+                              onDragEnd={() => { setDragCheckId(null); setDragOverCheckId(null); }}
+                              className="tf-item-asa"
+                              title="Arrastrar para reordenar"
+                            >
+                              <Icon name="drag" size={13} />
+                            </span>
+                            <span className={`check flex-shrink-0 ${c.done ? 'on' : ''}`} onClick={() => toggleCheck(c.id)} role="checkbox" aria-checked={c.done}>
+                              {c.done && <Icon name="check" size={11} strokeWidth={3} />}
+                            </span>
+                            {editingCheckId === c.id ? (
                               <input
-                                ref={editDvNameRef}
-                                value={editingDvData.name}
-                                onChange={(e) => setEditingDvData(d => ({ ...d, name: e.target.value }))}
-                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveEditDv(); } if (e.key === 'Escape') cancelEditDv(); }}
-                                className="flex-1 text-[13px] bg-transparent outline-none border-b"
+                                ref={editCheckRef}
+                                value={editingCheckText}
+                                onChange={(e) => setEditingCheckText(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') { e.preventDefault(); saveEditCheck(); }
+                                  if (e.key === 'Escape') cancelEditCheck();
+                                }}
+                                onBlur={saveEditCheck}
+                                className="flex-1 text-[14px] bg-transparent outline-none border-b"
                                 style={{ borderColor: 'var(--accent)', color: 'var(--text)' }}
-                                placeholder="Nombre del recurso"
                               />
-                              {!editingDvData.subido && (
-                                <select
-                                  value={editingDvData.kind}
-                                  onChange={(e) => setEditingDvData(d => ({ ...d, kind: e.target.value }))}
-                                  className="text-[11px] px-1.5 py-0.5 rounded border cursor-pointer"
-                                >
-                                  <option value="video">Enlace</option>
-                                  <option value="photos">Foto</option>
-                                  <option value="audio">Audio</option>
-                                  {editingDvData.kind === 'file' && <option value="file">Archivo</option>}
-                                </select>
-                              )}
-                            </div>
-                            {/* Fila 2: URL (los archivos subidos no la cambian) */}
-                            {!editingDvData.subido && (
-                              <div className="flex items-center gap-2">
-                                <Icon name="link" size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                                <input
-                                  value={editingDvData.url}
-                                  onChange={(e) => setEditingDvData(d => ({ ...d, url: e.target.value }))}
-                                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveEditDv(); } if (e.key === 'Escape') cancelEditDv(); }}
-                                  className="flex-1 text-[12px] bg-transparent outline-none border-b font-mono"
-                                  style={{ borderColor: 'var(--border-2)', color: 'var(--text-dim)' }}
-                                  placeholder="https://drive.google.com/…"
-                                />
-                              </div>
-                            )}
-                            {/* Acciones */}
-                            <div className="flex items-center justify-end gap-2 pt-0.5">
-                              <button onClick={cancelEditDv} className="text-[11px] px-2 py-0.5 rounded" style={{ color: 'var(--text-muted)' }}>Cancelar</button>
-                              <button onClick={saveEditDv} className="text-[11px] font-semibold px-2.5 py-0.5 rounded" style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}>Guardar</button>
-                            </div>
-                          </div>
-                        ) : (
-                          /* ── Modo normal ── */
-                          <div className="flex items-center gap-3 py-2.5 px-3">
-                            {dv.kind === 'photos' && dv.url ? (
-                              <img src={dv.url} alt="" className="w-12 h-12 rounded-md object-cover border border-app flex-shrink-0" />
                             ) : (
-                              <span className="w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: 'var(--surface-3)', color: 'var(--text-dim)' }}>
-                                <Icon name={dv.kind === 'video' ? 'external' : dv.kind === 'file' ? 'paperclip' : 'mic'} size={15} />
-                              </span>
+                              <span onClick={() => startEditCheck(c)} className={c.done ? 'tf-item-txt hecho' : 'tf-item-txt'} title="Clic para editar">{c.text}</span>
                             )}
-                            <div className="flex-1 min-w-0">
-                              <div
-                                onClick={() => startEditDv(dv)}
-                                className="text-[13px] cursor-text truncate hover:text-white transition-colors"
-                                title="Clic para editar"
-                              >{dv.name}</div>
-                              <div className="text-[10px] mt-0.5 uppercase tracking-wide truncate" style={{ color: 'var(--text-muted)' }}>
-                                {dv.kind === 'photos' ? 'Imagen' : dv.kind === 'file' ? (dv.name.split('.').pop() || 'Archivo') : 'Enlace externo'}
-                              </div>
-                            </div>
-                            {enlaceSeguro(dv.url) && (
-                              <a href={dv.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="flex-shrink-0 p-1.5 rounded-md hover:bg-[var(--surface-3)]" style={{ color: 'var(--text-dim)' }} title="Abrir recurso">
-                                <Icon name="external" size={13} />
-                              </a>
-                            )}
-                            {/* Interruptor para ocultarle uno al cliente. Va
-                                encendido de entrada: lo que se sube es para
-                                compartirlo, y esto es la excepción. */}
-                            {(() => {
-                              const visible = dv.clientVisible !== false;
-                              return (
-                                <button
-                                  onClick={() => toggleDeliverableVisible(dv.id)}
-                                  role="switch"
-                                  aria-checked={visible}
-                                  aria-label={visible ? 'Ocultar al cliente' : 'Mostrar al cliente'}
-                                  title={visible ? 'El cliente lo ve' : 'Oculto para el cliente'}
-                                  className="flex-shrink-0 relative rounded-full"
-                                  style={{ width: 30, height: 17, background: visible ? 'var(--resource-teal)' : 'var(--surface-3)' }}
-                                >
-                                  <span className="absolute rounded-full"
-                                        style={{ width: 13, height: 13, top: 2, left: visible ? 15 : 2,
-                                                 background: visible ? 'var(--resource-on)' : 'var(--text-muted)' }} />
-                                </button>
-                              );
-                            })()}
-                            {/* Un archivo subido se borra para siempre: dos pasos. */}
-                            {confirmDvId === dv.id ? (
-                              <span className="flex items-center gap-1 flex-shrink-0">
-                                <span className="text-[11px] font-medium" style={{ color: 'var(--danger)' }}>{dv.storagePath ? '¿Borrar el archivo?' : '¿Quitar?'}</span>
-                                <button onClick={() => removeDeliverable(dv.id)} className="px-2 py-0.5 rounded text-[11px] font-semibold" style={{ background: 'var(--danger-soft-2)', color: 'var(--danger)' }}>Sí</button>
-                                <button onClick={() => setConfirmDvId(null)} className="px-2 py-0.5 rounded text-[11px]" style={{ background: 'var(--surface-3)', color: 'var(--text-muted)' }}>No</button>
-                              </span>
-                            ) : (
-                              <button onClick={() => setConfirmDvId(dv.id)} title="Eliminar recurso" className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-[var(--danger)] transition-opacity flex-shrink-0">
-                                <Icon name="trash" size={13} />
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    <DeliverableAdd onAdd={addDeliverable} projectId={project.id} />
-                  </div>
-                </section>
-
-                </div>
-
-                <div className="ficha-grupo">
-                {/* Timeline */}
-                <section>
-                  <SectionTitle icon="clock">Timeline interno</SectionTitle>
-                  <div className="relative pl-4">
-                    {/* La línea va en x=10 porque los puntos, con -left-[11px]
-                        dentro del pl-4, quedan centrados ahí. Estaba en x=5 y
-                        los puntos se veían montados sobre ella en vez de
-                        ensartados. */}
-                    <div className="absolute left-[10px] top-1 bottom-1 w-px bg-[var(--border-2)]"></div>
-                    {/* Por fecha; los que no tienen, al final. */}
-                    {[...project.timeline].sort((a, b) => String(a.date || '9').localeCompare(String(b.date || '9'))).map((t) => (
-                      <div key={t.id} className="group relative flex items-start gap-3 py-2">
-                        <button
-                          onClick={() => toggleTimeline(t.id)}
-                          title={t.status === 'done' ? 'Marcar pendiente' : 'Marcar como hecho'}
-                          className="absolute -left-[11px] top-3 w-2.5 h-2.5 rounded-full hover:scale-125 transition-transform"
-                          style={{
-                            background: t.status === 'done' ? 'var(--accent)' : 'var(--surface-3)',
-                            boxShadow: '0 0 0 4px var(--surface)',
-                          }}
-                        ></button>
-                        <div className="ml-3 flex-1 flex items-center justify-between">
-                          <div>
-                            <div className={`text-[13px] ${t.status === 'done' ? 'line-through text-[var(--text-dim)]' : ''}`}>{t.label}</div>
-                            <div className="text-[11px] text-[var(--text-muted)] font-mono">{t.date ? fmtDateLong(t.date) : 'Sin fecha'}</div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {t.status === 'done' && <span className="text-[10px]" style={{ color: 'var(--accent)' }}>✓ HECHO</span>}
-                            <button onClick={() => removeTimeline(t.id)} className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-[var(--danger)] transition-opacity">
-                              <Icon name="trash" size={12} />
+                            <button onClick={() => removeCheck(c.id)} className="tf-item-quitar" title="Quitar">
+                              <Icon name="x" size={13} />
                             </button>
                           </div>
-                        </div>
+                        );
+                      })}
+                      <ChecklistAdd onAdd={addCheck} />
+                    </div>
+                  </section>
+
+                  {/* El muro reemplaza al brief: ahí se piensa la tarea. */}
+                  <button type="button" className="muro-cta tf-muro" onClick={() => setMuroAbierto(true)}>
+                    <MuroMiniatura nodos={muro.nodos} conexiones={muro.conexiones} indice={muro.indice} />
+                    <span className="muro-cta-txt">
+                      <span className="muro-cta-t">Muro de la tarea</span>
+                      <span className="muro-cta-s">{window.MuroModelo.resumen(muro) || 'Ideas, guiones, imágenes y enlaces conectados'}</span>
+                    </span>
+                    <span className="muro-cta-ir"><Icon name="chevronRight" size={18} /></span>
+                  </button>
+
+                  {/* Recursos: sólo si hay (o si se pide agregar uno). */}
+                  {conRecursos ? (
+                    <section className="tf-bloque">
+                      <div className="tf-bloque-cab">
+                        <span className="tf-bloque-t">Recursos</span>
+                        <span className="tf-bloque-n tnum">{project.deliverables.length || ''}</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {project.deliverables.map(dv => (
+                          <div key={dv.id} className="group tf-recurso">
+                            {editingDvId === dv.id ? (
+                              <div className="p-2.5 space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <Icon name={editingDvData.kind === 'video' ? 'film' : editingDvData.kind === 'photos' ? 'camera' : editingDvData.kind === 'file' ? 'paperclip' : 'mic'} size={13} style={{ color: 'var(--text-dim)', flexShrink: 0 }} />
+                                  <input
+                                    ref={editDvNameRef}
+                                    value={editingDvData.name}
+                                    onChange={(e) => setEditingDvData(d => ({ ...d, name: e.target.value }))}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveEditDv(); } if (e.key === 'Escape') cancelEditDv(); }}
+                                    className="flex-1 text-[13px] bg-transparent outline-none border-b"
+                                    style={{ borderColor: 'var(--accent)', color: 'var(--text)' }}
+                                    placeholder="Nombre del recurso"
+                                  />
+                                  {!editingDvData.subido && (
+                                    <select value={editingDvData.kind} onChange={(e) => setEditingDvData(d => ({ ...d, kind: e.target.value }))} className="text-[11px] px-1.5 py-0.5 rounded border cursor-pointer">
+                                      <option value="video">Enlace</option>
+                                      <option value="photos">Foto</option>
+                                      <option value="audio">Audio</option>
+                                      {editingDvData.kind === 'file' && <option value="file">Archivo</option>}
+                                    </select>
+                                  )}
+                                </div>
+                                {!editingDvData.subido && (
+                                  <div className="flex items-center gap-2">
+                                    <Icon name="link" size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                                    <input
+                                      value={editingDvData.url}
+                                      onChange={(e) => setEditingDvData(d => ({ ...d, url: e.target.value }))}
+                                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveEditDv(); } if (e.key === 'Escape') cancelEditDv(); }}
+                                      className="flex-1 text-[12px] bg-transparent outline-none border-b font-mono"
+                                      style={{ borderColor: 'var(--border-2)', color: 'var(--text-dim)' }}
+                                      placeholder="https://drive.google.com/…"
+                                    />
+                                  </div>
+                                )}
+                                <div className="flex items-center justify-end gap-2 pt-0.5">
+                                  <button onClick={cancelEditDv} className="tf-btn">Cancelar</button>
+                                  <button onClick={saveEditDv} className="tf-btn primario">Guardar</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-3 py-2.5 px-3">
+                                {dv.kind === 'photos' && dv.url ? (
+                                  <img src={dv.url} alt="" className="w-11 h-11 rounded-lg object-cover flex-shrink-0" />
+                                ) : (
+                                  <span className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--surface-3)', color: 'var(--text-dim)' }}>
+                                    <Icon name={dv.kind === 'video' ? 'external' : dv.kind === 'file' ? 'paperclip' : 'mic'} size={15} />
+                                  </span>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <div onClick={() => startEditDv(dv)} className="text-[13px] cursor-text truncate" title="Clic para editar">{dv.name}</div>
+                                  <div className="text-[11px] mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>
+                                    {dv.kind === 'photos' ? 'Imagen' : dv.kind === 'file' ? (dv.name.split('.').pop() || 'Archivo') : 'Enlace'}
+                                  </div>
+                                </div>
+                                {enlaceSeguro(dv.url) && (
+                                  <a href={dv.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="tf-icono" title="Abrir recurso">
+                                    <Icon name="external" size={13} />
+                                  </a>
+                                )}
+                                {(() => {
+                                  const visible = dv.clientVisible !== false;
+                                  return (
+                                    <button onClick={() => toggleDeliverableVisible(dv.id)} role="switch" aria-checked={visible}
+                                      aria-label={visible ? 'Ocultar al cliente' : 'Mostrar al cliente'} title={visible ? 'El cliente lo ve' : 'Oculto para el cliente'}
+                                      className="flex-shrink-0 relative rounded-full" style={{ width: 30, height: 17, background: visible ? 'var(--resource-teal)' : 'var(--surface-3)' }}>
+                                      <span className="absolute rounded-full" style={{ width: 13, height: 13, top: 2, left: visible ? 15 : 2, background: visible ? 'var(--resource-on)' : 'var(--text-muted)', transition: 'left .18s ease' }} />
+                                    </button>
+                                  );
+                                })()}
+                                {confirmDvId === dv.id ? (
+                                  <span className="flex items-center gap-1 flex-shrink-0">
+                                    <span className="text-[11px] font-medium" style={{ color: 'var(--danger)' }}>{dv.storagePath ? '¿Borrar el archivo?' : '¿Quitar?'}</span>
+                                    <button onClick={() => removeDeliverable(dv.id)} className="tf-btn peligro">Sí</button>
+                                    <button onClick={() => setConfirmDvId(null)} className="tf-btn">No</button>
+                                  </span>
+                                ) : (
+                                  <button onClick={() => setConfirmDvId(dv.id)} title="Eliminar recurso" className="tf-item-quitar">
+                                    <Icon name="x" size={13} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        <DeliverableAdd onAdd={addDeliverable} projectId={project.id} />
+                      </div>
+                    </section>
+                  ) : (
+                    <button className="tf-agregar" onClick={() => setRecursosAbierto(true)}>
+                      <Icon name="plus" size={13} /> Agregar recurso (imagen, archivo o enlace)
+                    </button>
+                  )}
+
+                  {/* Actividad: plegada, al final */}
+                  <section>
+                    <button type="button" onClick={() => setActivityOpen(open => !open)} className="tf-actividad" aria-expanded={activityOpen}>
+                      <span>Actividad</span>
+                      <span className="flex items-center gap-2">
+                        {activity.length ? `${activity.length}${activity.length >= 30 ? '+' : ''} ${activity.length === 1 ? 'evento' : 'eventos'}` : ''}
+                        <span className={`transition-transform ${activityOpen ? 'rotate-180' : ''}`}><Icon name="chevronDown" size={13} /></span>
+                      </span>
+                    </button>
+                    {activityOpen && (activityLoading ? (
+                      <div className="text-[12px] mt-2" style={{ color: 'var(--text-muted)' }}>Cargando actividad…</div>
+                    ) : activity.length === 0 ? (
+                      <div className="text-[12px] mt-2" style={{ color: 'var(--text-muted)' }}>Sin actividad</div>
+                    ) : (
+                      <div className="space-y-2 mt-2">
+                        {activity.map(item => (
+                          <div key={item.id} className="flex gap-2 text-[12px]">
+                            <span className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--text-muted)' }} />
+                            <div>
+                              <span className="font-medium">{item.actorName || 'Alguien'}</span>{' '}
+                              <span style={{ color: 'var(--text-dim)' }}>{item.summary}</span>
+                              <span className="ml-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>{item.at ? new Date(item.at).toLocaleString('es-HN', { dateStyle: 'short', timeStyle: 'short' }) : ''}</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     ))}
-                    <TimelineAdd onAdd={addTimelineItem} />
-                  </div>
-                </section>
+                  </section>
+                </>
+              )}
 
-                <section>
-                  <button type="button" onClick={() => setActivityOpen(open => !open)} className="w-full flex items-center justify-between rounded-md px-2 py-2 -mx-2 hover:bg-[var(--surface-2)] transition-colors" aria-expanded={activityOpen}>
-                    <span className="ui-section-label flex items-center gap-2"><Icon name="clock" size={14} /> Actividad</span>
-                    <span className="flex items-center gap-2 text-[11px] text-[var(--text-muted)] font-mono">
-                      {activity.length ? `${activity.length}${activity.length >= 30 ? '+' : ''} evento${activity.length === 1 ? '' : 's'}` : ''}
-                      <span className={`transition-transform ${activityOpen ? 'rotate-180' : ''}`}><Icon name="chevronDown" size={13} /></span>
-                    </span>
-                  </button>
-                  {activityOpen && (activityLoading ? (
-                    <div className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Cargando actividad…</div>
-                  ) : activity.length === 0 ? (
-                    <div className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Sin actividad</div>
-                  ) : (
-                    <div className="space-y-2">
-                      {activity.map(item => (
-                        <div key={item.id} className="flex gap-2 text-[12px]">
-                          <span className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--accent)' }} />
-                          <div>
-                            <span className="font-medium">{item.actorName || 'Alguien'}</span>{' '}
-                            <span style={{ color: 'var(--text-dim)' }}>{item.summary}</span>
-                            <span className="ml-1.5 text-[10px] font-mono" style={{ color: 'var(--text-muted)' }}>{item.at ? new Date(item.at).toLocaleString('es-HN', { dateStyle: 'short', timeStyle: 'short' }) : ''}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </section>
+              {tab === 'comments' && clientPortalToken && (
+                <SharedClientComments portalToken={clientPortalToken} projectId={project.id} authorType="studio" authorName={resolveUser(currentUserId)?.name || 'Estudio'} authorAvatar={resolveUser(currentUserId)?.avatar || ''} />
+              )}
+              {tab === 'comments' && !clientPortalToken && collaborationEnabled && (
+                <CommentsTab
+                  comments={comments}
+                  commentsLoading={commentsLoading}
+                  currentUserId={currentUserId}
+                  team={team}
+                  resolveUser={resolveUser}
+                  newComment={newComment}
+                  setNewComment={setNewComment}
+                  onSend={addComment}
+                  onDeleteComment={deleteComment}
+                />
+              )}
+            </div>
+
+            {/* ── Al costado: lo que define la tarea ── */}
+            <aside className="tf-lado">
+              <div className="tf-props">
+                <div className="tf-prop">
+                  <span className="tf-prop-k">Tipo</span>
+                  <Dropdown
+                    trigger={<button className="tf-prop-v"><TypePill type={project.type} /></button>}
+                    width={260}
+                  >
+                    {(close) => (
+                      <TypeDropdownContent
+                        allTypes={allTypes}
+                        currentType={project.type}
+                        onSelect={(id) => { upd({ type: id }); close(); }}
+                        onCreateCustomType={onCreateCustomType}
+                        onUpdateCustomType={onUpdateCustomType}
+                        onDeleteCustomType={onDeleteCustomType}
+                      />
+                    )}
+                  </Dropdown>
                 </div>
+
+                {collaborationEnabled && (
+                  <div className="tf-prop">
+                    <span className="tf-prop-k">Responsables</span>
+                    <Dropdown trigger={
+                      <button className="tf-prop-v">
+                        {project.assignees.length > 0 ? (
+                          <span className="flex items-center gap-2 min-w-0">
+                            <AvatarStack ids={project.assignees} size={22} />
+                            <span className="truncate">{project.assignees.map(id => resolveUser(id)?.name.split(' ')[0]).join(', ')}</span>
+                          </span>
+                        ) : <span className="tf-vacio">Sin asignar</span>}
+                      </button>
+                    } width={240}>
+                      {team.length === 0 ? (
+                        <div className="px-3 py-4 text-center text-[12px] text-[var(--text-muted)]">Sin integrantes registrados</div>
+                      ) : team.map(u => (
+                        <MenuItem key={u.id} onClick={() => toggleAssignee(u.id)} active={project.assignees.includes(u.id)}>
+                          <Avatar user={u} size={20} />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[12px] truncate">{u.name}</div>
+                            <div className="text-[11px] text-[var(--text-muted)]">{u.role}</div>
+                          </div>
+                          {project.assignees.includes(u.id) && <Icon name="check" size={13} style={{ color: 'var(--accent)' }} />}
+                        </MenuItem>
+                      ))}
+                    </Dropdown>
+                  </div>
+                )}
+
+                {/* La fecha que la ubica en el calendario. La de entrega se
+                    muestra aparte sólo si es distinta. */}
+                <div className="tf-prop">
+                  <span className="tf-prop-k">{entregaDistinta ? 'Fecha de trabajo' : 'Fecha'}</span>
+                  <div className="tf-prop-v sin-borde">
+                    <input
+                      type="date"
+                      value={fechaTrabajo}
+                      onChange={(e) => { if (e.target.value) upd(window.FrameLoopa.workDatePatch(project, e.target.value)); }}
+                      title="El día en que la tarjeta aparece en el calendario"
+                      className="tf-fecha"
+                      style={{ colorScheme: 'var(--color-scheme)' }}
+                    />
+                  </div>
+                  {!entregaDistinta && avisoFecha && <span className={avisoFecha.cls}>{avisoFecha.txt}</span>}
+                </div>
+                {entregaDistinta && (
+                  <div className="tf-prop">
+                    <span className="tf-prop-k">Entrega</span>
+                    <div className="tf-prop-v sin-borde">
+                      <input
+                        type="date"
+                        value={project.deadline}
+                        onChange={(e) => updField('deadline')(e.target.value)}
+                        disabled={deVenta}
+                        title={deVenta ? 'La fija la venta en LOOPA; se mueve junto con la fecha de trabajo' : undefined}
+                        className="tf-fecha"
+                        style={{ colorScheme: 'var(--color-scheme)' }}
+                      />
+                    </div>
+                    {avisoFecha && <span className={avisoFecha.cls}>{avisoFecha.txt}</span>}
+                  </div>
+                )}
+
+                <div className="tf-prop">
+                  <span className="tf-prop-k">Cliente</span>
+                  {deVenta ? (
+                    <div className="tf-prop-v sin-borde" title="El cliente lo fija la venta en LOOPA">{project.client || 'Sin cliente'}</div>
+                  ) : (
+                    <div className="tf-prop-v sin-borde">
+                      <ClientAutocomplete value={project.client} onChange={updField('client')} clients={clients} onCreateClient={onCreateClient} />
+                    </div>
+                  )}
+                </div>
+
+                {deVenta && window.FrameLoopa?.packageOf(project) && (
+                  <div className="tf-prop">
+                    <span className="tf-prop-k">Paquete</span>
+                    <div className="tf-prop-v sin-borde" title="Lo define la venta">{window.FrameLoopa.packageOf(project).nombre}</div>
+                  </div>
+                )}
+                {!deVenta && (opcionesPaquete.length > 0 || project.paquete?.nombre) && (
+                  <div className="tf-prop">
+                    <span className="tf-prop-k">Paquete</span>
+                    <Dropdown
+                      trigger={<button className="tf-prop-v">{project.paquete?.nombre || <span className="tf-vacio">Sin paquete</span>}</button>}
+                      width={260}
+                    >
+                      {(close) => (
+                        <>
+                          {opcionesPaquete.map(p => (
+                            <MenuItem key={p.id} active={project.paquete?.id === p.id} onClick={() => { elegirPaquete(p); close(); }}>
+                              <span className="truncate">{p.nombre}{p.cliente && !project.client ? ` · ${p.cliente}` : ''}</span>
+                            </MenuItem>
+                          ))}
+                          {project.paquete?.nombre && (
+                            <MenuItem onClick={() => { upd({ paquete: null }); close(); }}>
+                              <span className="text-[var(--text-muted)]">Quitar paquete</span>
+                            </MenuItem>
+                          )}
+                        </>
+                      )}
+                    </Dropdown>
+                  </div>
+                )}
               </div>
-            )}
-
-            {tab === 'comments' && clientPortalToken && (
-              <SharedClientComments portalToken={clientPortalToken} projectId={project.id} authorType="studio" authorName={resolveUser(currentUserId)?.name || 'Estudio'} authorAvatar={resolveUser(currentUserId)?.avatar || ''} />
-            )}
-
-            {tab === 'comments' && !clientPortalToken && collaborationEnabled && (
-              <CommentsTab
-                comments={comments}
-                commentsLoading={commentsLoading}
-                currentUserId={currentUserId}
-                team={team}
-                resolveUser={resolveUser}
-                newComment={newComment}
-                setNewComment={setNewComment}
-                onSend={addComment}
-                onDeleteComment={deleteComment}
-              />
-            )}
+            </aside>
           </div>
         </div>
         {muroAbierto && <MuroEspacio project={project} muro={muro} onClose={() => setMuroAbierto(false)} />}

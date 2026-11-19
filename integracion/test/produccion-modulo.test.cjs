@@ -76,7 +76,8 @@ test('ficha de tarea: lo auditado sigue corregido', () => {
   assert.match(modal, /if \(list\.length\) onAdd\(list\);/, 'los tags pegados van juntos');
   assert.match(modal, /setConfirmDvId\(dv\.id\)/, 'borrar un recurso pide confirmación');
   assert.match(modal, /const urgente = isUrgent\(project\);/, 'mismo criterio de urgencia');
-  assert.match(modal, /label="Fecha de trabajo"/);
+  // Ficha rediseñada (2026-11-18): una sola «Fecha» si trabajo y entrega coinciden.
+  assert.match(modal, /\{entregaDistinta \? 'Fecha de trabajo' : 'Fecha'\}/);
   assert.match(modal, /if \(!label\.trim\(\) \|\| !date\) return;/, 'un hito lleva fecha');
   assert.match(read('_fuente/estudio/app.jsx'), /workspaceKind=\{tableroDeLaTarea\?\.kind/, 'los campos dependen del tablero de la tarea');
 });
@@ -84,7 +85,7 @@ test('ficha de tarea: lo auditado sigue corregido', () => {
 test('la ficha ya no tiene Brief: lleva al muro de la tarea', () => {
   const modal = read('_fuente/estudio/modal.jsx');
   assert.doesNotMatch(modal, /DescriptionEditor|Brief \/ Descripción/);
-  assert.match(modal, /Ir al muro de esta tarea/);
+  assert.match(modal, /Muro de la tarea/);
   assert.match(modal, /<MuroEspacio project=\{project\}/);
   assert.match(modal, /if \(muroAbierto\) return;/, 'Esc en el muro no cierra la ficha');
 });
@@ -224,7 +225,7 @@ test('paquete abierto: el editor lo ofrece y la tarjeta se marca con él', () =>
   assert.match(app, /Abierto · sin entregables/, 'el editor de paquetes tiene el modo abierto');
   assert.match(app, /paquetes: servicios\.filter\(s => s\.activo !== false && s\.ficha && s\.ficha\.abierto === true\)/, 'quien vende recibe los paquetes abiertos');
   assert.match(estudio, /paquetes=\{comercial\?\.paquetes \|\| \[\]\}/);
-  assert.match(modal, /label="Paquete"/);
+  assert.match(modal, /tf-prop-k">Paquete</);
   assert.match(modal, /!deVenta && \(opcionesPaquete\.length > 0/, 'una tarjeta de venta no se marca a mano');
   assert.match(views, /window\.FrameLoopa\?\.packageOf\(project\) && \(/, 'la tarjeta del tablero muestra el paquete (también las de una venta de paquete)');
   // La función de opciones: del cliente de la tarjeta, o ya usados en otras tarjetas.
