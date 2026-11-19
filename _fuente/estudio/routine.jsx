@@ -644,7 +644,7 @@ const RoutineWidget = ({ workspaceId, enBarra = false }) => {
       {/* ─── Floating button ─── */}
       <button
         onClick={() => setOpen(v => !v)}
-        className={`routine-btn flex items-center gap-2 px-4 rounded-2xl font-semibold transition select-none ${allDone ? 'routine-done' : 'routine-pending'}`}
+        className={`routine-btn flex items-center gap-2 px-4 rounded-2xl font-semibold transition select-none ${allDone ? 'routine-done' : 'routine-pending'}${enBarra ? ' en-barra' : ''}`}
         style={{
           height: enBarra ? 32 : 46,
           fontSize: 13,

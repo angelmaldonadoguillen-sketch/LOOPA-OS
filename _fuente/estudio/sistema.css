@@ -10,3 +10,6 @@
 }
 .fc-etiqueta, .cal-mes-dias > div, .ui-section-label { font-size: 12px; font-weight: 500; }
 .estudio-toolbar button { font-weight: 500; }
+/* Rutina en la barra de arriba: sin el anillo que late (afuera de la esquina
+   parecía un marco mal dibujado); lo pendiente se ve en el contador 2/5. */
+.routine-btn.en-barra { animation: none !important; }
