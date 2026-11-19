@@ -3614,7 +3614,7 @@ function App({ onLogout, usuarioFusion = null }) {
         <div className={`content${juntas ? ' content-juntas' : seccionEstudio ? ' content-estudio' : ''}`}>
           {/* Producción con el encabezado de LOOPA: etiqueta, título y descripción. */}
           {seccionEstudio && !juntas && CABECERAS_ESTUDIO[route] && (
-            <div className="page-head page-head-estudio">
+            <div className={route === 'produccion' || route === 'mis-tareas' ? 'page-head page-head-estudio page-head-compacta' : 'page-head page-head-estudio'}>
               <div>
                 <div className="page-kicker">{CABECERAS_ESTUDIO[route][0]}</div>
                 <div className="page-title">{CABECERAS_ESTUDIO[route][1]}</div>

@@ -55,6 +55,15 @@
 .content.content-estudio { display: flex; flex-direction: column; overflow: hidden; padding-bottom: 24px; }
 .page-head.page-head-estudio { padding-bottom: 20px; margin-bottom: 20px; flex-wrap: wrap; }
 .page-head-estudio .pestanas { margin-bottom: 0; }
+/* Tablero y Mis tareas: encabezado de una línea (la barra de arriba ya dice
+   dónde estás); el espacio es para el tablero. */
+.page-head.page-head-compacta { align-items: center; padding-bottom: 12px; margin-bottom: 14px; }
+.page-head-compacta .page-kicker, .page-head-compacta .page-desc { display: none; }
+.page-head-compacta .page-title { font-size: 26px; margin: 0; }
+/* Modo foco (botón «Expandir» del calendario): sin menú, cifras ni
+   encabezado; el tablero ocupa toda la pantalla. Esc vuelve. */
+body.loopa-foco .sidebar, body.loopa-foco .ticker, body.loopa-foco .page-head-estudio { display: none !important; }
+body.loopa-foco .content.content-estudio { padding: 10px 14px 14px; }
 .estudio-raiz { flex: 1; min-height: 0; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; background: var(--bg); }
 .estudio-raiz > * { flex: 1; min-height: 0; }
 .estudio-portal { min-height: 100vh; overflow: auto; }

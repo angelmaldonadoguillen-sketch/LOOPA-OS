@@ -847,6 +847,17 @@ const CalendarView = ({ projects, onOpenProject, onDeleteProject, onDuplicatePro
   const lastOverRef = useRef(null);
   const monthGridRef = useRef(null);
   useCardMotion(monthGridRef);
+  // Mes compacto: hasta MAX_DIA tareas por día; el resto con «+N más».
+  const [diaAbierto, setDiaAbierto] = useState(null);
+  // Modo foco: la clase en <body> esconde menú, cifras y encabezado (ver navegacion.css).
+  const [foco, setFoco] = useState(false);
+  useEffect(() => {
+    document.body.classList.toggle('loopa-foco', foco);
+    if (!foco) return () => document.body.classList.remove('loopa-foco');
+    const esc = (e) => { if (e.key === 'Escape' && !document.querySelector('.modal-open, [role=dialog]')) setFoco(false); };
+    window.addEventListener('keydown', esc);
+    return () => { window.removeEventListener('keydown', esc); document.body.classList.remove('loopa-foco'); };
+  }, [foco]);
 
   const year = refDate.getFullYear();
   const month = refDate.getMonth();
@@ -958,8 +969,9 @@ const CalendarView = ({ projects, onOpenProject, onDeleteProject, onDuplicatePro
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between px-5 py-3 border-b border-app">
         <div className="flex items-center gap-3">
-          <h2 className="font-display text-xl font-semibold capitalize" style={{ letterSpacing: '-0.01em' }}>
-            {monthLabel}
+          {/* «Noviembre de 2026»: sólo la primera letra en mayúscula. */}
+          <h2 className="font-display text-xl font-semibold" style={{ letterSpacing: '-0.01em' }}>
+            {monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1)}
           </h2>
           <div className="flex items-center gap-0.5 ml-2">
             <button aria-label="Anterior" onClick={goPrev} className="p-1.5 rounded hover:bg-[var(--surface-2)] text-[var(--text-dim)]">
@@ -974,6 +986,12 @@ const CalendarView = ({ projects, onOpenProject, onDeleteProject, onDuplicatePro
           </div>
         </div>
 
+        <div className="flex items-center gap-2">
+        {/* Expandir: el calendario ocupa toda la pantalla (sin menú ni barras). */}
+        <button onClick={() => setFoco(v => !v)} className="cal-expandir" aria-pressed={foco}
+          title={foco ? 'Volver a la vista normal (Esc)' : 'Ver el calendario en toda la pantalla'}>
+          <Icon name="fit" size={13} /> {foco ? 'Salir' : 'Expandir'}
+        </button>
         <div className="flex items-center gap-1 p-0.5 rounded-md surface-2">
           {['month', 'week', 'day'].map(m => (
             <button
@@ -985,61 +1003,85 @@ const CalendarView = ({ projects, onOpenProject, onDeleteProject, onDuplicatePro
             </button>
           ))}
         </div>
+        </div>
       </div>
 
-      {mode === 'month' && (
-        <div className="flex-1 flex flex-col overflow-y-auto">
-          <div className="sticky top-0 z-10 grid grid-cols-7 border-b border-app" style={{ background: 'var(--surface)' }}>
-            {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => (
-              <div key={d} className="px-3 py-2 text-[10px] font-semibold tracking-[0.18em] uppercase text-[var(--text-muted)]">{d}</div>
-            ))}
+      {mode === 'month' && (() => {
+        // Sólo las semanas que tocan el mes (5 o 6): la sexta fila vacía se va.
+        const semanas = [];
+        for (let w = 0; w < 6; w++) {
+          const fila = monthGrid.slice(w * 7, w * 7 + 7);
+          if (fila.some(dt => dt.getMonth() === month)) semanas.push(fila);
+        }
+        const MAX_DIA = 4;
+        return (
+        <div className="cal-mes">
+          <div className="cal-mes-dias">
+            {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => <div key={d}>{d}</div>)}
           </div>
-          <div className="grid grid-cols-7" ref={monthGridRef}>
-            {monthGrid.map((dt, i) => {
+          <div className="cal-mes-grilla" ref={monthGridRef} style={{ gridTemplateRows: `repeat(${semanas.length}, minmax(96px, auto))` }}>
+            {semanas.flat().map((dt, i) => {
               const inMonth = dt.getMonth() === month;
               const iso = localISO(dt);
-              const items = projectsByDate[iso] || [];
+              // Pendientes primero; lo entregado al final.
+              const items = [...(projectsByDate[iso] || [])].sort((a, b) => (isClosed(a) ? 1 : 0) - (isClosed(b) ? 1 : 0));
               const isToday = isSameDay(dt, todayDt);
               const isDragOver = dragOverDate === iso;
+              const abierto = diaAbierto === iso;
+              const visibles = abierto ? items : items.slice(0, MAX_DIA);
+              const resto = items.length - visibles.length;
+              const clases = ['cal-dia'];
+              if (!inMonth) clases.push('fuera');
+              if (isToday) clases.push('hoy');
+              if (isDragOver) clases.push('soltar');
+              if (abierto) clases.push('abierto');
               return (
                 <div
-                  key={i}
-                  className={`group relative border-r border-b p-1.5 min-h-[110px] transition-colors ${inMonth ? '' : 'opacity-40'}`}
-                  style={{
-                    background: isDragOver
-                      ? 'var(--accent-soft-weak)'
-                      : isToday ? 'var(--accent-soft)' : 'transparent',
-                    borderColor: isDragOver ? 'var(--accent-border)' : 'var(--border)',
-                  }}
+                  key={iso}
+                  className={'group ' + clases.join(' ')}
                   onDragOver={(e) => handleDragOver(e, iso)}
                   onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) { setDragOverDate(null); lastOverRef.current = null; } }}
                   onDrop={(e) => handleDrop(e, iso)}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`text-[11px] font-mono ${isToday ? 'font-bold' : 'text-[var(--text-muted)]'}`} style={{ color: isToday ? 'var(--accent)' : undefined }}>
-                      {dt.getDate()}
-                    </span>
-                    {isToday && <span className="text-[10px] font-bold tracking-wider" style={{ color: 'var(--accent)' }}>HOY</span>}
-                    {isDragOver && <span className="text-[10px] font-bold tracking-wider" style={{ color: 'var(--accent)' }}>SOLTAR</span>}
+                  <div className="cal-dia-cab">
+                    <span className="cal-num">{dt.getDate()}</span>
+                    {isDragOver ? <span className="cal-dia-nota">Soltar acá</span>
+                      : items.length > 0 && <span className="cal-dia-nota">{items.length} {items.length === 1 ? 'tarea' : 'tareas'}</span>}
                   </div>
-                  <div className="space-y-1.5">
-                    {items.map(p => (
-                      <WeekCard
-                        key={p.id}
-                        project={p}
-                        calendarDate={iso}
-                        onClick={() => !dragging && onOpenProject(p.id)}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, p)}
-                        onDragEnd={handleDragEnd}
-                        dragging={dragging?.id === p.id}
-                        onDelete={onDeleteProject}
-                        onDuplicate={onDuplicateProject}
-                        onToggleFavorite={onToggleFavorite}
-                        previewFields={previewFields}
-                      />
-                    ))}
-                    {/* Alta rápida en este día */}
+                  <div className="cal-chips">
+                    {visibles.map(p => {
+                      const st = getStatus(p.status);
+                      const cerrada = isClosed(p);
+                      const vencida = !cerrada && p.deadline && daysUntil(p.deadline) < 0;
+                      // «Christian Padilla · Historias 1/12» → «Historias 1/12»: el cliente va en el detalle.
+                      const pref = p.client ? String(p.client).trim() + ' · ' : '';
+                      const titulo = pref && String(p.title || '').startsWith(pref) ? p.title.slice(pref.length) : p.title;
+                      const detalle = [p.title, p.client, st?.label, p.deadline ? `${vencida ? 'Venció' : 'Entrega'} ${fmtDate(p.deadline)}` : ''].filter(Boolean).join(' · ');
+                      return (
+                        <button
+                          key={p.id}
+                          data-card-id={p.id}
+                          className={cerrada ? 'cal-chip hecha' : vencida ? 'cal-chip tarde' : 'cal-chip'}
+                          style={{ '--tono': st?.color || 'var(--text-muted)', opacity: dragging?.id === p.id ? 0.4 : undefined }}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, p)}
+                          onDragEnd={handleDragEnd}
+                          onClick={() => !dragging && onOpenProject(p.id)}
+                          title={detalle}
+                        >
+                          <span className="cal-chip-punto" />
+                          <span className="cal-chip-texto">{titulo}</span>
+                          {cerrada && <Icon name="check" size={10} />}
+                        </button>
+                      );
+                    })}
+                    {resto > 0 && (
+                      <button className="cal-mas" onClick={() => setDiaAbierto(iso)}>+{resto} más</button>
+                    )}
+                    {abierto && items.length > MAX_DIA && (
+                      <button className="cal-mas" onClick={() => setDiaAbierto(null)}>Ver menos</button>
+                    )}
+                    {/* Alta rápida en este día (aparece al pasar el mouse) */}
                     {onQuickCreate && (
                       <QuickAddCard
                         onCreate={onQuickCreate}
@@ -1054,7 +1096,8 @@ const CalendarView = ({ projects, onOpenProject, onDeleteProject, onDuplicatePro
             })}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {mode === 'week' && (
         <WeekView refDate={refDate} projectsByDate={projectsByDate} onOpenProject={onOpenProject} onDeleteProject={onDeleteProject} onDuplicateProject={onDuplicateProject} onUpdateProject={onUpdateProject} onToggleFavorite={onToggleFavorite} onQuickCreate={onQuickCreate} previewFields={previewFields} />
