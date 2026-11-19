@@ -2914,7 +2914,9 @@ function App({ onLogout, usuarioFusion = null }) {
     try {
       // ?ruta=produccion: el viejo FRAME abre LOOPA en Producción.
       const pedida = new URLSearchParams(window.location.search).get('ruta');
-      const r = pedida || localStorage.getItem('loopa-route') || 'nueva';
+      // Ángel (2026-11-18): «hacemos más de lo que vendemos… me importa más ver de
+      // una el tema producción». Con Producción integrada, LOOPA abre en el Tablero.
+      const r = pedida || (PROD_ON === 'estudio' ? 'produccion' : (localStorage.getItem('loopa-route') || 'nueva'));
       // Sin Producción, no se vuelve a una pantalla vacía.
       const deProduccion = r === 'produccion' || (RUTAS_ESTUDIO[r] && r !== 'produccion');
       if (deProduccion && !PROD_ON) return 'nueva';
@@ -3419,12 +3421,13 @@ function App({ onLogout, usuarioFusion = null }) {
     { id: 'metricas', label: 'Métricas',      icon: 'chart' },
     { id: 'config',   label: 'Configuración', icon: 'settings' },
   ] : [
+    // Producción primero: es lo que más se mira en el día.
+    ...modProduccion,
     { id: 'nueva',     label: 'Nueva venta',   icon: 'plus' },
     { id: 'ventas',    label: 'Ventas',        icon: 'list' },
     { id: 'servicios', label: 'Servicios',     icon: 'tag' },
     { id: 'clientes',  label: 'Clientes',      icon: 'user' },
     { id: 'resultados', label: 'Resultados',   icon: 'trend' },
-    ...modProduccion,
     { id: 'metricas',  label: 'Métricas',      icon: 'chart' },
     { id: 'gastos',    label: 'Gastos',        icon: 'money' },
     { id: 'config',    label: 'Configuración', icon: 'settings' },
@@ -3533,7 +3536,7 @@ function App({ onLogout, usuarioFusion = null }) {
   return (
     <div className={`app${barraPlegada ? ' collapsed' : ''}`}>
       <aside className="sidebar">
-        <div className="sidebar-brand" onClick={() => goNueva(null)} title="Nueva venta" style={{ cursor: 'pointer', color: 'var(--accent)' }}>
+        <div className="sidebar-brand" onClick={() => (PROD_ON === 'estudio' ? setRoute('produccion') : goNueva(null))} title={PROD_ON === 'estudio' ? 'Tablero' : 'Nueva venta'} style={{ cursor: 'pointer', color: 'var(--accent)' }}>
           <LoopaMark height={26} corto={barraPlegada} />
         </div>
 

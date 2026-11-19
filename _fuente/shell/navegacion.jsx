@@ -7,12 +7,13 @@
 // resto, en lugar de una barra de ocho botones donde las etiquetas se pisan.
 // ═══════════════════════════════════════════════════════════════
 
+// Producción primero (2026-11-18): el estudio produce más de lo que vende.
 const NAV_GRUPOS = [
-  { id: 'comercial', label: 'Comercial', ids: ['nueva', 'ventas', 'servicios', 'clientes', 'resultados'] },
   { id: 'produccion', label: 'Producción', ids: ['produccion', 'mis-tareas', 'equipo', 'papelera'] },
+  { id: 'comercial', label: 'Comercial', ids: ['nueva', 'ventas', 'servicios', 'clientes', 'resultados'] },
   { id: 'sistema', label: 'Sistema', ids: ['metricas', 'gastos', 'config'] },
 ];
-const NAV_PRINCIPALES = ['nueva', 'ventas', 'produccion', 'clientes'];
+const NAV_PRINCIPALES = ['produccion', 'mis-tareas', 'nueva', 'clientes'];
 
 function NavAgrupada({ modules, route, onGo }) {
   const [masAbierto, setMasAbierto] = useState(false);
