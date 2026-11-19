@@ -272,9 +272,8 @@ const RoutineWidget = ({ workspaceId, enBarra = false }) => {
         <div
           className="anim-scale-in"
           style={{
-            position: 'absolute',
-            ...(enBarra ? { top: 'calc(100% + 10px)' } : { bottom: 'calc(100% + 12px)' }),
-            right: 0,
+            // En la barra: fijo a la pantalla (la barra recorta lo que se sale de ella).
+            ...(enBarra ? { position: 'fixed', top: 64, right: 24 } : { position: 'absolute', bottom: 'calc(100% + 12px)', right: 0 }),
             width: 340,
             maxHeight: 560,
             overflowY: 'auto',
