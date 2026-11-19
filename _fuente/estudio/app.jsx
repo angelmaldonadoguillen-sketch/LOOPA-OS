@@ -26,6 +26,7 @@ const freshFilters = () => Object.fromEntries(
 );
 
 // ── Initial state + reducer ─────────────────────────────────────
+const sinGaleria = (v) => (v && v !== 'gallery' ? v : null);
 const initialState = {
   // ── Tableros ──
   // Un usuario aprobado puede pertenecer a varios: su tablero personal
@@ -43,8 +44,9 @@ const initialState = {
   // que el listener de notificaciones se suscribía a la bandeja de un usuario
   // inexistente antes de que hubiera sesión — y fallaba con permission-denied.
   currentUserId: null,
-  view: _pinnedView || _savedNav.view || 'kanban', // fija > historial > default
-  pinnedView: _pinnedView,          // null | 'kanban' | 'calendar' | 'gallery' | 'list'
+  // La Galería se quitó (2026-11-18, Ángel no la usa): si era la vista guardada o fija, se vuelve a Etapas.
+  view: sinGaleria(_pinnedView) || sinGaleria(_savedNav.view) || 'kanban', // fija > historial > default
+  pinnedView: sinGaleria(_pinnedView),          // null | 'kanban' | 'calendar' | 'list' | 'ventas'
   search: '',
   filters: freshFilters(),
   openProjectId: null,
@@ -83,7 +85,7 @@ const initialState = {
 
 function reducer(state, action) {
   switch (action.type) {
-    case 'set_view':       return { ...state, view: action.view };
+    case 'set_view':       return { ...state, view: sinGaleria(action.view) || 'kanban' };
     case 'set_search':     return { ...state, search: action.value };
     case 'set_user':       return { ...state, currentUserId: action.id };
     case 'open_project':   return { ...state, openProjectId: action.id };
@@ -196,7 +198,7 @@ function reducer(state, action) {
     // ── Carry-over proyectos ──
     case 'set_carryover_projects': return { ...state, carryOverProjects: action.value };
     // ── Vista fija ──
-    case 'set_pinned_view': return { ...state, pinnedView: action.view };
+    case 'set_pinned_view': return { ...state, pinnedView: sinGaleria(action.view) };
     // ── Tipos personalizados ──
     case 'set_custom_types':    return { ...state, customTypes: action.types };
     case 'add_custom_type':     return { ...state, customTypes: [...state.customTypes, action.typeObj] };
@@ -1045,7 +1047,6 @@ const Header = ({ columns = [], state, dispatch, filteredCount, notifications, o
           {[
             { id: 'kanban',   icon: 'kanban',   label: 'Etapas' },
             { id: 'calendar', icon: 'calendar', label: 'Calendario' },
-            { id: 'gallery',  icon: 'grid',     label: 'Galería' },
             { id: 'list',     icon: 'list',     label: 'Lista' },
             // Etapa «experiencia»: el calendario agrupado por lo que se vendió.
             { id: 'ventas',   icon: 'layers',   label: 'Por venta' },
@@ -1774,7 +1775,7 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null, comercial = n
       if (filtro === 'mine') {
         if (vistaTablero.current === null) vistaTablero.current = state.view;
         let v = 'list';
-        try { v = localStorage.getItem('loopa-vista-mis-tareas') || 'list'; } catch (e) {}
+        try { v = sinGaleria(localStorage.getItem('loopa-vista-mis-tareas')) || 'list'; } catch (e) {}
         dispatch({ type: 'set_view', view: v });
       } else if (vistaTablero.current !== null) {
         dispatch({ type: 'set_view', view: vistaTablero.current });
@@ -3304,7 +3305,7 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null, comercial = n
           {state.view === 'kanban' && <StatusStatsBar projects={filtered} columns={boardCols} />}
 
           <div className="flex-1 overflow-hidden">
-            {filtered.length === 0 && state.view !== 'kanban' && state.view !== 'calendar' && state.view !== 'gallery' && state.view !== 'ventas' ? (
+            {filtered.length === 0 && state.view !== 'kanban' && state.view !== 'calendar' && state.view !== 'ventas' ? (
               <EmptyState />
             ) : (
               <CardEditingContext.Provider value={{ columns: boardCols, types: state.customTypes.length ? state.customTypes : PROJECT_TYPES, members: workspaceMembers(state.workspaces.find(w => w.id === wsId)), shared: state.workspaces.find(w => w.id === wsId)?.kind === 'team', update: (id, patch) => { const current = state.projects.find(p => p.id === id); if (current) handleUpdateProject({ ...current, ...patch }); } }}>
@@ -3325,7 +3326,6 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null, comercial = n
                   previewFields={state.previewFields}
                 />}
                 {state.view === 'calendar' && <CalendarView projects={filtered} onOpenProject={(id) => dispatch({ type: 'open_project', id })} onDeleteProject={handleDeleteProject} onDuplicateProject={handleDuplicateProject} onToggleFavorite={handleToggleFavorite} onUpdateProject={handleUpdateProject} onQuickCreate={handleQuickCreate} previewFields={state.previewFields} />}
-                {state.view === 'gallery'  && <GalleryView  projects={filtered} onOpenProject={(id) => dispatch({ type: 'open_project', id })} onDeleteProject={handleDeleteProject} onDuplicateProject={handleDuplicateProject} onToggleFavorite={handleToggleFavorite} onQuickCreate={handleQuickCreate} previewFields={state.previewFields} />}
                 {state.view === 'list'     && <ListView     projects={filtered} onOpenProject={(id) => dispatch({ type: 'open_project', id })} onDeleteProject={handleDeleteProject} onDuplicateProject={handleDuplicateProject} onToggleFavorite={handleToggleFavorite} />}
                 {state.view === 'ventas'   && <VentasView   projects={filtered} columns={boardCols} onOpenProject={(id) => dispatch({ type: 'open_project', id })} />}
               </CardEditingContext.Provider>
