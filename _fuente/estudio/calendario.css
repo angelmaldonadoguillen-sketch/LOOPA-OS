@@ -27,9 +27,9 @@
 .cal-chip:active { transform: scale(.98); }
 .cal-chip-punto { width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; background: var(--tono); }
 .cal-chip-texto { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
-.cal-chip.tarde { --tono: #ff6961; background: color-mix(in srgb, #ff6961 14%, transparent); color: #ff9d97; }
-.cal-chip.tarde:hover { background: color-mix(in srgb, #ff6961 22%, transparent); }
-.cal-chip.tarde .cal-chip-punto { background: #ff6961; }
+.cal-chip.tarde { --tono: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); color: color-mix(in srgb, var(--danger) 65%, white); }
+.cal-chip.tarde:hover { background: color-mix(in srgb, var(--danger) 22%, transparent); }
+.cal-chip.tarde .cal-chip-punto { background: var(--danger); }
 .cal-chip.hecha { background: transparent; color: var(--text-muted); }
 .cal-chip.hecha .cal-chip-texto { font-weight: 400; }
 .cal-chip.hecha:hover { background: var(--surface-2); }

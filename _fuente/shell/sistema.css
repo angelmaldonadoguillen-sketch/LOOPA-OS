@@ -127,3 +127,67 @@ button:focus-visible, .btn:focus-visible, a:focus-visible, [role="button"]:focus
 *:hover::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.16); }
 *::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.3); }
 *::-webkit-scrollbar-corner { background: transparent; }
+
+/* ── 13. Paleta del modo oscuro de Notion ──────────────────────── */
+/* Ángel (2026-11-18): «copiá los colores del modo oscuro de Notion y sus
+   colores de indicativos». Van en rgb() a propósito: el armado «entibia»
+   algunos grises en hexadecimal (ver TINT en build.js) y #191919 dejaría de
+   ser el de Notion.
+   Fondos: página 25 · barra/menús 32 · tarjetas 37 · líneas 47 · relieve 55.
+   Texto: blanco al 81 % (principal), 44 % (secundario), 28 % (tenue).
+   Indicadores (texto/punto de Notion): gris, marrón, naranja, amarillo,
+   verde, azul, violeta, rosa y rojo. El blanco sigue siendo el acento de
+   LOOPA (botón principal). */
+:root {
+  --bg: rgb(25, 25, 25);
+  --surface: rgb(32, 32, 32);
+  --card: rgb(37, 37, 37);
+  --card-2: rgb(44, 44, 44);
+  --line: rgb(47, 47, 47);
+  --line-2: rgb(55, 55, 55);
+  --text: rgba(255, 255, 255, 0.81);
+  --muted: rgba(255, 255, 255, 0.443);
+  --dim: rgba(255, 255, 255, 0.282);
+  --ok: rgb(82, 158, 114);
+  --warn: rgb(202, 152, 73);
+  --danger: rgb(223, 84, 82);
+  --info: rgb(94, 135, 201);
+}
+.sidebar { background: rgb(32, 32, 32); }
+.estudio.estudio {
+  --bg: rgb(25, 25, 25);
+  --surface: rgb(32, 32, 32);
+  --surface-2: rgb(37, 37, 37);
+  --surface-3: rgb(47, 47, 47);
+  --text: rgba(255, 255, 255, 0.81);
+  --text-dim: rgba(255, 255, 255, 0.6);
+  --text-muted: rgba(255, 255, 255, 0.443);
+  --text-faint: rgba(255, 255, 255, 0.282);
+  --border: rgb(47, 47, 47);
+  --border-2: rgb(55, 55, 55);
+  --hairline: rgba(255, 255, 255, 0.055);
+  --resource-neutral: rgb(155, 155, 155);
+  --resource-blue: rgb(94, 135, 201);
+  --resource-violet: rgb(157, 104, 211);
+  --resource-teal: rgb(82, 158, 114);
+  --resource-green: rgb(82, 158, 114);
+  --resource-coral: rgb(223, 84, 82);
+  --resource-pink: rgb(209, 87, 150);
+  --resource-orange: rgb(202, 152, 73);
+  --danger: rgb(223, 84, 82);
+  --danger-soft: rgba(223, 84, 82, 0.12);
+  --danger-soft-2: rgba(223, 84, 82, 0.2);
+  --warn: rgb(202, 152, 73);
+  --warn-soft: rgba(202, 152, 73, 0.12);
+  --warn-soft-2: rgba(202, 152, 73, 0.2);
+  --ok: rgb(82, 158, 114);
+  --info: rgb(94, 135, 201);
+}
+/* Estados de las ventas con los tonos de Notion y su fondo teñido (como las
+   etiquetas de Notion: el color de la etiqueta en el fondo, suave). */
+.badge { background: color-mix(in srgb, currentColor 16%, transparent); }
+.badge.e-pendiente  { color: rgb(155, 155, 155); } .badge.e-pendiente .pip  { background: rgb(155, 155, 155); }
+.badge.e-en-proceso { color: rgb(202, 152, 73); }  .badge.e-en-proceso .pip { background: rgb(202, 152, 73); }
+.badge.e-revision   { color: rgb(94, 135, 201); }  .badge.e-revision .pip   { background: rgb(94, 135, 201); }
+.badge.e-entregado  { color: rgb(82, 158, 114); }  .badge.e-entregado .pip  { background: rgb(82, 158, 114); }
+.badge.e-cancelado  { color: rgba(255, 255, 255, 0.282); } .badge.e-cancelado .pip { background: rgba(255, 255, 255, 0.282); }

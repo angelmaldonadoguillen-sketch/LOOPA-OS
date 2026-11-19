@@ -75,7 +75,7 @@ button.tf-prop-v:hover { background: rgba(255, 255, 255, 0.06); }
 .tf-fecha:disabled { cursor: default; opacity: .8; }
 .tf-fecha-aviso { align-self: flex-start; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 500; }
 .tf-fecha-aviso.pronto { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
-.tf-fecha-aviso.tarde { background: color-mix(in srgb, #ff6961 16%, transparent); color: #ff9d97; }
+.tf-fecha-aviso.tarde { background: color-mix(in srgb, var(--danger) 16%, transparent); color: color-mix(in srgb, var(--danger) 65%, white); }
 
 @media (max-width: 860px) {
   .tf-cuerpo { grid-template-columns: 1fr; padding: 0 16px 32px; gap: 16px; }

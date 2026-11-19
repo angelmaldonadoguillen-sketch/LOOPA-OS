@@ -1551,6 +1551,62 @@ button:focus-visible, .btn:focus-visible, a:focus-visible, [role="button"]:focus
 *:hover::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.16); }
 *::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.3); }
 *::-webkit-scrollbar-corner { background: transparent; }
+:root {
+  --bg: rgb(25, 25, 25);
+  --surface: rgb(32, 32, 32);
+  --card: rgb(37, 37, 37);
+  --card-2: rgb(44, 44, 44);
+  --line: rgb(47, 47, 47);
+  --line-2: rgb(55, 55, 55);
+  --text: rgba(255, 255, 255, 0.81);
+  --muted: rgba(255, 255, 255, 0.443);
+  --dim: rgba(255, 255, 255, 0.282);
+  --ok: rgb(82, 158, 114);
+  --warn: rgb(202, 152, 73);
+  --danger: rgb(223, 84, 82);
+  --info: rgb(94, 135, 201);
+}
+.sidebar { background: rgb(32, 32, 32); }
+.estudio.estudio {
+  --bg: rgb(25, 25, 25);
+  --surface: rgb(32, 32, 32);
+  --surface-2: rgb(37, 37, 37);
+  --surface-3: rgb(47, 47, 47);
+  --text: rgba(255, 255, 255, 0.81);
+  --text-dim: rgba(255, 255, 255, 0.6);
+  --text-muted: rgba(255, 255, 255, 0.443);
+  --text-faint: rgba(255, 255, 255, 0.282);
+  --border: rgb(47, 47, 47);
+  --border-2: rgb(55, 55, 55);
+  --hairline: rgba(255, 255, 255, 0.055);
+  --resource-neutral: rgb(155, 155, 155);
+  --resource-blue: rgb(94, 135, 201);
+  --resource-violet: rgb(157, 104, 211);
+  --resource-teal: rgb(82, 158, 114);
+  --resource-green: rgb(82, 158, 114);
+  --resource-coral: rgb(223, 84, 82);
+  --resource-pink: rgb(209, 87, 150);
+  --resource-orange: rgb(202, 152, 73);
+  --danger: rgb(223, 84, 82);
+  --danger-soft: rgba(223, 84, 82, 0.12);
+  --danger-soft-2: rgba(223, 84, 82, 0.2);
+  --warn: rgb(202, 152, 73);
+  --warn-soft: rgba(202, 152, 73, 0.12);
+  --warn-soft-2: rgba(202, 152, 73, 0.2);
+  --ok: rgb(82, 158, 114);
+  --info: rgb(94, 135, 201);
+}
+.badge { background: color-mix(in srgb, currentColor 16%, transparent); }
+.badge.e-pendiente { color: rgb(155, 155, 155); }
+.badge.e-pendiente .pip { background: rgb(155, 155, 155); }
+.badge.e-en-proceso { color: rgb(202, 152, 73); }
+.badge.e-en-proceso .pip { background: rgb(202, 152, 73); }
+.badge.e-revision { color: rgb(94, 135, 201); }
+.badge.e-revision .pip { background: rgb(94, 135, 201); }
+.badge.e-entregado { color: rgb(82, 158, 114); }
+.badge.e-entregado .pip { background: rgb(82, 158, 114); }
+.badge.e-cancelado { color: rgba(255, 255, 255, 0.282); }
+.badge.e-cancelado .pip { background: rgba(255, 255, 255, 0.282); }
 .estudio {
     
     --bg:        #131315;
@@ -2112,9 +2168,9 @@ button:focus-visible, .btn:focus-visible, a:focus-visible, [role="button"]:focus
 .estudio .cal-chip:active { transform: scale(.98); }
 .estudio .cal-chip-punto { width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; background: var(--tono); }
 .estudio .cal-chip-texto { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
-.estudio .cal-chip.tarde { --tono: #ff6961; background: color-mix(in srgb, #ff6961 14%, transparent); color: #ff9d97; }
-.estudio .cal-chip.tarde:hover { background: color-mix(in srgb, #ff6961 22%, transparent); }
-.estudio .cal-chip.tarde .cal-chip-punto { background: #ff6961; }
+.estudio .cal-chip.tarde { --tono: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); color: color-mix(in srgb, var(--danger) 65%, white); }
+.estudio .cal-chip.tarde:hover { background: color-mix(in srgb, var(--danger) 22%, transparent); }
+.estudio .cal-chip.tarde .cal-chip-punto { background: var(--danger); }
 .estudio .cal-chip.hecha { background: transparent; color: var(--text-muted); }
 .estudio .cal-chip.hecha .cal-chip-texto { font-weight: 400; }
 .estudio .cal-chip.hecha:hover { background: var(--surface-2); }
@@ -2198,7 +2254,7 @@ button:focus-visible, .btn:focus-visible, a:focus-visible, [role="button"]:focus
 .estudio .tf-fecha:disabled { cursor: default; opacity: .8; }
 .estudio .tf-fecha-aviso { align-self: flex-start; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 500; }
 .estudio .tf-fecha-aviso.pronto { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
-.estudio .tf-fecha-aviso.tarde { background: color-mix(in srgb, #ff6961 16%, transparent); color: #ff9d97; }
+.estudio .tf-fecha-aviso.tarde { background: color-mix(in srgb, var(--danger) 16%, transparent); color: color-mix(in srgb, var(--danger) 65%, white); }
 @media (max-width: 860px) {
 .estudio .tf-cuerpo { grid-template-columns: 1fr; padding: 0 16px 32px; gap: 16px; }
 .estudio .tf-lado { position: static; }
