@@ -1043,12 +1043,12 @@ const Header = ({ columns = [], state, dispatch, filteredCount, notifications, o
         {/* View switcher */}
         <div className="flex items-center gap-0.5 p-0.5 rounded-md surface-2">
           {[
-            { id: 'kanban',   icon: 'kanban',   label: 'Tablero' },
+            { id: 'kanban',   icon: 'kanban',   label: 'Etapas' },
             { id: 'calendar', icon: 'calendar', label: 'Calendario' },
             { id: 'gallery',  icon: 'grid',     label: 'Galería' },
             { id: 'list',     icon: 'list',     label: 'Lista' },
             // Etapa «experiencia»: el calendario agrupado por lo que se vendió.
-            { id: 'ventas',   icon: 'layers',   label: 'Ventas' },
+            { id: 'ventas',   icon: 'layers',   label: 'Por venta' },
           ].map(v => {
             const isPinned = state.pinnedView === v.id;
             return (

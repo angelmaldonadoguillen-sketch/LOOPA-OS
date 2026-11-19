@@ -325,7 +325,7 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
       {typeof s.resultados === 'number' && (
         <div className="resultados-hero">
           <div className="panel crop">
-            <div className="panel-head"><div className="panel-title">LEADS · <span className="dim">un mensaje es un lead</span></div></div>
+            <div className="panel-head"><div className="panel-title">Leads · <span className="dim">un mensaje es un lead</span></div></div>
             <div className="panel-body">
               <div className="rh-cifras">
                 <div className="rh-bloque">
@@ -361,7 +361,7 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
           </div>
           {camp.filas.length > 0 && (
             <div className="panel crop">
-              <div className="panel-head"><div className="panel-title">DÓNDE VA LA PAUTA · <span className="dim">{fmtPlata(monedaPauta, camp.total)}</span></div></div>
+              <div className="panel-head"><div className="panel-title">Dónde va la pauta · <span className="dim">{fmtPlata(monedaPauta, camp.total)}</span></div></div>
               <div className="panel-body">
                 <RepartoPauta filas={camp.filas} />
                 <div className="rh-extremos">
@@ -393,7 +393,7 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
       {camp.filas.length > 0 && (
         <div className="panel crop" style={{ marginBottom: 20 }}>
           <div className="panel-head" style={{ flexWrap: 'wrap', gap: 8 }}>
-            <div className="panel-title">CAMPAÑAS · <span className="dim">{camp.filas.length} · costo por lead contra el promedio{camp.promedio !== null ? ` (${fmtPlata(monedaPauta, camp.promedio)})` : ''}</span></div>
+            <div className="panel-title">Campañas · <span className="dim">{camp.filas.length} · costo por lead contra el promedio{camp.promedio !== null ? ` (${fmtPlata(monedaPauta, camp.promedio)})` : ''}</span></div>
           </div>
           <div className="panel-body" style={{ overflowX: 'auto' }}>
             <div className="rc-campanas" role="table" aria-label="Campañas del mes">
@@ -432,7 +432,7 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
       <div className="metrics-grid-2">
         <div className="panel crop">
           <div className="panel-head" style={{ flexWrap: 'wrap', gap: 8 }}>
-            <div className="panel-title">CARGAR · <span className="dim">{R.nombreMes(mes).toUpperCase()}</span></div>
+            <div className="panel-title">Cargar · <span className="dim">{R.nombreMes(mes).toUpperCase()}</span></div>
             <label className="btn sm" style={{ marginLeft: 'auto', cursor: 'pointer' }} title="Administrador de anuncios › Exportar › CSV, del 1 a la fecha de hoy (o al último día si el mes ya cerró)">
               <Icon name="dl" size={11} /> Importar CSV de Meta Ads
               <input type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={e => { importarCsv(e.target.files && e.target.files[0]); e.target.value = ''; }} />
@@ -491,7 +491,7 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
         </div>
 
         <div className="panel crop">
-          <div className="panel-head"><div className="panel-title">ÚLTIMOS 6 MESES · <span className="dim">{cliente ? cliente.nombre.toUpperCase() : ''}</span></div></div>
+          <div className="panel-head"><div className="panel-title">últimos 6 meses · <span className="dim">{cliente ? cliente.nombre.toUpperCase() : ''}</span></div></div>
           <div className="panel-body" style={{ overflowX: 'auto' }}>
             <table className="resultados-tabla">
               <thead><tr><th>Mes</th><th>Inversión</th><th>Leads</th><th>Costo / lead</th>{hayAlcance && <th>Alcance</th>}{haySeguidores && <th>Seguidores</th>}</tr></thead>
@@ -519,7 +519,7 @@ function ResultadosRedes({ clientes, clienteInicial = '', onVolver }) {
 
       {!cerrado && (vista.avance || []).length > 0 && (
         <div className="panel crop" style={{ marginTop: 20 }}>
-          <div className="panel-head"><div className="panel-title">AVANCE DEL MES · <span className="dim">cada carga, acumulado a su fecha</span></div></div>
+          <div className="panel-head"><div className="panel-title">Avance del mes · <span className="dim">cada carga, acumulado a su fecha</span></div></div>
           <div className="panel-body" style={{ overflowX: 'auto' }}>
             <table className="resultados-tabla">
               <thead><tr><th>Datos al</th><th>Inversión</th><th>Leads</th>{hayAlcance && <th>Alcance</th>}{haySeguidores && <th>Seguidores nuevos</th>}</tr></thead>

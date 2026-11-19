@@ -14,7 +14,7 @@ const PROJECT_TYPES = [
   { id: 'reel',     label: 'Reel',              color: 'var(--resource-violet)', icon: 'film' },
   { id: 'photo',    label: 'Fotografía',        color: 'var(--resource-blue)', icon: 'camera' },
   { id: 'corp',     label: 'Video corporativo', color: 'var(--resource-teal)', icon: 'briefcase' },
-  { id: 'campaign', label: 'Campaign',          color: 'var(--resource-coral)', icon: 'zap' },
+  { id: 'campaign', label: 'Campaña',            color: 'var(--resource-coral)', icon: 'zap' },
   { id: 'bts',      label: 'BTS',               color: 'var(--warn)', icon: 'film' },
   { id: 'podcast',  label: 'Podcast',           color: 'var(--resource-pink)', icon: 'mic' },
   { id: 'other',    label: 'Otro',              color: 'var(--resource-neutral)', icon: 'folder' },

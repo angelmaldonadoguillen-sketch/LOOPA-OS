@@ -20,13 +20,16 @@
 .cal-dia:hover .cal-dia-nota, .cal-dia.soltar .cal-dia-nota { opacity: 1; }
 
 .cal-chips { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.cal-chip { --tono: var(--text-muted); width: 100%; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 4px 7px; border: 0; border-radius: 6px; background: color-mix(in srgb, var(--tono) 14%, transparent); color: var(--text); font-size: 12px; line-height: 1.25; text-align: left; cursor: pointer; transition: background .15s ease, transform .15s ease; }
-.cal-chip:hover { background: color-mix(in srgb, var(--tono) 26%, transparent); }
+/* Como los eventos del Calendario de Apple: píldora redondeada con un tinte
+   suave del color, punto y texto del mismo tono; sin bordes ni franjas. */
+.cal-chip { --tono: var(--text-muted); width: 100%; min-width: 0; display: flex; align-items: center; gap: 7px; padding: 4px 8px; border: 0; border-radius: 7px; background: color-mix(in srgb, var(--tono) 12%, transparent); color: var(--text); font-size: 12px; line-height: 1.3; text-align: left; cursor: pointer; transition: background .2s ease, transform .2s ease; }
+.cal-chip:hover { background: color-mix(in srgb, var(--tono) 22%, transparent); }
 .cal-chip:active { transform: scale(.98); }
-.cal-chip-punto { width: 7px; height: 7px; flex-shrink: 0; border-radius: 50%; background: var(--tono); }
+.cal-chip-punto { width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; background: var(--tono); }
 .cal-chip-texto { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
-.cal-chip.tarde { background: color-mix(in srgb, var(--danger) 13%, transparent); box-shadow: inset 2px 0 0 var(--danger); }
-.cal-chip.tarde:hover { background: color-mix(in srgb, var(--danger) 22%, transparent); }
+.cal-chip.tarde { --tono: #ff6961; background: color-mix(in srgb, #ff6961 14%, transparent); color: #ff9d97; }
+.cal-chip.tarde:hover { background: color-mix(in srgb, #ff6961 22%, transparent); }
+.cal-chip.tarde .cal-chip-punto { background: #ff6961; }
 .cal-chip.hecha { background: transparent; color: var(--text-muted); }
 .cal-chip.hecha .cal-chip-texto { font-weight: 400; }
 .cal-chip.hecha:hover { background: var(--surface-2); }

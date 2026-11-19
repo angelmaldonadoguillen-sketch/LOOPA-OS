@@ -800,8 +800,8 @@ test('Experiencia 5: vista «Ventas» del tablero (una fila por producto vendido
   const est = fs.readFileSync(path.join(ROOT, '_fuente', 'estudio', 'app.jsx'), 'utf8');
   const vl = fs.readFileSync(path.join(ROOT, '_fuente', 'estudio', 'ventas-linea.jsx'), 'utf8');
   assert.match(build, /'views\.jsx', 'ventas-linea\.jsx', 'clients\.jsx'/);
-  assert.match(build, /\['frame\.css', 'ventas-linea\.css', 'muro\.css', 'ficha-cliente\.css', 'calendario\.css'\]/);
-  assert.match(est, /\{ id: 'ventas',\s+icon: 'layers',\s+label: 'Ventas' \}/);
+  assert.match(build, /\['frame\.css', 'ventas-linea\.css', 'muro\.css', 'ficha-cliente\.css', 'calendario\.css', 'sistema\.css'\]/);
+  assert.match(est, /\{ id: 'ventas',\s+icon: 'layers',\s+label: 'Por venta' \}/);
   assert.match(est, /state\.view === 'ventas'\s+&& <VentasView\s+projects=\{filtered\} columns=\{boardCols\}/);
   // Agrupa sólo lo que viene de LOOPA, por venta y línea; hecha = columna de cierre.
   assert.match(vl, /if \(p\.sourceSystem !== 'loopa' \|\| !p\.sourceSaleId \|\| !p\.sessionDate\) return;/);

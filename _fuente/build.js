@@ -31,7 +31,7 @@ baseCss = tint(baseCss);
 // script de Babel, en este orden fijo. Producción sólo aparece en el menú con
 // la bandera ?produccion (ver produccion/calendario.jsx).
 const MODULES = ['../functions/production-plan/ficha.js', 'datos/fusion.js', 'datos/fuente.js', 'produccion/nucleo.js', 'produccion/datos-reales.js', 'produccion/calendario.jsx', 'produccion/tablero.jsx', 'produccion/resumen.jsx', 'produccion/cliente.jsx', 'shell/navegacion.jsx', 'catalogo/ficha.jsx', 'datos/resultados.js', 'resultados/resultados.jsx'];
-const MODULE_CSS = ['produccion/produccion.css', 'shell/navegacion.css', 'catalogo/ficha.css', 'resultados/resultados.css'];
+const MODULE_CSS = ['produccion/produccion.css', 'shell/navegacion.css', 'catalogo/ficha.css', 'resultados/resultados.css', 'shell/sistema.css'];
 const modulesSrc = MODULES.map(f => `// ── módulo: ${f} ──\n${fs.readFileSync(path.join(here, f), 'utf8')}`).join('\n');
 
 // ── Producción (antes FRAME), Fase 4 · un solo sistema ──────────────────
@@ -99,7 +99,7 @@ const ESTUDIO_TOKENS = `.estudio {
 }
 .estudio button, .estudio input, .estudio select, .estudio textarea { font-family: inherit; }
 `;
-const estudioCss = scopeCss(['frame.css', 'ventas-linea.css', 'muro.css', 'ficha-cliente.css', 'calendario.css'].map(f => fs.readFileSync(path.join(here, 'estudio', f), 'utf8')).join('\n'), '.estudio') + ESTUDIO_TOKENS;
+const estudioCss = scopeCss(['frame.css', 'ventas-linea.css', 'muro.css', 'ficha-cliente.css', 'calendario.css', 'sistema.css'].map(f => fs.readFileSync(path.join(here, 'estudio', f), 'utf8')).join('\n'), '.estudio') + ESTUDIO_TOKENS;
 
 let extraCss = tint([fs.readFileSync(path.join(here, 'extra.css'), 'utf8'), ...MODULE_CSS.map(f => fs.readFileSync(path.join(here, f), 'utf8')), estudioCss].join('\n'));
 const app = tint(`${modulesSrc}\n${estudio}\n// ── app.jsx ──\n${fs.readFileSync(path.join(here, 'app.jsx'), 'utf8')}`);

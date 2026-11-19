@@ -19,7 +19,7 @@ test('el build incluye los módulos de Producción antes de app.jsx', () => {
   // Tanda 3.3: los módulos de datos de la fusión van primero.
   // Etapa «experiencia»: la ficha del producto (la misma lógica que el servidor) va primero.
   assert.match(build, /const MODULES = \['\.\.\/functions\/production-plan\/ficha\.js', 'datos\/fusion\.js', 'datos\/fuente\.js', 'produccion\/nucleo\.js', 'produccion\/datos-reales\.js', 'produccion\/calendario\.jsx', 'produccion\/tablero\.jsx', 'produccion\/resumen\.jsx', 'produccion\/cliente\.jsx', 'shell\/navegacion\.jsx', 'catalogo\/ficha\.jsx', 'datos\/resultados\.js', 'resultados\/resultados\.jsx'\]/);
-  assert.match(build, /const MODULE_CSS = \['produccion\/produccion\.css', 'shell\/navegacion\.css', 'catalogo\/ficha\.css', 'resultados\/resultados\.css'\]/);
+  assert.match(build, /const MODULE_CSS = \['produccion\/produccion\.css', 'shell\/navegacion\.css', 'catalogo\/ficha\.css', 'resultados\/resultados\.css', 'shell\/sistema\.css'\]/);
   const html = read('index.html');
   // index.html lleva el JS ya compilado (fase 4.6): se busca sin depender de espacios.
   const iNucleo = html.search(/const LoopaProduccion\s*=\s*\(?function/);

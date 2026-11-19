@@ -21,6 +21,8 @@ const formatTs = (iso) => {
     return `${d.toLocaleDateString('es-HN', { day: '2-digit', month: '2-digit' })} ${d.toLocaleTimeString('es-HN', { hour: '2-digit', minute: '2-digit', hour12: false })}`;
   } catch (e) { return iso.slice(0, 16); }
 };
+// Sistema estilo Apple: nada en mayúsculas; sólo la primera letra («Mié, 18 nov»).
+const mayus1 = (s) => { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); };
 const uid = (p) => `${p}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`.toUpperCase();
 const norm = (s) => (s || '').toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 const digits = (s) => (s || '').replace(/\D/g, '');
@@ -126,7 +128,7 @@ const entregaVencida = (v) => v.entrega && v.entrega < today() && !['entregado',
 function periodRange(period, now = new Date()) {
   const y = now.getFullYear(), m = now.getMonth();
   const last = (yy, mm) => new Date(yy, mm + 1, 0).getDate();
-  const mesLbl = (d) => d.toLocaleDateString('es-HN', { month: 'long', year: 'numeric' }).toUpperCase();
+  const mesLbl = (d) => mayus1(d.toLocaleDateString('es-HN', { month: 'long', year: 'numeric' }));
   if (period === 'hoy') { const t = ymd(now); return { start: t, end: t, months: 1 / 30, label: 'HOY' }; }
   if (period === 'semana') { const d = new Date(now); d.setDate(d.getDate() - 6); return { start: ymd(d), end: ymd(now), months: 7 / 30, label: 'ÚLTIMOS 7 DÍAS' }; }
   if (period === 'mes') return { start: ymd(new Date(y, m, 1)), end: ymd(new Date(y, m, last(y, m))), months: 1, label: mesLbl(now) };
@@ -628,9 +630,9 @@ function NuevaVenta({ nextN, clientes, servicios, ventas, stats, config, onCreat
           <div className="page-desc">Elegí el cliente, sumá productos listos y cuándo empieza cada uno, y registrá el cobro. Cada entrega pasa sola a Producción y al calendario.</div>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <span className="chip">CORRELATIVO <span className="v mono">{numProx(nextN)}</span></span>
-          <span className="chip">SERVICIOS <span className="v mono">{pad2(items.length)}</span></span>
-          <span className="chip">TOTAL <span className="v mono">{L(totals.total)}</span></span>
+          <span className="chip">Correlativo <span className="v mono">{numProx(nextN)}</span></span>
+          <span className="chip">Servicios <span className="v mono">{pad2(items.length)}</span></span>
+          <span className="chip">Total <span className="v mono">{L(totals.total)}</span></span>
         </div>
       </div>
 
@@ -693,7 +695,7 @@ function PasoCliente({ cliente, setCliente, clientes, ventas, canales, nota, set
   return (
     <div className="panel crop">
       <div className="panel-head">
-        <div className="panel-title">PASO 01 · <span className="dim">CLIENTE</span></div>
+        <div className="panel-title">Paso 01 · <span className="dim">Cliente</span></div>
         {cliente.id && (
           <span className="mono" style={{ marginLeft: 'auto', fontSize: 'var(--fs-s)', letterSpacing: '0.1em', color: 'var(--accent)' }}>
             ● CLIENTE EXISTENTE · {compras(cliente.id)} COMPRA{compras(cliente.id) === 1 ? '' : 'S'}
@@ -729,7 +731,7 @@ function PasoCliente({ cliente, setCliente, clientes, ventas, canales, nota, set
           )}
           {!cliente.id && !q && recientes.length > 0 && (
             <div className="chips" style={{ marginTop: 10 }}>
-              <span className="mono dim" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.1em', alignSelf: 'center', marginRight: 4 }}>RECIENTES</span>
+              <span className="mono dim" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.1em', alignSelf: 'center', marginRight: 4 }}>Recientes</span>
               {recientes.map(c => <button key={c.id} className="chipbtn" onClick={() => apply(c)}>{c.nombre}</button>)}
             </div>
           )}
@@ -802,7 +804,7 @@ function PasoServicios({ cliente, servicios, stats, categorias, items, addItem, 
       {/* Catálogo: sólo lo que está listo para vender */}
       <div className="panel crop">
         <div className="panel-head">
-          <div className="panel-title">PASO 02 · <span className="dim">PRODUCTOS</span></div>
+          <div className="panel-title">Paso 02 · <span className="dim">Servicios</span></div>
           <span className="mono dim" style={{ marginLeft: 'auto', fontSize: 'var(--fs-s)', letterSpacing: '0.1em' }}>{activos.length} LISTOS</span>
         </div>
         <div className="panel-body">
@@ -853,7 +855,7 @@ function PasoServicios({ cliente, servicios, stats, categorias, items, addItem, 
       {/* Líneas de la venta: producto cerrado + fecha de inicio */}
       <div className="panel crop sticky-panel">
         <div className="panel-head">
-          <div className="panel-title">EN ESTA VENTA · <span className="dim">{items.length} {items.length === 1 ? 'PRODUCTO' : 'PRODUCTOS'}</span></div>
+          <div className="panel-title">En esta venta · <span className="dim">{items.length} {items.length === 1 ? 'servicio' : 'servicios'}</span></div>
         </div>
         <div className="panel-body">
           {items.length === 0 ? (
@@ -907,7 +909,7 @@ function PasoCobro({ payConfig, pay, setPay, cobro, setCobro, anticipo, setAntic
     <div className="nv-grid">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <div className="panel crop">
-          <div className="panel-head"><div className="panel-title">PASO 03 · <span className="dim">MÉTODO DE PAGO</span></div></div>
+          <div className="panel-head"><div className="panel-title">Paso 03 · <span className="dim">Método de pago</span></div></div>
           <div className="panel-body">
             <div className="pay-options">
               {payConfig.map(m => (
@@ -924,7 +926,7 @@ function PasoCobro({ payConfig, pay, setPay, cobro, setCobro, anticipo, setAntic
         </div>
 
         <div className="panel crop">
-          <div className="panel-head"><div className="panel-title">COBRO</div></div>
+          <div className="panel-head"><div className="panel-title">Cobro</div></div>
           <div className="panel-body">
             <div className="segmented" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
               <button className={cobro === 'pagado' ? 'on' : ''} onClick={() => setCobro('pagado')}>Pagado completo</button>
@@ -950,7 +952,7 @@ function PasoCobro({ payConfig, pay, setPay, cobro, setCobro, anticipo, setAntic
         </div>
 
         <div className="panel crop">
-          <div className="panel-head"><div className="panel-title">FECHAS Y ESTADO</div></div>
+          <div className="panel-head"><div className="panel-title">Fechas y estado</div></div>
           <div className="panel-body">
             <div className="grid-2">
               <div className="field">
@@ -979,7 +981,7 @@ function PasoCobro({ payConfig, pay, setPay, cobro, setCobro, anticipo, setAntic
 
       <div className="panel crop sticky-panel">
         <div className="panel-head">
-          <div className="panel-title">RESUMEN · <span className="dim">VENTA {numProx(nextN)}</span></div>
+          <div className="panel-title">Resumen · <span className="dim">Venta {numProx(nextN)}</span></div>
         </div>
         <div className="panel-body">
           <div style={{ marginBottom: 14 }}>
@@ -1214,7 +1216,7 @@ function Ventas({ ventas, config, onUpdate, onDelete, onDuplicate, onAbono, focu
                       <td className="order-n">#{v.n}</td>
                       <td>
                         <div style={{ fontWeight: 500 }}>{v.cliente}</div>
-                        {v.empresa && <div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--muted)', letterSpacing: '0.06em' }}>{v.empresa.toUpperCase()}</div>}
+                        {v.empresa && <div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--muted)' }}>{v.empresa}</div>}
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', maxWidth: 340 }}>
@@ -1260,10 +1262,10 @@ function Ventas({ ventas, config, onUpdate, onDelete, onDuplicate, onAbono, focu
           <div className="panel-footer" style={{ flexWrap: 'wrap' }}>
             <div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--muted)', letterSpacing: '0.08em' }}>{filtered.length} FILAS</div>
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 20, flexWrap: 'wrap', fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-s)' }}>
-              <span className="muted">TOTAL <span style={{ color: 'var(--text)' }}>{L(sum.total)}</span></span>
-              <span className="muted">COBRADO <span style={{ color: 'var(--ok)' }}>{L(sum.cobrado)}</span></span>
-              <span className="muted">POR COBRAR <span style={{ color: 'var(--warn)' }}>{L(sum.saldo)}</span></span>
-              <span className="muted">GANANCIA <span style={{ color: 'var(--text)' }}>{L(sum.ganancia)}</span></span>
+              <span className="muted">Total <span style={{ color: 'var(--text)' }}>{L(sum.total)}</span></span>
+              <span className="muted">Cobrado <span style={{ color: 'var(--ok)' }}>{L(sum.cobrado)}</span></span>
+              <span className="muted">Por cobrar <span style={{ color: 'var(--warn)' }}>{L(sum.saldo)}</span></span>
+              <span className="muted">Ganancia <span style={{ color: 'var(--text)' }}>{L(sum.ganancia)}</span></span>
             </div>
           </div>
         )}
@@ -1526,7 +1528,7 @@ function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVen
       <div className="page-head">
         <div>
           <div className="page-kicker">Catálogo</div>
-          <div className="page-title">Productos</div>
+          <div className="page-title">Servicios</div>
           <div className="page-desc">{vista === 'items'
             ? 'Las piezas: Post, Reel, Logo, Sesión de fotos… Cada ítem trae su tipo de tarjeta, su proceso, su costo y su precio si se vende suelto.'
             : 'Los paquetes se arman con ítems: cuántos trae, cuándo cae cada uno y en cuánto tiempo. La utilidad sale sola.'} {activos} activos{archivados > 0 ? ` · ${archivados} archivados` : ''}.</div>
@@ -1543,7 +1545,7 @@ function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVen
       <div className="filterbar">
         <div className="filter-group">
           <Icon name="search" size={13} />
-          <input className="fg-input" style={{ width: 200 }} placeholder="Buscar producto…" value={q} onChange={e => setQ(e.target.value)} />
+          <input className="fg-input" style={{ width: 200 }} placeholder="Buscar servicio…" value={q} onChange={e => setQ(e.target.value)} />
         </div>
         <div className="filter-group">
           <span className="flabel">Categoría</span>
@@ -1597,7 +1599,7 @@ function Servicios({ servicios, clientes, stats, config, onSave, onDelete, onVen
                   return (
                     <tr key={s.id} onClick={() => setEditing(s)} style={{ opacity: s.activo === false ? 0.45 : 1 }}>
                       <td>
-                        <div style={{ fontWeight: 500 }}>{s.nombre}{s.activo === false && <span className="mono dim" style={{ fontSize: 'var(--fs-s)', marginLeft: 8, letterSpacing: '0.1em' }}>ARCHIVADO</span>}</div>
+                        <div style={{ fontWeight: 500 }}>{s.nombre}{s.activo === false && <span className="mono dim" style={{ fontSize: 'var(--fs-s)', marginLeft: 8, letterSpacing: '0.1em' }}>Archivado</span>}</div>
                         {s.descripcion && <div className="muted" style={{ fontSize: 'var(--fs-s)', maxWidth: 340, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.descripcion}</div>}
                       </td>
                       <td className="service-model-cell">
@@ -1934,7 +1936,7 @@ function Clientes({ clientes, ventas, config, onSave, onDelete, onNuevaVenta, on
                     <tr key={c.id} onClick={() => setEditing(c)}>
                       <td>
                         <div style={{ fontWeight: 500 }}>{c.nombre}</div>
-                        {c.empresa && <div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--muted)', letterSpacing: '0.06em' }}>{c.empresa.toUpperCase()}</div>}
+                        {c.empresa && <div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--muted)' }}>{c.empresa}</div>}
                       </td>
                       <td className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>{c.telefono || c.email || '—'}{c.telefono && c.email && <div className="dim">{c.email}</div>}</td>
                       <td className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>{c.canal || '—'}</td>
@@ -2087,7 +2089,7 @@ function Metricas({ ventas, gastos, config }) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const key = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
       const vs = act.filter(v => v.fecha.slice(0, 7) === key);
-      out.push({ key, lbl: d.toLocaleDateString('es-HN', { month: 'short' }).replace('.', '').toUpperCase(), v: vs.reduce((a, v) => a + num(v.total), 0), n: vs.length, current: i === 0 });
+      out.push({ key, lbl: mayus1(d.toLocaleDateString('es-HN', { month: 'short' }).replace('.', '')), v: vs.reduce((a, v) => a + num(v.total), 0), n: vs.length, current: i === 0 });
     }
     return out;
   }, [ventas]);
@@ -2151,7 +2153,7 @@ function Metricas({ ventas, gastos, config }) {
       </div>
 
       <div className="panel crop" style={{ marginBottom: 20 }}>
-        <div className="panel-head"><div className="panel-title">DESGLOSE DE GANANCIA · <span className="dim">{r.label}</span></div></div>
+        <div className="panel-head"><div className="panel-title">Desglose de ganancia · <span className="dim">{r.label}</span></div></div>
         <div className="desglose">
           {[
             { lbl: 'Venta', val: k.venta, color: 'var(--text)', op: '' },
@@ -2175,8 +2177,8 @@ function Metricas({ ventas, gastos, config }) {
       <div className="metrics-grid">
         <div className="panel crop">
           <div className="panel-head">
-            <div className="panel-title">VENTA POR MES · <span className="dim">ÚLTIMOS 6</span></div>
-            <span className="chip" style={{ marginLeft: 'auto' }}>PROM <span className="v mono">{L(meses.reduce((a, m) => a + m.v, 0) / Math.max(1, meses.filter(m => m.v > 0).length))}</span></span>
+            <div className="panel-title">Venta por mes · <span className="dim">últimos 6</span></div>
+            <span className="chip" style={{ marginLeft: 'auto' }}>Prom <span className="v mono">{L(meses.reduce((a, m) => a + m.v, 0) / Math.max(1, meses.filter(m => m.v > 0).length))}</span></span>
           </div>
           <div className="panel-body">
             <div className="bar-chart">
@@ -2194,7 +2196,7 @@ function Metricas({ ventas, gastos, config }) {
         </div>
 
         <div className="panel crop">
-          <div className="panel-head"><div className="panel-title">TOP SERVICIOS</div><span className="chip" style={{ marginLeft: 'auto' }}>{r.label}</span></div>
+          <div className="panel-head"><div className="panel-title">Top servicios</div><span className="chip" style={{ marginLeft: 'auto' }}>{r.label}</span></div>
           {topServicios.length === 0
             ? <div className="mono" style={{ padding: 24, color: 'var(--muted)', fontSize: 'var(--fs-s)', textAlign: 'center' }}>Sin ventas en el período</div>
             : <div className="top-list">{topServicios.map((s, i) => (
@@ -2209,15 +2211,15 @@ function Metricas({ ventas, gastos, config }) {
 
       <div className="metrics-grid-3">
         <div className="panel crop">
-          <div className="panel-head"><div className="panel-title">POR CATEGORÍA</div></div>
+          <div className="panel-head"><div className="panel-title">Por categoría</div></div>
           <Rows data={porCategoria} empty="Sin ventas en el período" />
         </div>
         <div className="panel crop">
-          <div className="panel-head"><div className="panel-title">POR CANAL</div></div>
+          <div className="panel-head"><div className="panel-title">Por canal</div></div>
           <Rows data={porCanal} empty="Sin ventas en el período" />
         </div>
         <div className="panel crop">
-          <div className="panel-head"><div className="panel-title">TOP CLIENTES</div></div>
+          <div className="panel-head"><div className="panel-title">Top clientes</div></div>
           {topClientes.length === 0
             ? <div className="mono" style={{ padding: 24, color: 'var(--muted)', fontSize: 'var(--fs-s)', textAlign: 'center' }}>Sin ventas en el período</div>
             : <div className="top-list">{topClientes.map((c, i) => (
@@ -2412,7 +2414,7 @@ function Gastos({ gastos, setGastos, config, setConfig }) {
 
       {verTipos && (
         <div className="panel crop" style={{ marginBottom: 20 }}>
-          <div className="panel-head"><div className="panel-title">TIPOS DE GASTO</div>
+          <div className="panel-head"><div className="panel-title">Tipos de gasto</div>
             <span className="mono dim" style={{ marginLeft: 'auto', fontSize: 'var(--fs-s)' }}>Tocá un tipo para renombrarlo</span></div>
           <div className="panel-body">
             <div className="chips" style={{ marginBottom: 14 }}>
@@ -2443,7 +2445,7 @@ function Gastos({ gastos, setGastos, config, setConfig }) {
       <div className="metrics-grid-2">
         <div className="panel crop">
           <div className="panel-head" style={{ flexWrap: 'wrap' }}>
-            <div className="panel-title">GASTOS VARIABLES · <span className="dim">CON FECHA</span></div>
+            <div className="panel-title">Gastos variables · <span className="dim">con fecha</span></div>
             <div className="segmented" style={{ marginLeft: 'auto' }}>
               {PERIODOS.map(([id, l]) => <button key={id} className={periodo === id ? 'on' : ''} onClick={() => setPeriodo(id)}>{l}</button>)}
             </div>
@@ -2471,7 +2473,7 @@ function Gastos({ gastos, setGastos, config, setConfig }) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div className="panel crop">
-            <div className="panel-head"><div className="panel-title">GASTOS FIJOS · <span className="dim">MENSUALES</span></div><span className="chip" style={{ marginLeft: 'auto' }}>MES <span className="v mono">{L(fijoM)}</span></span></div>
+            <div className="panel-head"><div className="panel-title">Gastos fijos · <span className="dim">mensuales</span></div><span className="chip" style={{ marginLeft: 'auto' }}>Mes <span className="v mono">{L(fijoM)}</span></span></div>
             <div className="panel-body">
               <div className="gasto-form" style={{ gridTemplateColumns: '1fr 140px 110px auto' }}>
                 <input className="input mini" placeholder="Concepto (ej. Adobe CC)" value={nf.concepto} onChange={e => setNf(x => ({ ...x, concepto: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addFijo()} />
@@ -2491,7 +2493,7 @@ function Gastos({ gastos, setGastos, config, setConfig }) {
           </div>
 
           <div className="panel crop">
-            <div className="panel-head"><div className="panel-title">POR TIPO · <span className="dim">{r.label}</span></div></div>
+            <div className="panel-head"><div className="panel-title">Por tipo · <span className="dim">{r.label}</span></div></div>
             {porTipo.length === 0
               ? <div className="mono" style={{ padding: 24, color: 'var(--muted)', fontSize: 'var(--fs-s)', textAlign: 'center' }}>Sin gastos en el período</div>
               : <div>{porTipo.map(c => (
@@ -2571,7 +2573,7 @@ function Configuracion({ config, setConfig, allData, onImport, showToast }) {
 
       <div className="metrics-grid-2" style={{ marginBottom: 20 }}>
         <div className="panel crop">
-          <div className="panel-head"><div className="panel-title">MÉTODOS DE PAGO</div><button className="btn sm" style={{ marginLeft: 'auto' }} onClick={addPay}><Icon name="plus" size={11} /> Agregar</button></div>
+          <div className="panel-head"><div className="panel-title">Métodos de pago</div><button className="btn sm" style={{ marginLeft: 'auto' }} onClick={addPay}><Icon name="plus" size={11} /> Agregar</button></div>
           <div className="panel-body">
             {config.payConfig.map(p => (
               <div key={p.id} className="abono-row">
@@ -2587,7 +2589,7 @@ function Configuracion({ config, setConfig, allData, onImport, showToast }) {
         </div>
 
         <div className="panel crop">
-          <div className="panel-head"><div className="panel-title">GENERAL</div></div>
+          <div className="panel-head"><div className="panel-title">General</div></div>
           <div className="panel-body">
             <div className="field" style={{ marginBottom: 18 }}>
               <label>Símbolo de moneda</label>
@@ -2595,18 +2597,18 @@ function Configuracion({ config, setConfig, allData, onImport, showToast }) {
             </div>
             <div className="field">
               <label>Dónde se guardan los datos</label>
-              <div className="mono" style={{ fontSize: 'var(--fs-s)', lineHeight: 1.7, color: window.USE_FB ? 'var(--ok)' : 'var(--warn)' }}>
-                {DATOS_FUSION === 'real' ? '● FRAME · ventas, clientes, servicios, gastos y configuración sincronizados entre dispositivos'
+              <div className="mono" style={{ fontSize: 'var(--fs-s)', lineHeight: 1.7, color: window.USE_FB || DATOS_FUSION === 'real' ? 'var(--ok)' : 'var(--warn)' }}>
+                {DATOS_FUSION === 'real' ? '● En la nube de LOOPA · ventas, clientes, servicios, gastos y configuración sincronizados entre tus dispositivos'
                   : DATOS_FUSION ? `● Fusión · todo en ${DATOS_FUSION === 'emulador' ? 'los emuladores de Firebase (gastos y configuración incluidos)' : 'el servidor local; configuración y gastos sólo en este navegador'}` : window.USE_FB ? '● Nube (Firebase) · sincronizado entre dispositivos' : '● Modo local · solo en este navegador'}
               </div>
-              {!window.USE_FB && <div className="muted" style={{ fontSize: 'var(--fs-s)', lineHeight: 1.6 }}>Para usarlo desde el celular y la compu con los mismos datos, conectá Firebase (instrucciones en <span className="mono">LEEME.md</span>). Mientras tanto, descargá respaldos seguido.</div>}
+              {!window.USE_FB && !DATOS_FUSION && <div className="muted" style={{ fontSize: 'var(--fs-s)', lineHeight: 1.6 }}>Para usarlo desde el celular y la compu con los mismos datos, conectá Firebase (instrucciones en <span className="mono">LEEME.md</span>). Mientras tanto, descargá respaldos seguido.</div>}
             </div>
           </div>
         </div>
       </div>
 
       <div className="metrics-grid-2" style={{ marginBottom: 20 }}>
-        {[['categorias', 'CATEGORÍAS DE SERVICIO', newCat, setNewCat], ['canales', 'CANALES DE VENTA', newCanal, setNewCanal]].map(([key, title, val, setVal]) => (
+        {[['categorias', 'Categorías de servicio', newCat, setNewCat], ['canales', 'Canales de venta', newCanal, setNewCanal]].map(([key, title, val, setVal]) => (
           <div key={key} className="panel crop">
             <div className="panel-head"><div className="panel-title">{title}</div></div>
             <div className="panel-body">
@@ -2625,7 +2627,7 @@ function Configuracion({ config, setConfig, allData, onImport, showToast }) {
       </div>
 
       <div className="panel crop">
-        <div className="panel-head"><div className="panel-title">RESPALDO</div></div>
+        <div className="panel-head"><div className="panel-title">Respaldo</div></div>
         <div className="panel-body" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           <button className="btn" onClick={exportJSON}><Icon name="dl" size={12} /> Descargar respaldo (.json)</button>
           <button className="btn ghost" onClick={() => fileRef.current?.click()}><Icon name="ul" size={12} /> Restaurar respaldo…</button>
@@ -2696,7 +2698,7 @@ function LoginScreen() {
           {crear && <input className="input mono" type="password" autoComplete="new-password" placeholder="repetir contraseña" value={confirmar} onChange={e => { setConfirmar(e.target.value); setErrorMsg(''); }} onKeyDown={onKey} style={{ marginTop: 10 }} />}
           {errorMsg && <div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--danger)', marginTop: 10, lineHeight: 1.6 }}>{errorMsg}</div>}
           <button className="btn primary" onClick={enviar} disabled={submitting || !listo} style={{ width: '100%', justifyContent: 'center', padding: 14, marginTop: 20 }}>
-            {submitting ? (crear ? 'CREANDO…' : 'VERIFICANDO…') : (crear ? 'CREAR CUENTA' : 'ENTRAR AL SISTEMA')}
+            {submitting ? (crear ? 'Creando…' : 'Verificando…') : (crear ? 'Crear cuenta' : 'Entrar')}
           </button>
           {crear && <div className="mono muted" style={{ fontSize: 'var(--fs-s)', marginTop: 14, lineHeight: 1.6 }}>Un admin tiene que aprobar tu cuenta antes de que puedas trabajar.</div>}
         </div>
@@ -2803,7 +2805,7 @@ function AlertBell({ ventas, onOpen }) {
 function tickerPeriodOptions() {
   const now = new Date();
   return [
-    { id: 'mes', label: now.toLocaleDateString('es-HN', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', ''), hint: 'Este mes' },
+    { id: 'mes', label: mayus1(now.toLocaleDateString('es-HN', { month: 'short', year: '2-digit' }).replace('.', '')), hint: 'Este mes' },
     { id: 'año', label: String(now.getFullYear()), hint: 'Este año' },
     { id: 'todo', label: 'Acumulado', hint: 'Desde el inicio' },
   ];
@@ -3163,8 +3165,8 @@ function App({ onLogout, usuarioFusion = null }) {
     const cobrado = ventas.filter(esActiva).reduce((a, v) => a + (v.abonos || []).filter(x => inRange(x.fecha, r)).reduce((s, x) => s + num(x.monto), 0), 0);
     const porCobrar = ventas.reduce((a, v) => a + ventaSaldo(v), 0);
     const enCurso = ventas.filter(v => ['pendiente', 'en-proceso', 'revision'].includes(v.estado)).length;
-    const label = tickerPeriod === 'todo' ? 'ACUMULADO' : tickerPeriod === 'año' ? String(now.getFullYear())
-      : now.toLocaleDateString('es-HN', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', '');
+    const label = tickerPeriod === 'todo' ? 'Acumulado' : tickerPeriod === 'año' ? String(now.getFullYear())
+      : mayus1(now.toLocaleDateString('es-HN', { month: 'short', year: '2-digit' }).replace('.', ''));
     return { venta, cobrado, ganancia, porCobrar, enCurso, label };
   }, [ventas, gastos, config, tickerPeriod]);
 
@@ -3415,7 +3417,7 @@ function App({ onLogout, usuarioFusion = null }) {
     { id: 'metricas', label: 'Métricas',      icon: 'chart' },
     { id: 'config',   label: 'Configuración', icon: 'settings' },
   ] : [
-    { id: 'nueva',     label: 'Nueva Venta',   icon: 'plus' },
+    { id: 'nueva',     label: 'Nueva venta',   icon: 'plus' },
     { id: 'ventas',    label: 'Ventas',        icon: 'list' },
     { id: 'servicios', label: 'Servicios',     icon: 'tag' },
     { id: 'clientes',  label: 'Clientes',      icon: 'user' },
@@ -3597,13 +3599,13 @@ function App({ onLogout, usuarioFusion = null }) {
 
         <div className="topbar">
           <div className="breadcrumb"><span className="cur">{current.label}</span></div>
-          <div className="topbar-mobile-title">{current.label.toUpperCase()}</div>
+          <div className="topbar-mobile-title">{current.label}</div>
           {/* Producción dibuja acá el selector de tablero (sólo en sus pantallas). */}
           {PROD_ON === 'estudio' && <div className="topbar-estudio" ref={setBarraEstudio} style={{ display: seccionEstudio ? '' : 'none' }} />}
           <div className="topbar-right">
             {DATOS_FUSION && <ColaAviso estado={colaEstado} onReintentar={() => cola.current.reintentar()} onDescartar={descartarCambio} />}
             {saveError && <span className="chip" style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }} title="Los últimos cambios no se guardaron. Revisá la conexión.">● Error al guardar</span>}
-            <span className="chip mob-hide">{new Date().toLocaleDateString('es-HN', { weekday: 'short', day: '2-digit', month: 'short' }).toUpperCase()}</span>
+            <span className="chip mob-hide">{mayus1(new Date().toLocaleDateString('es-HN', { weekday: 'short', day: '2-digit', month: 'short' }))}</span>
             <AlertBell ventas={ventas} onOpen={openVenta} />
             {onLogout && <button className="btn sm ghost" onClick={() => (DATOS_FUSION && colaEstado.pendientes
               ? uiConfirm({ title: 'Hay cambios sin enviar', message: `${colaEstado.pendientes} cambio(s) todavía no llegaron al servidor. Quedan guardados en este equipo y se envían cuando vuelvas a iniciar sesión.`, confirmLabel: 'Cerrar sesión igual' }).then(ok => { if (ok) onLogout(); })

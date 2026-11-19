@@ -1,0 +1,83 @@
+/* ═══ Sistema visual de LOOPA · estilo Apple ═══
+   Ángel (2026-11-18): «prefiero que la interfaz sea más Apple… todo en general».
+   Lo que eso significa acá, para toda la app:
+   · Nada en MAYÚSCULAS con aire: etiquetas, botones, estados y tablas van en
+     texto normal (como en macOS / iOS). Los rótulos son grises, no gritan.
+   · Rellenos suaves en vez de líneas duras; bordes casi invisibles.
+   · Esquinas redondeadas generosas; controles como los de Apple (segmentos,
+     botones rellenos, campos con fondo).
+   · Sin decoración que no informe (numeración 01/02 en las cifras, la etiqueta
+     de sección sobre cada título: la barra de arriba ya dice dónde estás).
+   Este archivo carga al final para ganarle a la base heredada (TOONED). */
+
+/* ── 1. Sin mayúsculas ni tracking ─────────────────────────────── */
+.breadcrumb, .chip, .page-kicker, .panel-title, .btn, .btn.sm, .field label,
+.segmented button, .tbl thead th, .badge, .pay, .kpi .label, .step .t,
+.bar-col .lbl, .summary-row .l, .order-hero .ord-label, .order-hero .ord-meta .k,
+.pay-opt .s, .filter-group .flabel, .channel-row .ch, .mini-lbl, .linkbtn,
+.chipbtn, .service-model, .service-recommended, .service-special-client,
+.dropdown-lbl, .srv-cat, .service-availability, .service-finance-preview span,
+.kv .k, .fin-strip .k, .sec-head, .desglose .dl, .toast-act, .period-lbl,
+.pr-dow, .pr-kpi-label, .pr-bloque-titulo, .nav-grupo, .pestana,
+.ficha-linea-eje, .ficha-util-total span, .resultados-volver,
+.resultados .field > span, .resultados-tabla th, .rh-etq, .rcc-cab {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* ── 2. Rótulos: grises, 12 px, peso medio ─────────────────────── */
+.field label, .kpi .label, .tbl thead th, .mini-lbl, .filter-group .flabel,
+.kv .k, .fin-strip .k, .desglose .dl, .period-lbl, .pr-kpi-label, .rh-etq,
+.resultados .field > span, .resultados-tabla th, .dropdown-lbl, .sec-head,
+.summary-row .l, .order-hero .ord-label, .order-hero .ord-meta .k, .bar-col .lbl {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.panel-title, .pr-bloque-titulo { font-size: 14px; font-weight: 600; color: var(--text); }
+.nav-grupo { font-size: 12px; font-weight: 600; color: var(--dim); padding-top: 16px; }
+.kpi .label .idx { display: none; }
+.breadcrumb { font-weight: 600; }
+
+/* ── 3. Encabezado de página: título grande como en Apple ──────── */
+.page-kicker { display: none; }
+.page-title { font-weight: 700; letter-spacing: -0.025em; }
+.page-head { border-bottom-color: transparent; }
+
+/* ── 4. Botones rellenos, esquinas suaves ─────────────────────── */
+.btn { border-color: transparent; background: rgba(255, 255, 255, 0.07); border-radius: 10px; font-weight: 500; padding: 8px 14px; transition: background .2s ease, transform .1s ease; }
+.btn:hover { background: rgba(255, 255, 255, 0.12); }
+.btn:active { transform: scale(.98); }
+.btn.sm { padding: 6px 12px; border-radius: 8px; }
+.btn.primary { background: var(--accent); border-color: transparent; border-radius: 10px; }
+.btn.primary:hover { background: #ffffff; }
+.btn.ghost { background: transparent; }
+.btn.ghost:hover { background: rgba(255, 255, 255, 0.07); border-color: transparent; }
+.icon-btn { border-radius: 8px; }
+.icon-btn:hover { background: rgba(255, 255, 255, 0.08); border-color: transparent; }
+
+/* ── 5. Pestañas y segmentos como el control segmentado de Apple ─ */
+.pestanas { gap: 2px; padding: 3px; border-radius: 11px; background: rgba(255, 255, 255, 0.06); display: inline-flex; }
+.pestana { border: 0; border-radius: 8px; padding: 6px 14px; font-size: 13px; font-weight: 500; color: var(--muted); }
+.pestana:hover { color: var(--text); }
+.pestana.on { background: rgba(255, 255, 255, 0.16); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
+.segmented { border: 0; border-radius: 10px; padding: 2px; background: rgba(255, 255, 255, 0.06); gap: 2px; }
+.segmented button { border-radius: 8px; font-weight: 500; }
+.segmented button.on { background: rgba(255, 255, 255, 0.16); border-color: transparent; color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
+
+/* ── 6. Chips y estados: píldoras con relleno, sin contorno ────── */
+.chip { border-color: transparent; background: rgba(255, 255, 255, 0.06); }
+.chipbtn { border-color: transparent; background: rgba(255, 255, 255, 0.06); font-weight: 500; }
+.chipbtn:hover { background: rgba(255, 255, 255, 0.11); color: var(--text); }
+.badge { border-color: transparent; background: rgba(255, 255, 255, 0.06); border-radius: 999px; font-weight: 500; }
+
+/* ── 7. Tarjetas y paneles: borde casi invisible, más redondeo ─── */
+.panel, .kpi { border-color: rgba(255, 255, 255, 0.06); border-radius: 14px; }
+
+/* ── 8. Campos con fondo (sin el pozo negro) ───────────────────── */
+.input, .select, .textarea { background: rgba(255, 255, 255, 0.05); border-color: transparent; border-radius: 10px; }
+.input:focus, .select:focus, .textarea:focus { border-color: rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.07); }
+
+/* ── 9. Menú lateral: selección suave ──────────────────────────── */
+.nav-item { border-radius: 10px; }
+.nav-item:hover { background: rgba(255, 255, 255, 0.05); }

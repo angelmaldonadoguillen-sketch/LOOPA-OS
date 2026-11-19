@@ -1143,10 +1143,10 @@ const WeekCard = ({ project, calendarDate, onClick, draggable, onDragStart, onDr
           <div className="frame-card-badges flex items-center gap-1 min-w-0">
             {pf.tipo !== false && <TypePill type={project.type} />}
             {pf.prioridad !== false && urgent && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'var(--danger)', color: 'var(--danger-on)' }}>URG</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'var(--warn-soft-2)', color: 'var(--warn)' }}>Urgente</span>
             )}
             {pf.prioridad !== false && isOver && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'var(--danger-soft-2)', color: 'var(--danger)' }}>VENC</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'var(--danger-soft-2)', color: 'var(--danger)' }}>Vencida</span>
             )}
           </div>
 
@@ -1338,7 +1338,7 @@ const WeekView = ({ refDate, projectsByDate, onOpenProject, onDeleteProject, onD
                   <span className="ml-auto text-[10px] font-mono" style={{ color: 'var(--text-muted)' }}>{items.length}</span>
                 )}
                 {isDragOver && (
-                  <span className="ml-auto text-[10px] font-bold tracking-wider" style={{ color: 'var(--accent)' }}>SOLTAR</span>
+                  <span className="ml-auto text-[10px] font-bold " style={{ color: 'var(--accent)' }}>Soltar</span>
                 )}
               </div>
 
