@@ -1251,6 +1251,8 @@ button.pr-barra-label { background: none; padding: 0; text-align: left; font-siz
 .page-head-compacta .page-title { font-size: 26px; margin: 0; }
 body.loopa-foco .sidebar, body.loopa-foco .ticker, body.loopa-foco .page-head-estudio { display: none !important; }
 body.loopa-foco .content.content-estudio { padding: 10px 14px 14px; }
+body.loopa-foco .app { grid-template-columns: minmax(0, 1fr) !important; }
+body.loopa-foco .app > .main { grid-column: 1 / -1; }
 .estudio-raiz { flex: 1; min-height: 0; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; background: var(--bg); }
 .estudio-raiz > * { flex: 1; min-height: 0; }
 .estudio-portal { min-height: 100vh; overflow: auto; }
