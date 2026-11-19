@@ -2379,7 +2379,9 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null, comercial = n
         // Primera vez: sembrar con los tipos predefinidos para que sean editables
         ref.set({ types: PROJECT_TYPES });
       } else {
-        const types = snap.data().types || [];
+        // Los nombres guardados en inglés («Campaign») se muestran en español en
+        // todas las listas: filtros, Nueva tarea, ficha y menús de tipo.
+        const types = (snap.data().types || []).map(conNombreEs);
         window.FRAME_CUSTOM_TYPES = types;
         dispatch({ type: 'set_custom_types', types });
       }
