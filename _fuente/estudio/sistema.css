@@ -1,7 +1,10 @@
 /* Producción con el mismo sistema visual estilo Apple que el resto de LOOPA
    (ver shell/sistema.css): nada en mayúsculas con aire, rellenos suaves. */
-.uppercase { text-transform: none; }
-[class*="tracking-[0."] { letter-spacing: 0; }
+/* Tailwind (CDN) inyecta .estudio .uppercase DESPUÉS de este archivo: con el
+   selector doble estas reglas pesan más y ganan. */
+.uppercase.uppercase { text-transform: none; }
+[class*="tracking-[0."][class] { letter-spacing: 0; }
+.tracking-wider.tracking-wider, .tracking-widest.tracking-widest, .tracking-wide.tracking-wide { letter-spacing: 0; }
 .estudio-toolbar button, .vl-chip, .vl-cab-nombre, .vl-mes, .muro-escena-cab,
 .muro-hex, .muro-menu-t, .fc-etiqueta, .fc-venta-estado, .cal-mes-dias > div,
 .ui-section-label {

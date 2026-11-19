@@ -455,7 +455,10 @@ const getUser   = (id) => {
   return themed(USERS.find(u => u.id === id)) || null;
 };
 // FRAME_CUSTOM_TYPES tiene prioridad — puede sobreescribir color/label de tipos default
-const getType   = (id) => themed((window.FRAME_CUSTOM_TYPES || []).find(t => t.id === id) || PROJECT_TYPES.find(t => t.id === id) || PROJECT_TYPES[PROJECT_TYPES.length - 1]);
+// Tipos guardados en el tablero con nombre en inglés: se muestran en español.
+const NOMBRE_TIPO_ES = { Campaign: 'Campaña' };
+const conNombreEs = (t) => (t && NOMBRE_TIPO_ES[t.label] ? { ...t, label: NOMBRE_TIPO_ES[t.label] } : t);
+const getType   = (id) => themed(conNombreEs((window.FRAME_CUSTOM_TYPES || []).find(t => t.id === id) || PROJECT_TYPES.find(t => t.id === id) || PROJECT_TYPES[PROJECT_TYPES.length - 1]));
 const getStatus = (id) => themed(
   (window.FRAME_KANBAN_COLUMNS || []).find(s => s.id === id)
   || STATUSES.find(s => s.id === id)

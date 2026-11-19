@@ -81,3 +81,36 @@
 /* ── 9. Menú lateral: selección suave ──────────────────────────── */
 .nav-item { border-radius: 10px; }
 .nav-item:hover { background: rgba(255, 255, 255, 0.05); }
+
+/* ── 10. Nada recortado: la barra de Producción deja salir sus menús ── */
+/* .estudio hereda overflow:hidden (regla de body pasada a .estudio); en la
+   barra de arriba eso escondía el desplegable del selector de tablero. */
+.estudio.estudio-barra { overflow: visible; }
+/* Su menú estaba hecho para la barra lateral (ancho del botón): en la barra de
+   arriba los nombres de los tableros quedaban cortados («Mi t…», «A»). */
+.estudio.estudio-barra .absolute.rounded-xl.z-50 { min-width: 280px; right: auto !important; left: 0 !important; margin-top: 6px; box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55); }
+
+/* ── 11. Movimiento: todo lo que se toca responde ──────────────── */
+button, .btn, .nav-item, .chipbtn, .pestana, .icon-btn, [role="button"] {
+  transition: background-color .18s ease, color .18s ease, border-color .18s ease,
+              box-shadow .18s ease, opacity .18s ease, transform .12s ease, filter .18s ease;
+}
+/* Al apretar, los controles chicos se hunden un poco (como en iOS). */
+.btn:not(:disabled):active, .chipbtn:active, .pestana:active, .icon-btn:active,
+.segmented button:active, .nav-item:active, .topbar-estudio button:active,
+.estudio-toolbar button:active, .fc-boton:active, .cal-expandir:active, .cal-mas:active {
+  transform: scale(.97);
+}
+/* Botones de la barra con fondo propio en línea: igual se iluminan al pasar. */
+.topbar-estudio button:hover { background: rgba(255, 255, 255, 0.12) !important; }
+.routine-btn.en-barra.routine-pending { background: rgba(255, 255, 255, 0.07) !important; border: 0 !important; }
+.routine-btn.en-barra.routine-pending:hover { background: rgba(255, 255, 255, 0.12) !important; }
+.nav-item.active { background: rgba(255, 255, 255, 0.09); }
+/* Foco con teclado: anillo suave y visible. */
+button:focus-visible, .btn:focus-visible, a:focus-visible, [role="button"]:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.55);
+  outline-offset: 2px;
+}
+/* Los menús de LOOPA aparecen con un leve deslizamiento (los de Producción ya lo hacen). */
+@keyframes loopa-aparece { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
+.dropdown { animation: loopa-aparece .16s ease-out; transform-origin: top center; }
