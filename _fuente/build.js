@@ -99,7 +99,7 @@ const ESTUDIO_TOKENS = `.estudio {
 }
 .estudio button, .estudio input, .estudio select, .estudio textarea { font-family: inherit; }
 `;
-const estudioCss = scopeCss(['frame.css', 'ventas-linea.css', 'muro.css'].map(f => fs.readFileSync(path.join(here, 'estudio', f), 'utf8')).join('\n'), '.estudio') + ESTUDIO_TOKENS;
+const estudioCss = scopeCss(['frame.css', 'ventas-linea.css', 'muro.css', 'ficha-cliente.css'].map(f => fs.readFileSync(path.join(here, 'estudio', f), 'utf8')).join('\n'), '.estudio') + ESTUDIO_TOKENS;
 
 let extraCss = tint([fs.readFileSync(path.join(here, 'extra.css'), 'utf8'), ...MODULE_CSS.map(f => fs.readFileSync(path.join(here, f), 'utf8')), estudioCss].join('\n'));
 const app = tint(`${modulesSrc}\n${estudio}\n// ── app.jsx ──\n${fs.readFileSync(path.join(here, 'app.jsx'), 'utf8')}`);

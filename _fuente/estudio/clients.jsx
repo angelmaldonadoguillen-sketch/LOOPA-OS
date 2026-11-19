@@ -218,111 +218,105 @@ const ClientCard = ({ client, projects, onClick, com = null, dinero = null }) =>
 };
 
 // ── Parte comercial de la ficha (LOOPA) ──────────────────────────
-// Ventas, total, saldo e historial; empresa y canal (los guarda el servidor);
-// «Nueva venta» y abrir una venta llevan a Ventas de LOOPA.
+// Lo que compró, lo que debe y el historial. Sólo cifras que dicen algo:
+// el ticket promedio aparece con dos ventas o más (con una es el total).
 const ComercialFicha = ({ client, comercial, onClose }) => {
   const r = comercial.porCliente[client.id] || { ventas: 0, total: 0, saldo: 0, historial: [] };
-  const d = comercial.datos[client.id] || { empresa: '', canal: '' };
   const dinero = comercial.dinero;
-  const ticket = r.ventas ? r.total / r.ventas : 0;
-  const guardar = (patch) => comercial.onGuardar(client.id, patch, client.name);
+  const cifras = [
+    { k: 'Total comprado', v: r.total ? dinero(r.total) : '—' },
+    r.saldo > 0
+      ? { k: 'Saldo pendiente', v: dinero(r.saldo), cls: 'debe' }
+      : { k: 'Saldo', v: r.ventas ? 'Al día' : '—', cls: r.ventas ? 'ok' : '' },
+    { k: r.ventas === 1 ? 'Venta' : 'Ventas', v: r.ventas },
+  ];
+  if (r.ventas > 1) cifras.push({ k: 'Ticket prom.', v: dinero(r.total / r.ventas) });
   return (
-    <section className="surf p-4">
-      <div className="flex items-center justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2 font-semibold text-[13px]"><Icon name="briefcase" size={14} /> Comercial</div>
-        <div className="flex items-center gap-2">
-        {comercial.onResultados && (
-          <button
-            onClick={() => { onClose && onClose(); comercial.onResultados(client.id); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold border border-[var(--line)] hover:bg-[var(--surface-2)] transition"
-            data-test="ficha-resultados"
-          >
-            <Icon name="megaphone" size={12} /> Resultados
-          </button>
-        )}
-        <button
-          onClick={() => { onClose && onClose(); comercial.onNuevaVenta(client.id, client.name); }}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold hover:brightness-110 transition"
-          style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
-        >
-          <Icon name="plus" size={12} strokeWidth={2.4} /> Nueva venta
-        </button>
-        </div>
+    <section className="fc-bloque">
+      <div className="fc-bloque-cab">
+        <div className="fc-titulo"><Icon name="briefcase" size={14} /> Comercial</div>
       </div>
-      <div className="grid grid-cols-4 gap-2 mb-4">
-        {[
-          { k: 'Ventas', v: r.ventas },
-          { k: 'Total comprado', v: r.total ? dinero(r.total) : '—' },
-          { k: 'Ticket prom.', v: r.ventas ? dinero(ticket) : '—' },
-          { k: 'Saldo', v: r.saldo > 0 ? dinero(r.saldo) : '—', color: r.saldo > 0 ? 'var(--warn)' : undefined },
-        ].map(x => (
-          <div key={x.k} className="rounded-lg p-2.5" style={{ background: 'var(--surface-2)' }}>
-            <div className="text-[15px] font-semibold leading-tight truncate" style={{ color: x.color || 'var(--text)' }}>{x.v}</div>
-            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-[0.12em] mt-1">{x.k}</div>
+      <div className="fc-cifras">
+        {cifras.map(x => (
+          <div key={x.k} className="fc-cifra">
+            <b className={x.cls || undefined}>{x.v}</b>
+            <span className="fc-etiqueta">{x.k}</span>
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div>
-          <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-[0.12em] mb-1">Empresa / marca</div>
-          <InlineEdit value={d.empresa} onChange={(v) => guardar({ empresa: v })} placeholder="Agregar empresa…" className="text-[13px]" />
-        </div>
-        <div>
-          <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-[0.12em] mb-1">Canal</div>
-          <div className="flex flex-wrap gap-1.5">
-            {comercial.canales.map(ch => (
-              <button key={ch} onClick={() => guardar({ canal: ch })}
-                className="px-2 py-0.5 rounded-md text-[11px] font-medium transition-colors"
-                style={d.canal === ch ? { background: 'var(--accent)', color: 'var(--accent-on)' } : { background: 'var(--surface-2)', color: 'var(--text-dim)' }}>
-                {ch}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-[0.12em] mb-1.5">Historial · {r.historial.length} ventas</div>
       {r.historial.length === 0 ? (
-        <div className="text-[12px] text-[var(--text-muted)]">Todavía no hay ventas.</div>
-      ) : (
-        <div className="rounded-lg overflow-hidden" style={{ background: 'var(--surface-2)' }}>
-          {r.historial.map(h => (
-            <button key={h.clave} onClick={() => { onClose && onClose(); comercial.onAbrirVenta(h.clave); }}
-              className="w-full flex items-center gap-3 px-3 py-2 text-left text-[12px] border-b border-app last:border-b-0 hover:bg-[var(--surface-3)] transition-colors"
-              style={{ opacity: h.activa ? 1 : 0.5 }}>
-              <span className="font-semibold tnum" style={{ minWidth: 44 }}>#{h.n}</span>
-              <span className="text-[var(--text-muted)] tnum" style={{ minWidth: 70 }}>{comercial.fecha(h.fecha)}</span>
-              <span className="flex-1 truncate text-[var(--text-dim)]">{h.servicios}</span>
-              <span className="tnum">{dinero(h.total)}</span>
-              <span className="text-[10px] uppercase tracking-[0.1em]" style={{ color: h.saldo > 0 ? 'var(--warn)' : 'var(--text-muted)', minWidth: 72, textAlign: 'right' }}>{h.saldo > 0 ? 'Debe ' + dinero(h.saldo) : h.estado}</span>
-            </button>
-          ))}
-        </div>
-      )}
+        <div className="fc-vacio">Todavía no hay ventas.</div>
+      ) : r.historial.map(h => (
+        <button key={h.clave} onClick={() => { onClose && onClose(); comercial.onAbrirVenta(h.clave); }}
+          className={h.activa ? 'fc-venta' : 'fc-venta inactiva'}>
+          <span className="fc-venta-n tnum">#{h.n}</span>
+          <span className="fc-venta-que">{h.servicios}<small className="tnum">{comercial.fecha(h.fecha)}</small></span>
+          <span className="fc-venta-monto tnum">{dinero(h.total)}</span>
+          <span className={h.saldo > 0 ? 'fc-venta-estado debe' : 'fc-venta-estado'}>{h.saldo > 0 ? 'Debe ' + dinero(h.saldo) : h.estado}</span>
+        </button>
+      ))}
     </section>
   );
 };
+
+// Tareas que cuentan para el mes: las que empiezan este mes (igual que
+// clientMonthlyProgress), sin archivadas.
+const tareasDelMes = (cp, today = TODAY) => {
+  const mes = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  return cp.filter(p => p.status !== 'archived' && String(p.startDate || '').startsWith(mes));
+};
+const hoyISO = () => localISO(new Date(TODAY));
+const nombreMes = () => new Date(TODAY).toLocaleDateString('es-ES', { month: 'long' });
 
 // ── Client detail panel ──────────────────────────────────────────
 const ClientDetail = ({ client, projects, columns = [], onClose, onUpdate, onDelete, onSetPortal, onTogglePortalTask, comercial = null }) => {
   const [confirmDel, setConfirmDel] = useState(false);
   const [savingPortal, setSavingPortal] = useState(false);
+  const [filtro, setFiltro] = useState('pendientes');
+  const [verTodas, setVerTodas] = useState(false);
   if (!client) return null;
 
   const cp = projects.filter(p => p.client.toLowerCase() === client.name.toLowerCase());
-  const totalBudget = cp.reduce((s, p) => s + (p.budget || 0), 0);
-  const inProgress  = cp.filter(p => !isClosed(p)).length;
   const clientColor = resolveThemeColor(client.color);
-  const monthlyProgress = clientMonthlyProgress(projects, client.name);
+  const hoy = hoyISO();
+  const vencida = (p) => !isClosed(p) && p.deadline && p.deadline < hoy;
 
   const upd        = (patch) => onUpdate({ ...client, ...patch });
   const addTags    = (list) => upd({ tags: [...new Set([...client.tags, ...list])] });
   const removeTag  = (t) => upd({ tags: client.tags.filter(x => x !== t) });
 
-  // Status breakdown
-  const byStatus = (columns.length ? columns : STATUSES.filter(s => s.id !== 'archived')).map(s => ({
-    ...s,
-    count: cp.filter(p => p.status === s.id).length,
-  })).filter(s => s.count > 0);
+  // Este mes: una sola barra partida por estado (lo entregado a la izquierda).
+  const delMes = tareasDelMes(cp);
+  const base = delMes.length ? delMes : cp.filter(p => p.status !== 'archived');
+  const estados = (columns.length ? columns : STATUSES.filter(s => s.id !== 'archived'))
+    .map(s => ({ ...s, count: base.filter(p => p.status === s.id).length }))
+    .filter(s => s.count > 0);
+  const tramos = [...estados.filter(s => isCompletionStatus(s.id)), ...estados.filter(s => !isCompletionStatus(s.id)).reverse()];
+  const hechas = base.filter(p => isCompletionStatus(p.status)).length;
+  const pct = base.length ? Math.round((hechas / base.length) * 100) : 0;
+  const vencidas = cp.filter(vencida).length;
+
+  // Lo comercial de la ficha (empresa, canal) lo guarda el servidor.
+  const datosCom = comercial ? (comercial.datos[client.id] || { empresa: '', canal: '' }) : null;
+  const guardarCom = (patch) => comercial.onGuardar(client.id, patch, client.name);
+  const empresa = datosCom && datosCom.empresa && datosCom.empresa.trim().toLowerCase() !== client.name.trim().toLowerCase() ? datosCom.empresa : '';
+
+  // Tareas: pendientes primero, por fecha de entrega.
+  const pendientes = cp.filter(p => !isClosed(p)).sort((a, b) => String(a.deadline || '9').localeCompare(String(b.deadline || '9')));
+  const entregadas = cp.filter(p => p.status !== 'archived' && isCompletionStatus(p.status)).sort((a, b) => String(b.deadline || '').localeCompare(String(a.deadline || '')));
+  const lista = filtro === 'pendientes' ? pendientes : filtro === 'entregadas' ? entregadas : [...pendientes, ...entregadas];
+  const LIMITE = 8;
+  // «Christian Padilla · Historias 6/12» → «Historias 6/12»: el cliente ya es el título del panel.
+  const prefijo = client.name.trim().toLowerCase() + ' ·';
+  const sinCliente = (t) => (String(t || '').toLowerCase().startsWith(prefijo) ? String(t).slice(prefijo.length).trim() : t);
+  const visibles = verTodas ? lista : lista.slice(0, LIMITE);
+
+  const filaDato = (icono, etiqueta, contenido, arriba = false) => (
+    <div className={arriba ? 'fc-fila arriba' : 'fc-fila'}>
+      <span className="fc-etiqueta"><Icon name={icono} size={12} /> {etiqueta}</span>
+      <div className="min-w-0">{contenido}</div>
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 z-50 backdrop flex items-stretch justify-end anim-fade-in" onClick={onClose}>
@@ -345,232 +339,189 @@ const ClientDetail = ({ client, projects, columns = [], onClose, onUpdate, onDel
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {/* Color strip */}
-          <div className="h-1" style={{ background: clientColor }}></div>
-
-          {/* Hero section */}
-          <div className="p-6 border-b border-app">
-            <div className="flex items-start gap-4 mb-5">
-              <ClientAvatar client={client} size={58} />
-              <div className="flex-1 min-w-0">
-                <InlineEdit
-                  value={client.name}
-                  onChange={(v) => upd({ name: v })}
-                  className="font-display font-bold text-[22px] leading-tight"
-                />
-                <div className="mt-1">
-                  <InlineEdit
-                    value={client.industry}
-                    onChange={(v) => upd({ industry: v })}
-                    placeholder="Industria…"
-                    className="text-[13px] text-[var(--text-dim)]"
-                  />
-                </div>
+          {/* Quién es y qué se puede hacer */}
+          <div className="fc-cabecera" style={{ boxShadow: `inset 0 3px 0 ${clientColor}` }}>
+            <ClientAvatar client={client} size={56} />
+            <div className="fc-cabecera-texto">
+              <InlineEdit
+                value={client.name}
+                onChange={(v) => upd({ name: v })}
+                className="font-display font-bold text-[22px] leading-tight"
+              />
+              <div className="fc-sub">
+                {empresa && <><span>{empresa}</span><span className="fc-sep">·</span></>}
+                <InlineEdit value={client.industry} onChange={(v) => upd({ industry: v })} placeholder="Industria…" className="text-[13px] text-[var(--text-dim)]" />
+                {datosCom && datosCom.canal && <><span className="fc-sep">·</span><span>Llegó por {datosCom.canal}</span></>}
               </div>
+              {comercial && (
+                <div className="fc-acciones">
+                  <button className="fc-boton primario" onClick={() => { onClose && onClose(); comercial.onNuevaVenta(client.id, client.name); }}>
+                    <Icon name="plus" size={12} strokeWidth={2.4} /> Nueva venta
+                  </button>
+                  {comercial.onResultados && (
+                    <button className="fc-boton" data-test="ficha-resultados" onClick={() => { onClose && onClose(); comercial.onResultados(client.id); }}>
+                      <Icon name="megaphone" size={12} /> Resultados
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
-
-            {/* Stats strip */}
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { value: cp.length,    label: 'Tareas',     color: clientColor },
-                { value: inProgress,   label: 'En curso',   color: '#ededef' },
-                { value: totalBudget > 0 ? fmtMoney(totalBudget) : '—', label: 'Budget total', color: '#ededef', mono: true },
-              ].map(s => (
-                <div
-                  key={s.label}
-                  className="rounded-lg p-3 text-center"
-                  style={{ background: 'var(--surface-2)' }}
-                >
-                  <div
-                    className={`text-[22px] font-display font-bold leading-none mb-1 ${s.mono ? 'text-[17px] font-mono' : ''}`}
-                    style={{ color: s.color, letterSpacing: '-0.03em' }}
-                  >
-                    {s.value}
-                  </div>
-                  <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-[0.12em]">{s.label}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Progreso del mes */}
-            <div className="mt-4 rounded-lg p-3.5" style={{ background: 'var(--surface-2)' }}>
-              <div className="flex items-center justify-between gap-3 mb-2">
-                <div>
-                  <div className="text-[10px] font-semibold tracking-[0.14em] uppercase" style={{ color: 'var(--text-muted)' }}>
-                    Progreso del mes
-                  </div>
-                  <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-dim)' }}>
-                    {monthlyProgress.total > 0
-                      ? `${monthlyProgress.completed} de ${monthlyProgress.total} tareas completadas`
-                      : 'Sin tareas iniciadas este mes'}
-                  </div>
-                </div>
-                <div className="text-[18px] font-display font-bold flex-shrink-0" style={{ color: monthlyProgress.total > 0 ? clientColor : 'var(--text-muted)' }}>
-                  {monthlyProgress.percent}%
-                </div>
-              </div>
-              <div
-                className="h-2 rounded-full overflow-hidden"
-                style={{ background: 'var(--surface-3)' }}
-                role="progressbar"
-                aria-label={`Progreso mensual de ${client.name}`}
-                aria-valuemin="0"
-                aria-valuemax="100"
-                aria-valuenow={monthlyProgress.percent}
-              >
-                <div
-                  className="h-full rounded-full transition-[width] duration-500"
-                  style={{ width: `${monthlyProgress.percent}%`, background: clientColor }}
-                />
-              </div>
-            </div>
-
-            {/* Status breakdown */}
-            {byStatus.length > 0 && (
-              <div className="flex items-center gap-1.5 mt-3 flex-wrap">
-                {byStatus.map(s => (
-                  <span
-                    key={s.id}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium"
-                    style={{ background: colorAlpha(s.color, 9), color: s.color }}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: s.color }}></span>
-                    {s.label} · {s.count}
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
 
-          <div className="p-6 space-y-6">
+          <div className="fc-cuerpo">
+            {/* Cómo va el mes: una cifra, una barra, una leyenda */}
+            <section className="fc-bloque">
+              <div className="fc-bloque-cab">
+                <div className="fc-titulo"><Icon name="calendar" size={14} /> {delMes.length ? <>Este mes <span className="fc-nota">· {nombreMes()}</span></> : 'Tareas'}</div>
+                <span className="fc-mes-pct">{pct}%</span>
+              </div>
+              {base.length === 0 ? (
+                <div className="fc-vacio">Sin tareas todavía.</div>
+              ) : (
+                <>
+                  <div className="fc-mes-cifra">
+                    <div><b className="tnum">{hechas}</b> <span>de {base.length} entregadas</span></div>
+                  </div>
+                  <div className="fc-barra" role="progressbar" aria-label={`Avance de ${client.name}`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={pct}>
+                    {tramos.map(s => (
+                      <span key={s.id} title={`${s.label}: ${s.count}`} style={{ flexGrow: s.count, background: s.color }} />
+                    ))}
+                  </div>
+                  <div className="fc-leyenda">
+                    {tramos.map(s => (
+                      <span key={s.id}><i style={{ background: s.color }} />{s.label} <b className="tnum">{s.count}</b></span>
+                    ))}
+                    {vencidas > 0 && (
+                      <button className="fc-alerta" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', fontSize: 12 }}
+                        onClick={() => { setFiltro('pendientes'); setVerTodas(false); }}>
+                        <Icon name="alert" size={12} /> {vencidas} vencida{vencidas > 1 ? 's' : ''}
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </section>
+
             {/* LOOPA (un solo sistema): lo comercial de la ficha, para quien vende. */}
             {comercial && <ComercialFicha client={client} comercial={comercial} onClose={onClose} />}
 
-            {/* Portal externo: una proyección segura y controlada del trabajo. */}
-            <section className="surf p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 font-semibold text-[13px]"><Icon name="globe" size={14} /> Portal del cliente</div>
-                  <div className="text-[11px] mt-1 leading-relaxed" style={{ color: 'var(--text-muted)' }}>Compartí avance, calendario y entregables sin mostrar la operación interna.</div>
-                </div>
-                <button
-                  disabled={savingPortal}
-                  onClick={async () => { setSavingPortal(true); try { await onSetPortal(client, !client.portalPublished); } finally { setSavingPortal(false); } }}
-                  className="px-3 py-1.5 rounded-md text-[11px] font-semibold flex-shrink-0 disabled:opacity-50"
-                  style={{ background: client.portalPublished ? 'var(--danger-soft)' : 'var(--accent)', color: client.portalPublished ? 'var(--danger)' : 'var(--accent-on)' }}
-                >
-                  {savingPortal ? 'Guardando…' : client.portalPublished ? 'Desactivar' : 'Publicar portal'}
-                </button>
+            {/* Datos del cliente */}
+            <section className="fc-bloque">
+              <div className="fc-bloque-cab">
+                <div className="fc-titulo"><Icon name="user" size={14} /> Datos</div>
               </div>
-              {client.portalPublished && client.portalToken && (
-                <div className="mt-3 flex items-center gap-2 min-w-0">
-                  <div className="field px-2.5 py-2 text-[11px] truncate flex-1 tnum" style={{ color: 'var(--text-muted)' }}>{clientPortalUrl(client.portalToken)}</div>
-                  <button onClick={() => navigator.clipboard.writeText(clientPortalUrl(client.portalToken)).then(() => window.frameToast?.('Enlace del portal copiado.'))} className="p-2 rounded-md" style={{ background: 'var(--surface-3)', color: 'var(--text-dim)' }} title="Copiar enlace"><Icon name="copy" size={13} /></button>
-                  <a href={clientPortalUrl(client.portalToken)} target="_blank" rel="noopener noreferrer" className="p-2 rounded-md" style={{ background: 'var(--surface-3)', color: 'var(--text-dim)' }} title="Abrir portal"><Icon name="external" size={13} /></a>
-                </div>
-              )}
-            </section>
-            {/* Contact */}
-            <section>
-              <div className="ui-section-label mb-3">Contacto</div>
-              <div className="space-y-1 rounded-lg overflow-hidden border border-app divide-y divide-[var(--border)]">
+              <div className="fc-filas">
+                {datosCom && filaDato('briefcase', 'Empresa',
+                  <InlineEdit value={datosCom.empresa} onChange={(v) => guardarCom({ empresa: v })} placeholder="Agregar empresa…" className="text-[13px]" />)}
+                {datosCom && filaDato('link', 'Canal',
+                  <div className="fc-canales">
+                    {comercial.canales.map(ch => (
+                      <button key={ch} onClick={() => guardarCom({ canal: ch })} className={datosCom.canal === ch ? 'fc-canal on' : 'fc-canal'}>{ch}</button>
+                    ))}
+                  </div>)}
                 {[
-                  { icon: 'users', label: 'Nombre',   key: 'name',  value: client.contact.name  },
-                  { icon: 'at',    label: 'Email',    key: 'email', value: client.contact.email, mono: true },
-                  { icon: 'mic',   label: 'Teléfono', key: 'phone', value: client.contact.phone, mono: true },
+                  { icon: 'users', label: 'Contacto', key: 'name',  value: client.contact.name, ph: 'Nombre del contacto…' },
+                  { icon: 'at',    label: 'Email',    key: 'email', value: client.contact.email, ph: 'email@cliente.com', mono: true },
+                  { icon: 'mic',   label: 'Teléfono', key: 'phone', value: client.contact.phone, ph: 'Teléfono…', mono: true },
                 ].map(row => (
-                  <div key={row.key} className="grid grid-cols-[110px_1fr] items-center" style={{ background: 'var(--surface-2)' }}>
-                    <div className="flex items-center gap-2 px-3 py-2.5 text-[11px] text-[var(--text-muted)]">
-                      <Icon name={row.icon} size={12} />
-                      {row.label}
-                    </div>
-                    <div className="px-3 py-1">
+                  <React.Fragment key={row.key}>
+                    {filaDato(row.icon, row.label,
                       <InlineEdit
-                        value={row.value}
-                        onChange={(v) => upd({ contact: { ...client.contact, [row.key]: v } })}
-                        className={`text-[13px] ${row.mono ? 'font-mono' : ''}`}
-                      />
-                    </div>
-                  </div>
+                        value={row.value === '—' ? '' : row.value}
+                        onChange={(v) => upd({ contact: { ...client.contact, [row.key]: v || '—' } })}
+                        placeholder={row.ph}
+                        className={row.mono ? 'text-[13px] font-mono' : 'text-[13px]'}
+                      />)}
+                  </React.Fragment>
                 ))}
-              </div>
-            </section>
-
-            {/* Tags */}
-            <section>
-              <div className="ui-section-label mb-2">Tags</div>
-              <div className="flex flex-wrap gap-1.5">
-                {client.tags.map(t => (
-                  <span key={t} className="group flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] bg-[var(--surface-2)] text-[var(--text-dim)]">
-                    #{t}
-                    <button className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeTag(t)}>
-                      <Icon name="x" size={10} />
-                    </button>
-                  </span>
-                ))}
-                <TagAdd onAdd={addTags} />
-              </div>
-            </section>
-
-            {/* Notes */}
-            <section>
-              <div className="ui-section-label mb-2">Notas internas</div>
-              <InlineEdit
-                value={client.notes}
-                onChange={(v) => upd({ notes: v })}
-                placeholder="Preferencias, acuerdos, cosas a recordar…"
-                multiline
-                className="text-[13px] text-[var(--text-dim)] leading-relaxed"
-              />
-            </section>
-
-            {/* Projects list */}
-            <section>
-              <div className="flex items-center justify-between mb-3">
-                <div className="ui-section-label">
-                  Tareas ({cp.length})
-                </div>
-              </div>
-              {cp.length === 0 ? (
-                <div
-                  className="text-center py-8 rounded-lg text-[12px] text-[var(--text-muted)]"
-                  style={{ background: 'var(--surface-2)' }}
-                >
-                  Sin tareas
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {cp.map(p => {
-                    const st = getStatus(p.status);
-                    return (
-                      <div
-                        key={p.id}
-                        className="flex items-center gap-3 p-3 rounded-lg border border-app"
-                        style={{ background: 'var(--surface-2)' }}
-                      >
-                        <div className="w-1 h-9 rounded-full flex-shrink-0" style={{ background: st?.color || '#666' }}></div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[13px] font-medium truncate">{p.title}</div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <TypePill type={p.type} />
-                            <span className="text-[10px] text-[var(--text-muted)] font-mono">
-                              entrega {fmtDate(p.deadline)}
-                            </span>
-                          </div>
-                        </div>
-                        <StatusPill status={p.status} />
-                        <button
-                          onClick={() => onTogglePortalTask(p, p.clientVisible === false)}
-                          className="px-2 py-1 rounded-md text-[10px] font-semibold flex-shrink-0"
-                          style={{ background: p.clientVisible !== false ? 'var(--accent)' : 'var(--surface-3)', color: p.clientVisible !== false ? 'var(--accent-on)' : 'var(--text-muted)' }}
-                          title={p.clientVisible !== false ? 'Ocultar del portal' : 'Mostrar en el portal'}
-                        >
-                          {p.clientVisible !== false ? 'Visible' : 'Oculta'}
+                {filaDato('hash', 'Etiquetas',
+                  <div className="flex flex-wrap gap-1.5 items-center">
+                    {client.tags.map(t => (
+                      <span key={t} className="group flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] bg-[var(--surface-3)] text-[var(--text-dim)]">
+                        #{t}
+                        <button className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeTag(t)}>
+                          <Icon name="x" size={10} />
                         </button>
+                      </span>
+                    ))}
+                    <TagAdd onAdd={addTags} />
+                  </div>)}
+                {filaDato('edit', 'Notas',
+                  <InlineEdit value={client.notes} onChange={(v) => upd({ notes: v })} placeholder="Preferencias, acuerdos, cosas a recordar…" multiline className="text-[13px] text-[var(--text-dim)] leading-relaxed" />, true)}
+                {/* Portal externo: una proyección segura y controlada del trabajo. */}
+                {filaDato('globe', 'Portal',
+                  <div>
+                    <div className="fc-portal">
+                      <span className={client.portalPublished ? 'fc-portal-estado on' : 'fc-portal-estado'}>
+                        {client.portalPublished ? 'Publicado: el cliente ve avance y entregables' : 'Sin publicar'}
+                      </span>
+                      <button
+                        disabled={savingPortal}
+                        onClick={async () => { setSavingPortal(true); try { await onSetPortal(client, !client.portalPublished); } finally { setSavingPortal(false); } }}
+                        className="fc-boton"
+                        style={client.portalPublished ? { color: 'var(--danger)' } : undefined}
+                      >
+                        {savingPortal ? 'Guardando…' : client.portalPublished ? 'Desactivar' : 'Publicar portal'}
+                      </button>
+                    </div>
+                    {client.portalPublished && client.portalToken && (
+                      <div className="fc-portal-enlace">
+                        <div className="field px-2.5 py-2 text-[11px] truncate flex-1 tnum" style={{ color: 'var(--text-muted)' }}>{clientPortalUrl(client.portalToken)}</div>
+                        <button onClick={() => navigator.clipboard.writeText(clientPortalUrl(client.portalToken)).then(() => window.frameToast?.('Enlace del portal copiado.'))} className="p-2 rounded-md" style={{ background: 'var(--surface-3)', color: 'var(--text-dim)' }} title="Copiar enlace"><Icon name="copy" size={13} /></button>
+                        <a href={clientPortalUrl(client.portalToken)} target="_blank" rel="noopener noreferrer" className="p-2 rounded-md" style={{ background: 'var(--surface-3)', color: 'var(--text-dim)' }} title="Abrir portal"><Icon name="external" size={13} /></a>
                       </div>
-                    );
-                  })}
+                    )}
+                  </div>, true)}
+              </div>
+            </section>
+
+            {/* Tareas: pendientes primero, con filtro */}
+            <section className="fc-bloque">
+              <div className="fc-bloque-cab" style={{ flexWrap: 'wrap' }}>
+                <div className="fc-titulo"><Icon name="list" size={14} /> Tareas</div>
+                <div className="fc-filtros">
+                  {[['pendientes', 'Pendientes', pendientes.length], ['entregadas', 'Entregadas', entregadas.length], ['todas', 'Todas', pendientes.length + entregadas.length]].map(([id, label, n]) => (
+                    <button key={id} className={filtro === id ? 'fc-filtro on' : 'fc-filtro'} onClick={() => { setFiltro(id); setVerTodas(false); }}>
+                      {label}<b className="tnum">{n}</b>
+                    </button>
+                  ))}
                 </div>
+              </div>
+              {lista.length === 0 ? (
+                <div className="fc-vacio">{filtro === 'pendientes' ? 'No hay tareas pendientes.' : 'Nada por acá.'}</div>
+              ) : (
+                <>
+                  <div className="fc-tareas">
+                    {visibles.map(p => {
+                      const st = getStatus(p.status);
+                      const tarde = vencida(p);
+                      const visible = p.clientVisible !== false;
+                      return (
+                        <div key={p.id} className="fc-tarea">
+                          <span className="fc-tarea-punto" style={{ background: st?.color || '#666' }} title={st?.label} />
+                          <div className="fc-tarea-texto">
+                            <div className="fc-tarea-titulo" title={p.title}>{sinCliente(p.title)}</div>
+                            <div className={tarde ? 'fc-tarea-meta tarde' : 'fc-tarea-meta'}>
+                              {st?.label}{p.deadline ? ` · ${tarde ? 'venció' : 'entrega'} ${fmtDate(p.deadline)}` : ''}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => onTogglePortalTask(p, !visible)}
+                            className={visible ? 'fc-visible' : 'fc-visible oculta'}
+                            title={visible ? 'Se ve en el portal. Click para ocultar.' : 'Oculta del portal. Click para mostrar.'}
+                          >
+                            <Icon name="globe" size={10} /> {visible ? 'En portal' : 'Oculta'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {lista.length > LIMITE && (
+                    <button className="fc-mas" onClick={() => setVerTodas(v => !v)}>
+                      {verTodas ? 'Ver menos' : `Ver las ${lista.length - LIMITE} restantes`}
+                    </button>
+                  )}
+                </>
               )}
             </section>
 

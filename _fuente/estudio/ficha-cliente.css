@@ -1,0 +1,95 @@
+/* ═══ Ficha del cliente (panel lateral de Clientes) ═══
+   Cuatro bloques con un solo trabajo cada uno: quién es (cabecera), cómo va
+   el mes, lo comercial y sus datos. Abajo, las tareas con filtro. */
+.fc-cuerpo { padding: 20px 24px 32px; display: flex; flex-direction: column; gap: 14px; }
+
+.fc-cabecera { display: flex; gap: 16px; align-items: flex-start; padding: 22px 24px 18px; border-bottom: 1px solid var(--border); }
+.fc-cabecera-texto { flex: 1; min-width: 0; }
+.fc-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; font-size: 13px; color: var(--text-dim); }
+.fc-sub .fc-sep { color: var(--text-muted); }
+.fc-acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.fc-boton { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-3); color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; transition: filter .15s ease; }
+.fc-boton:hover { filter: brightness(1.2); }
+.fc-boton.primario { background: var(--accent); color: var(--accent-on); border-color: var(--accent); }
+.fc-boton.primario:hover { filter: brightness(1.08); }
+
+.fc-bloque { border: 1px solid var(--border); border-radius: 14px; background: var(--surface-2); padding: 16px 18px; }
+.fc-bloque-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.fc-titulo { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text); }
+.fc-titulo .fc-nota { font-weight: 400; color: var(--text-muted); }
+.fc-etiqueta { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); }
+
+/* Este mes */
+.fc-mes-cifra { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.fc-mes-cifra b { font-size: 26px; font-weight: 700; letter-spacing: -.03em; color: var(--text); }
+.fc-mes-cifra span { font-size: 13px; color: var(--text-dim); }
+.fc-mes-pct { font-size: 15px; font-weight: 700; color: var(--text); }
+.fc-barra { display: flex; height: 10px; margin: 12px 0 10px; border-radius: 999px; overflow: hidden; background: var(--surface-3); gap: 2px; }
+.fc-barra span { display: block; height: 100%; min-width: 4px; }
+.fc-leyenda { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--text-dim); }
+.fc-leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+.fc-leyenda i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.fc-leyenda b { color: var(--text); font-weight: 600; }
+.fc-alerta { display: inline-flex; align-items: center; gap: 6px; color: var(--danger); font-weight: 600; }
+
+/* Comercial */
+.fc-cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.fc-cifra { border-radius: 10px; background: var(--surface-3); padding: 10px 12px; min-width: 0; }
+.fc-cifra b { display: block; font-size: 17px; font-weight: 700; letter-spacing: -.02em; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fc-cifra b.ok { color: var(--ok); }
+.fc-cifra b.debe { color: var(--warn); }
+.fc-cifra .fc-etiqueta { display: block; margin-top: 3px; }
+.fc-venta { width: 100%; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 12px; padding: 10px 12px; border-radius: 10px; background: var(--surface-3); border: 0; text-align: left; color: var(--text); cursor: pointer; font-size: 12px; transition: filter .15s ease; }
+.fc-venta + .fc-venta { margin-top: 6px; }
+.fc-venta:hover { filter: brightness(1.15); }
+.fc-venta.inactiva { opacity: .5; }
+.fc-venta-n { font-weight: 700; }
+.fc-venta-que { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-dim); }
+.fc-venta-que small { color: var(--text-muted); font-size: 11px; margin-left: 6px; }
+.fc-venta-monto { font-weight: 600; text-align: right; }
+.fc-venta-estado { grid-column: 3; text-align: right; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); }
+.fc-venta-estado.debe { color: var(--warn); }
+.fc-vacio { font-size: 12px; color: var(--text-muted); }
+
+/* Datos */
+.fc-filas { display: flex; flex-direction: column; }
+.fc-fila { display: grid; grid-template-columns: 104px 1fr; align-items: center; gap: 12px; min-height: 40px; padding: 4px 0; border-top: 1px solid var(--border); }
+.fc-fila:first-child { border-top: 0; }
+.fc-fila > .fc-etiqueta { display: flex; align-items: center; gap: 7px; }
+.fc-fila.arriba { align-items: start; padding-top: 10px; }
+.fc-canales { display: flex; flex-wrap: wrap; gap: 6px; }
+.fc-canal { padding: 4px 10px; border-radius: 999px; border: 1px solid transparent; background: var(--surface-3); color: var(--text-dim); font-size: 12px; cursor: pointer; transition: all .15s ease; }
+.fc-canal:hover { color: var(--text); border-color: var(--border); }
+.fc-canal.on { background: var(--accent); border-color: var(--accent); color: var(--accent-on); font-weight: 600; }
+.fc-portal { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.fc-portal-estado { font-size: 12px; color: var(--text-dim); }
+.fc-portal-estado.on { color: var(--ok); }
+.fc-portal-enlace { display: flex; align-items: center; gap: 6px; margin-top: 8px; min-width: 0; }
+
+/* Tareas */
+.fc-filtros { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--surface-3); gap: 2px; }
+.fc-filtro { padding: 5px 10px; border-radius: 8px; border: 0; background: transparent; color: var(--text-dim); font-size: 12px; cursor: pointer; }
+.fc-filtro b { font-weight: 600; margin-left: 4px; color: var(--text-muted); }
+.fc-filtro.on { background: var(--surface); color: var(--text); }
+.fc-filtro.on b { color: var(--text); }
+.fc-tareas { display: flex; flex-direction: column; }
+.fc-tarea { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--border); }
+.fc-tarea:first-child { border-top: 0; }
+.fc-tarea-punto { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.fc-tarea-texto { flex: 1; min-width: 0; }
+.fc-tarea-titulo { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fc-tarea-meta { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+.fc-tarea-meta.tarde { color: var(--danger); }
+/* Lo normal (visible en el portal) no grita; lo oculto sí se marca. */
+.fc-visible { flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; border: 1px solid transparent; background: transparent; color: var(--text-muted); font-size: 10px; font-weight: 600; cursor: pointer; opacity: .55; }
+.fc-tarea:hover .fc-visible, .fc-visible:focus-visible { opacity: 1; }
+.fc-visible.oculta { opacity: 1; border-color: var(--border); color: var(--text-dim); }
+.fc-mas { width: 100%; margin-top: 8px; padding: 8px; border-radius: 8px; border: 1px dashed var(--border); background: transparent; color: var(--text-dim); font-size: 12px; cursor: pointer; }
+.fc-mas:hover { color: var(--text); }
+
+@media (max-width: 640px) {
+  .fc-cuerpo { padding: 16px 16px 28px; }
+  .fc-cabecera { padding: 18px 16px 16px; }
+  .fc-fila { grid-template-columns: 1fr; gap: 4px; padding: 8px 0; }
+  .fc-filtro { padding: 5px 8px; }
+}
