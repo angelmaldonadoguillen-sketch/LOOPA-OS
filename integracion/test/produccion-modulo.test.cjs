@@ -279,14 +279,16 @@ test('Nueva venta: un cliente nuevo con nombre o empresa de otra ficha avisa (no
   assert.match(cli, /client\.commercial\?\.empresa/, 'la tarjeta muestra la empresa');
 });
 
-test('resultados del cliente: se entra desde la ficha del cliente, no desde el menú', () => {
+// 2026-11-18 (auditoría de experiencia, etapa 3): Resultados pasa a tener su
+// lugar en el menú (Comercial) y la ficha del cliente lo sigue abriendo.
+test('resultados del cliente: está en el menú (Comercial) y se abre desde la ficha del cliente', () => {
   const app = read('_fuente/app.jsx');
   const nav = read('_fuente/shell/navegacion.jsx');
   const ui = read('_fuente/resultados/resultados.jsx');
   const fichas = read('_fuente/estudio/clients.jsx');
-  assert.doesNotMatch(app, /\{ id: 'resultados', label: 'Resultados', +icon:/, 'no está en el menú');
-  assert.match(nav, /ids: \['nueva', 'ventas', 'servicios', 'clientes'\] \}/);
-  assert.match(app, /const rutaMenu = route === 'resultados' \? 'clientes' : route/, 'en Resultados el menú marca Clientes');
+  assert.match(app, /\{ id: 'resultados', label: 'Resultados', +icon: 'trend' \}/, 'está en el menú');
+  assert.match(nav, /ids: \['nueva', 'ventas', 'servicios', 'clientes', 'resultados'\] \}/);
+  assert.match(app, /const rutaMenu = route;/, 'en Resultados el menú marca Resultados');
   assert.match(app, /onResultados: \(id\) => abrirResultados\(id\)/, 'la ficha de Producción lo abre');
   assert.match(fichas, /comercial\.onResultados\(client\.id\)/);
   assert.match(app, /<ResultadosRedes clientes=\{clientes\} clienteInicial=\{resultadosDe\} onVolver=/);

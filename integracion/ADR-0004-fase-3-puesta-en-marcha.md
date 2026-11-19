@@ -1234,3 +1234,12 @@ Hay que publicar las reglas: `firebase deploy --only firestore:rules --config se
 - Sin tarjetas vacías: Alcance y Seguidores (tarjetas y columnas) se ven sólo si hay datos; Ventas reportadas sale de la pantalla y del formulario (el cliente no las comparte; el campo sigue permitido en la base). Inversión pasa al panel de Leads.
 - Selectores de toda la app: flecha propia a 20 px del borde (la nativa quedaba pegada).
 - Orgánico: el campo `reproducciones` se muestra como «Visualizaciones» (así lo llama el panel profesional de Meta) y hay tarjetas de Visualizaciones e Interacciones cuando hay datos. Primera carga: ID Motos Honduras 1–16 nov — Facebook 409.565 visualizaciones, 14.198 interacciones, +79 seguidores (5.867); Instagram 19.298 visualizaciones, 122 interacciones, 17 seguidores.
+
+## 47. Auditoría de experiencia (2026-11-18)
+
+Ángel pidió una auditoría de experiencia de usuario («más coherencia, una experiencia más sólida y profesional», «más Apple… todo en general»). Se hizo en tres etapas:
+
+- **Ficha del cliente:** cuatro bloques (cabecera con acciones, este mes en una barra, comercial, datos) y tareas con filtro (`estudio/ficha-cliente.css`).
+- **Calendario:** mes compacto en una pantalla (una línea por tarea, «+N más»), botón «Expandir» (clase `loopa-foco` en `<body>`), encabezado del Tablero en una línea (`estudio/calendario.css`).
+- **Estilo Apple:** `shell/sistema.css` y `estudio/sistema.css` cargan al final: sin mayúsculas con tracking, rótulos grises, títulos grandes, controles rellenos, pestañas como el control segmentado. Nombres: Servicios, Campaña, vistas Etapas / Por venta; Configuración ya no dice FRAME.
+- **Navegación:** Resultados entra al menú (Comercial; corrige el §46: ya no sólo desde la ficha, y el menú marca Resultados). Mis tareas abre su propia vista (Lista por defecto; la del Tablero vuelve al salir). La barra de cifras sólo en Nueva venta, Ventas, Servicios, Clientes y Gastos, sin «LOOPA OS», «Próx. venta» ni «Tipos». La Rutina pasa a la barra de arriba (botón compacto; el panel abre hacia abajo).

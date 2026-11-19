@@ -2,7 +2,9 @@
 // ROUTINE WIDGET — Floating daily checklist with beacon animation
 // ─────────────────────────────────────────────────────────────────
 
-const RoutineWidget = ({ workspaceId }) => {
+// enBarra: botón compacto en la barra de arriba de LOOPA (el panel abre hacia
+// abajo). Sin enBarra: el botón flotante de siempre, abajo a la derecha.
+const RoutineWidget = ({ workspaceId, enBarra = false }) => {
   const { useState, useEffect, useRef, useMemo } = React;
 
   // ── Panel open/close ──────────────────────────────────────────
@@ -263,7 +265,7 @@ const RoutineWidget = ({ workspaceId }) => {
 
   // ── Render ────────────────────────────────────────────────────
   return (
-    <div ref={panelRef} style={{ position: 'fixed', bottom: 28, right: 28, zIndex: 200 }}>
+    <div ref={panelRef} style={enBarra ? { position: 'relative', zIndex: 300 } : { position: 'fixed', bottom: 28, right: 28, zIndex: 200 }}>
 
       {/* ─── Panel ─── */}
       {open && (
@@ -271,7 +273,7 @@ const RoutineWidget = ({ workspaceId }) => {
           className="anim-scale-in"
           style={{
             position: 'absolute',
-            bottom: 'calc(100% + 12px)',
+            ...(enBarra ? { top: 'calc(100% + 10px)' } : { bottom: 'calc(100% + 12px)' }),
             right: 0,
             width: 340,
             maxHeight: 560,
@@ -280,7 +282,7 @@ const RoutineWidget = ({ workspaceId }) => {
             border: '1px solid var(--border-2)',
             borderRadius: 20,
             boxShadow: '0 24px 64px rgba(0,0,0,0.65)',
-            transformOrigin: 'bottom right',
+            transformOrigin: enBarra ? 'top right' : 'bottom right',
           }}
         >
           {/* Header del panel */}
@@ -645,13 +647,15 @@ const RoutineWidget = ({ workspaceId }) => {
         onClick={() => setOpen(v => !v)}
         className={`routine-btn flex items-center gap-2 px-4 rounded-2xl font-semibold transition select-none ${allDone ? 'routine-done' : 'routine-pending'}`}
         style={{
-          height: 46,
+          height: enBarra ? 32 : 46,
           fontSize: 13,
+          ...(enBarra ? { padding: '0 12px', borderRadius: 10 } : {}),
           letterSpacing: '-0.01em',
           background:   allDone ? 'var(--accent)'    : 'var(--surface-2)',
           color:        allDone ? 'var(--accent-on)'   : 'var(--text)',
           border:       allDone ? 'none'              : '1px solid var(--border-2)',
-          boxShadow:    allDone ? '0 4px 20px var(--accent-soft), 0 2px 8px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.4)',
+          boxShadow:    enBarra ? 'none' : allDone ? '0 4px 20px var(--accent-soft), 0 2px 8px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.4)',
+          ...(enBarra && !allDone ? { background: 'rgba(255,255,255,0.07)', border: 'none' } : {}),
         }}
         title="Abrir rutina diaria"
       >

@@ -2863,6 +2863,8 @@ const SECCIONES_JUNTAS = {
   metricas: ['Producción', 'Avance y carga del equipo', 'Tareas del tablero, entregas, fechas urgentes y quién está ocupado.'],
   config: ['Producción', 'Tablero y aprobaciones', 'Lo que muestran las tarjetas, el arrastre de tareas y la aprobación de cuentas nuevas.'],
 };
+// Pantallas que muestran la barra de cifras del período (venta, cobrado…).
+const RUTAS_CON_CIFRAS = ['nueva', 'ventas', 'servicios', 'clientes', 'gastos'];
 const FILTROS_TABLERO = [['all', 'Todas'], ['favorites', 'Favoritas'], ['urgent', 'Urgentes'], ['delivered', 'Completadas']];
 // Encabezado de página de LOOPA para las pantallas de Producción (como Ventas):
 // [etiqueta, título, descripción].
@@ -3421,14 +3423,15 @@ function App({ onLogout, usuarioFusion = null }) {
     { id: 'ventas',    label: 'Ventas',        icon: 'list' },
     { id: 'servicios', label: 'Servicios',     icon: 'tag' },
     { id: 'clientes',  label: 'Clientes',      icon: 'user' },
+    { id: 'resultados', label: 'Resultados',   icon: 'trend' },
     ...modProduccion,
     { id: 'metricas',  label: 'Métricas',      icon: 'chart' },
     { id: 'gastos',    label: 'Gastos',        icon: 'money' },
     { id: 'config',    label: 'Configuración', icon: 'settings' },
   ];
-  // Resultados se abre desde la ficha de un cliente: en el menú se marca Clientes.
-  const rutaMenu = route === 'resultados' ? 'clientes' : route;
-  const current = route === 'resultados' ? { id: 'resultados', label: 'Resultados' } : (modules.find(m => m.id === route) || modules[0]);
+  // Resultados tiene su lugar en el menú (Comercial) y también se abre desde la ficha del cliente.
+  const rutaMenu = route;
+  const current = modules.find(m => m.id === route) || (route === 'resultados' ? { id: 'resultados', label: 'Resultados' } : modules[0]);
   // Qué sección de Producción se ve ahora (null: ninguna).
   const seccionEstudio = PROD_ON !== 'estudio' ? null
     : RUTAS_ESTUDIO[route] || SECCION_ESTUDIO[route] || (route === 'clientes' ? 'clients' : null);
@@ -3585,16 +3588,15 @@ function App({ onLogout, usuarioFusion = null }) {
       </aside>
 
       <div className="main">
-        {!soloProduccion && <div className="ticker">
-          <span className="item">● LOOPA OS</span>
-          <span className="item">Próx. venta <span className="v">{numProx(nextN)}</span></span>
+        {/* Cifras del período: sólo donde se trabaja con plata (en Producción,
+            Métricas o Configuración no aportan y le quitan alto a la pantalla). */}
+        {!soloProduccion && RUTAS_CON_CIFRAS.includes(route) && <div className="ticker">
           <span className="item"><PeriodFilter value={tickerPeriod} onChange={setTickerPeriod} /></span>
           <span className="item">Venta <span className="v">{L(ticker.venta)}</span></span>
           <span className="item">Cobrado <span className="v" style={{ color: ticker.cobrado > 0 ? 'var(--ok)' : 'var(--muted)' }}>{L(ticker.cobrado)}</span></span>
           <span className="item">Ganancia <span className="v" style={{ color: ticker.ganancia >= 0 ? 'var(--ok)' : 'var(--danger)' }}>{L(ticker.ganancia)}</span></span>
           <span className="item">Por cobrar <span className="v" style={{ color: ticker.porCobrar > 0 ? 'var(--warn)' : 'var(--muted)' }}>{L(ticker.porCobrar)}</span></span>
           <span className="item">En curso <span className="v">{ticker.enCurso}</span></span>
-          <span className="item">Tipos <span className="v">{servicios.filter(s => s.activo !== false).length}</span></span>
         </div>}
 
         <div className="topbar">

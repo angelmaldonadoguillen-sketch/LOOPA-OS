@@ -1763,11 +1763,30 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null, comercial = n
   const filtered    = useMemo(() => applyFilters(state), [state]);
   const openProject = state.openProjectId ? state.projects.find(p => p.id === state.openProjectId) : null;
 
+  // Mis tareas tiene su propia vista (por defecto la Lista: lo tuyo, por
+  // fecha). Antes heredaba la última vista del Tablero y podía abrir, por
+  // ejemplo, la línea de ventas. Al volver al Tablero, vuelve su vista.
+  const vistaTablero = useRef(null);
   // El menú de LOOPA elige qué se ve.
   useEffect(() => {
-    if (seccion === 'projects' || seccion === 'trash') dispatch({ type: 'set_sidebar_filter', filter: seccion === 'trash' ? 'trash' : filtro });
+    if (seccion === 'projects' || seccion === 'trash') {
+      dispatch({ type: 'set_sidebar_filter', filter: seccion === 'trash' ? 'trash' : filtro });
+      if (filtro === 'mine') {
+        if (vistaTablero.current === null) vistaTablero.current = state.view;
+        let v = 'list';
+        try { v = localStorage.getItem('loopa-vista-mis-tareas') || 'list'; } catch (e) {}
+        dispatch({ type: 'set_view', view: v });
+      } else if (vistaTablero.current !== null) {
+        dispatch({ type: 'set_view', view: vistaTablero.current });
+        vistaTablero.current = null;
+      }
+    }
     else dispatch({ type: 'set_section', section: seccion });
   }, [seccion, filtro]);
+  useEffect(() => {
+    if (state.sidebarFilter !== 'mine' || vistaTablero.current === null) return;
+    try { localStorage.setItem('loopa-vista-mis-tareas', state.view); } catch (e) {}
+  }, [state.view, state.sidebarFilter]);
 
   // ── Persistir navegación en localStorage ───────────────────
   useEffect(() => {
@@ -1775,7 +1794,8 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null, comercial = n
       localStorage.setItem('frame_nav', JSON.stringify({
         section:       state.section,
         sidebarFilter: state.sidebarFilter,
-        view:          state.view,
+        // En Mis tareas se guarda la vista del Tablero, no la de Mis tareas.
+        view:          vistaTablero.current !== null ? vistaTablero.current : state.view,
       }));
     } catch {}
   }, [state.section, state.sidebarFilter, state.view]);
@@ -3166,8 +3186,10 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null, comercial = n
   // El portfolio no pasó a LOOPA (se decide antes de retirar FRAME).
   // El selector de tablero vive en la barra de LOOPA.
   const selectorTablero = barra && ReactDOM.createPortal(
-    <div className="estudio estudio-barra">
+    <div className="estudio estudio-barra" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <WorkspaceSwitcher state={state} dispatch={dispatch} onCreateTeam={handleCreateTeamWorkspace} onDeleteWorkspace={handleDeleteWorkspace} onRenameWorkspace={handleRenameWorkspace} collapsed={false} />
+      {/* La rutina vive en la barra de arriba: flotando tapaba las tarjetas. */}
+      <RoutineWidget workspaceId={activeWsReady ? wsId : null} enBarra />
     </div>,
     barra,
   );
@@ -3327,7 +3349,7 @@ const App = ({ seccion = 'projects', filtro = 'all', barra = null, comercial = n
       )}
 
       {/* Widget flotante de rutina diaria */}
-      <RoutineWidget workspaceId={activeWsReady ? wsId : null} />
+      {!barra && <RoutineWidget workspaceId={activeWsReady ? wsId : null} />}
     </div>
   );
 };
