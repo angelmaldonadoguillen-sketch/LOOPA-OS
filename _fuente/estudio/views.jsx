@@ -1522,7 +1522,8 @@ const GalleryCard = ({ project, onClick, onDelete, onDuplicate, onToggleFavorite
       onClick={onClick}
       className="group lift surf surf-hover cursor-pointer overflow-hidden select-none"
     >
-      <div className="relative aspect-[4/3] overflow-hidden" style={{ background: project.cover.type === 'color' ? project.cover.value : 'var(--surface-3)' }}>
+      {/* Sin imagen de portada, la franja es baja: antes eran cajas vacías de 4:3. */}
+      <div className={project.cover.type === 'image' ? 'relative aspect-[4/3] overflow-hidden' : 'relative h-16 overflow-hidden'} style={{ background: project.cover.type === 'color' ? project.cover.value : 'var(--surface-3)' }}>
         {project.cover.type === 'image' && (
           <img src={project.cover.value} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
         )}

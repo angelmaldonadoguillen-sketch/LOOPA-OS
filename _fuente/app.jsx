@@ -872,7 +872,7 @@ function PasoServicios({ cliente, servicios, stats, categorias, items, addItem, 
                   <span className="mono dim" style={{ fontSize: 'var(--fs-s)', paddingTop: 2 }}>{pad2(idx + 1)}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="srv-name">{i.nombre}</div>
-                    <div className="mono dim" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 2 }}>{i.categoria} · {f ? LoopaFicha.describirDuracion(f.duracion) : modeloLabel(i)}</div>
+                    <div className="mono dim" style={{ fontSize: 'var(--fs-s)', marginTop: 2 }}>{i.categoria} · {f ? LoopaFicha.describirDuracion(f.duracion) : modeloLabel(i)}</div>
                   </div>
                   <button className="icon-btn danger" onClick={() => delItem(i.key)} title="Quitar"><Icon name="x" size={12} /></button>
                 </div>
@@ -1375,7 +1375,7 @@ function VentaModal({ venta: v, config, onClose, onUpdate, onAbono, onDuplicate,
             <div key={idx} className="summary-row" style={{ gap: 12, borderBottom: '1px solid var(--line)' }}>
               <span style={{ color: 'var(--text)', fontFamily: 'var(--font-body)', fontSize: 'var(--fs-m)' }}>
                 <b style={{ fontWeight: 500 }}>{i.nombre}</b>{i.q > 1 && <span className="dim"> · {i.q} × {L(i.precio)}</span>}
-                <span className="mono dim" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.1em', marginLeft: 8, textTransform: 'uppercase' }}>{i.categoria}</span>
+                <span className="mono dim" style={{ fontSize: 'var(--fs-s)', marginLeft: 8 }}>{i.categoria}</span>
                 {i.descripcion && <span className="muted" style={{ display: 'block', fontSize: 'var(--fs-s)', marginTop: 2 }}>{i.descripcion}</span>}
               </span>
               <span className="r" style={{ textAlign: 'right' }}>{L(i.precio * i.q)}{i.costo > 0 && <span className="dim" style={{ display: 'block', fontSize: 'var(--fs-s)' }}>costo {L(i.costo * i.q)}</span>}</span>
@@ -2689,7 +2689,7 @@ function LoginScreen() {
     <div className="login">
       <div style={{ width: 380, maxWidth: '100%', textAlign: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 22, color: 'var(--accent)' }}><LoopaMark height={21} largo /></div>
-        <div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--dim)', letterSpacing: '0.22em', marginBottom: 44, textTransform: 'uppercase' }}>{crear ? 'Sumarte al equipo' : 'Acceso privado · cuenta del equipo'}</div>
+        <div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--dim)', marginBottom: 44 }}>{crear ? 'Sumarte al equipo' : 'Acceso privado · cuenta del equipo'}</div>
         <div className={shake ? 'shake' : ''} style={{ background: 'var(--card)', border: `1px solid ${errorMsg ? 'var(--danger)' : 'var(--line)'}`, borderRadius: 18, padding: '32px 28px' }}>
           {crear && <input className="input mono" autoFocus autoComplete="name" placeholder="nombre y apellido" value={nombre} onChange={e => { setNombre(e.target.value); setErrorMsg(''); }} onKeyDown={onKey} style={{ marginBottom: 10 }} />}
           {crear && <input className="input mono" autoComplete="organization-title" placeholder="rol (opcional · ej. editor, diseño)" value={rol} onChange={e => setRol(e.target.value)} onKeyDown={onKey} style={{ marginBottom: 10 }} />}
@@ -2888,7 +2888,7 @@ class MuroProduccion extends React.Component {
     if (!this.state.error) return this.props.children;
     return (
       <div className="panel" style={{ margin: 24, padding: 20 }}>
-        <div className="mono" style={{ color: 'var(--danger)', fontSize: 'var(--fs-s)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Producción no se pudo mostrar</div>
+        <div className="mono" style={{ color: 'var(--danger)', fontSize: 'var(--fs-s)', marginBottom: 8 }}>Producción no se pudo mostrar</div>
         <div className="muted" style={{ fontSize: 'var(--fs-s)', marginBottom: 12 }}>El resto de LOOPA sigue funcionando. Probá de nuevo; si se repite, avisá.</div>
         <button className="btn sm" onClick={() => this.setState({ error: null })}>↺ Reintentar</button>
       </div>
@@ -3489,7 +3489,7 @@ function App({ onLogout, usuarioFusion = null }) {
       <div style={{ color: 'var(--accent)' }}><LoopaMark height={20} largo /></div>
       {loadError ? (
         <>
-          <div className="boot-err"><span style={{ color: 'var(--danger)', fontSize: 'var(--fs-m)' }}>✕</span><div><div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--danger)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>No se pudieron cargar los datos</div><div className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>{loadError}</div></div></div>
+          <div className="boot-err"><span style={{ color: 'var(--danger)', fontSize: 'var(--fs-m)' }}>✕</span><div><div className="mono" style={{ fontSize: 'var(--fs-s)', color: 'var(--danger)', marginBottom: 4 }}>No se pudieron cargar los datos</div><div className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>{loadError}</div></div></div>
           <div style={{ display: 'flex', gap: 10 }}>
             <button className="btn primary" onClick={load}>↺ Reintentar</button>
             <button className="btn" onClick={() => window.location.reload()}>Recargar</button>
@@ -3497,7 +3497,7 @@ function App({ onLogout, usuarioFusion = null }) {
         </>
       ) : (
         <>
-          <div className="mono muted" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>{window.USE_FB && !DATOS_FUSION ? 'Conectando con Firebase…' : 'Cargando…'}</div>
+          <div className="mono muted" style={{ fontSize: 'var(--fs-s)' }}>{window.USE_FB && !DATOS_FUSION ? 'Conectando con Firebase…' : 'Cargando…'}</div>
           <div style={{ width: 180, height: 2, background: '#1A1A1A', overflow: 'hidden' }}><div className="loadbar" /></div>
         </>
       )}
@@ -3509,7 +3509,7 @@ function App({ onLogout, usuarioFusion = null }) {
       <div style={{ width: 420, maxWidth: '100%', textAlign: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 22, color: 'var(--accent)' }}><LoopaMark height={21} largo /></div>
         <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 18, padding: '32px 28px' }}>
-          <div className="mono" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.18em', textTransform: 'uppercase', color: cuentaEnEspera === 'rejected' ? 'var(--danger)' : 'var(--warn)', marginBottom: 12 }}>
+          <div className="mono" style={{ fontSize: 'var(--fs-s)', color: cuentaEnEspera === 'rejected' ? 'var(--danger)' : 'var(--warn)', marginBottom: 12 }}>
             {cuentaEnEspera === 'rejected' ? 'Acceso no aprobado' : 'Esperando aprobación'}
           </div>
           <div className="muted" style={{ fontSize: 'var(--fs-m)', lineHeight: 1.6 }}>
@@ -3743,7 +3743,7 @@ function RootConDatos() {
     return auth.onAuthStateChanged(u => { setAuthUser(u); setChecked(true); });
   }, []);
   if (!auth) return <App onLogout={null} />;
-  if (!checked) return <div className="boot"><div className="mono dim" style={{ fontSize: 'var(--fs-s)', letterSpacing: '0.22em', textTransform: 'uppercase' }}>Verificando sesión…</div></div>;
+  if (!checked) return <div className="boot"><div className="mono dim" style={{ fontSize: 'var(--fs-s)' }}>Verificando sesión…</div></div>;
   if (!authUser) return <LoginScreen />;
   // key: otra persona = otra App (otra cola, otros datos).
   return <App key={authUser.uid} usuarioFusion={FUSION_FB ? authUser.uid : null} onLogout={() => auth.signOut()} />;

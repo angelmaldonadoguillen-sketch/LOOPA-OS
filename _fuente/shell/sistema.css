@@ -191,3 +191,43 @@ button:focus-visible, .btn:focus-visible, a:focus-visible, [role="button"]:focus
 .badge.e-revision   { color: rgb(94, 135, 201); }  .badge.e-revision .pip   { background: rgb(94, 135, 201); }
 .badge.e-entregado  { color: rgb(82, 158, 114); }  .badge.e-entregado .pip  { background: rgb(82, 158, 114); }
 .badge.e-cancelado  { color: rgba(255, 255, 255, 0.282); } .badge.e-cancelado .pip { background: rgba(255, 255, 255, 0.282); }
+
+/* ── 14. La estética nueva en todo el sistema ──────────────────── */
+/* Ángel (2026-11-18): «aplica ajustes y cambios de estilo en todo el sistema
+   de LOOPA de esta nueva estética». Recorrido pantalla por pantalla; esto es
+   lo que quedaba del estilo viejo. */
+
+/* Cifras: peso firme (Apple/Notion), no el trazo finísimo de antes. */
+.kpi .value, .rh-num, .pr-kpi-valor, .order-hero .ord-num { font-weight: 600; letter-spacing: -0.02em; }
+.top-row .rank, .line-item .idx, .kpi .label .idx { font-size: 13px; font-weight: 500; color: var(--muted); }
+
+/* La cifra destacada ya no es un bloque blanco invertido: tarjeta con un
+   tinte azul de Notion. */
+.kpi.accent { background: color-mix(in srgb, rgb(94, 135, 201) 16%, var(--card)); color: var(--text); border-color: color-mix(in srgb, rgb(94, 135, 201) 38%, transparent); }
+.kpi.accent .label, .kpi.accent .unit, .kpi.accent .delta { color: var(--muted); }
+
+/* Gráficos: barras grises suaves; el mes en curso, azul de Notion. */
+.bar-col .bar { background: rgba(255, 255, 255, 0.14); border-radius: 6px 6px 2px 2px; }
+.bar-col .bar.ghost { background: rgba(255, 255, 255, 0.06); }
+.bar-col:hover .bar { background: rgba(255, 255, 255, 0.24); }
+.bar-col:last-child .bar:not(.ghost) { background: rgb(94, 135, 201); }
+.channel-row .trk { background: rgba(255, 255, 255, 0.07); border-radius: 999px; overflow: hidden; }
+.channel-row .trk span { background: rgb(94, 135, 201); border-radius: 999px; }
+
+/* Etiquetas sin contorno: relleno suave (las de color, teñidas con su tono). */
+.srv-chip, .tag-edit, .period-btn, .service-availability {
+  border-color: transparent; background: rgba(255, 255, 255, 0.06); border-radius: 999px; font-family: inherit;
+}
+.service-model, .service-recommended, .service-special-client {
+  border-color: transparent; background: color-mix(in srgb, currentColor 14%, transparent); font-family: inherit;
+}
+.estudio.estudio .paquete-chip { border-color: transparent; background: rgba(255, 255, 255, 0.08); color: var(--text-dim); font-weight: 500; }
+
+/* Nueva venta: los pasos como control segmentado y el buscador con relleno. */
+.stepper { border: 0; padding: 3px; gap: 3px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); }
+.step { border-right: 0; border-radius: 9px; background: transparent; padding: 10px 16px; }
+.step.active { background: rgba(255, 255, 255, 0.12); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
+.step.active::after { display: none; }
+.step .n { font-family: inherit; letter-spacing: 0; }
+.search-big { background: rgba(255, 255, 255, 0.05); border-color: transparent; border-radius: 10px; }
+.search-big:focus-within { border-color: rgba(255, 255, 255, 0.3); box-shadow: none; background: rgba(255, 255, 255, 0.07); }

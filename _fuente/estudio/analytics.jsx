@@ -125,7 +125,8 @@ const AnalyticsSection = ({ projects, clients, team, currentUserId }) => {
       <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-5">
 
         {/* ── KPI cards ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
+        {/* Sin presupuesto cargado (no se usa: la plata vive en la venta), la tarjeta no aparece. */}
+        <div className={totalBudget > 0 ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4" : "grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4"}>
           <KpiCard
             icon="layers"
             label="Tareas activas"
@@ -133,13 +134,15 @@ const AnalyticsSection = ({ projects, clients, team, currentUserId }) => {
             sub={`${reportable.length} en total · ${favCount} favorito${favCount !== 1 ? 's' : ''}`}
             color="var(--accent)"
           />
-          <KpiCard
-            icon="zap"
-            label="Presupuesto activo"
-            value={fmtCurrency(totalBudget)}
-            sub={totalBudget > 0 ? 'en tareas activas' : 'sin presupuesto registrado'}
-            color="var(--resource-teal)"
-          />
+          {totalBudget > 0 && (
+            <KpiCard
+              icon="zap"
+              label="Presupuesto activo"
+              value={fmtCurrency(totalBudget)}
+              sub={totalBudget > 0 ? 'en tareas activas' : 'sin presupuesto registrado'}
+              color="var(--resource-teal)"
+            />
+          )}
           <KpiCard
             icon="check"
             label="Tasa de entrega"
@@ -248,7 +251,7 @@ const AnalyticsSection = ({ projects, clients, team, currentUserId }) => {
                         style={{
                           height:    `${Math.max(pct, 3)}%`,
                           minHeight: 4,
-                          background: isCurrent ? 'var(--accent)' : 'var(--surface-3)',
+                          background: isCurrent ? 'var(--resource-blue)' : 'var(--surface-3)',
                         }}
                       />
                     </div>
